@@ -1,11 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowDown, Truck, Clock } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '../pages/utils';
 
 export default function HeroSection() {
-  const scrollToProducts = () => {
-    document.getElementById('warehouse')?.scrollIntoView({ behavior: 'smooth' });
-  };
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -94,18 +93,19 @@ export default function HeroSection() {
         </motion.p>
 
         {/* CTA Button */}
-        <motion.button
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={scrollToProducts}
-          className="group bg-orange-500 hover:bg-orange-600 text-zinc-900 font-bold text-lg px-8 py-4 rounded-sm transition-all duration-300 inline-flex items-center gap-3 shadow-lg shadow-orange-500/30"
-        >
-          <span>כניסה למחסן</span>
-          <ArrowDown className="w-5 h-5 group-hover:translate-y-1 transition-transform" />
-        </motion.button>
+        <Link to={createPageUrl('Shop')}>
+          <motion.button
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="group bg-orange-500 hover:bg-orange-600 text-zinc-900 font-bold text-lg px-8 py-4 rounded-sm transition-all duration-300 inline-flex items-center gap-3 shadow-lg shadow-orange-500/30"
+          >
+            <span>כניסה לחנות</span>
+            <ArrowDown className="w-5 h-5 group-hover:translate-y-1 transition-transform" />
+          </motion.button>
+        </Link>
 
         {/* Stats bar */}
         <motion.div
