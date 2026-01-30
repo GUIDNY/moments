@@ -1,17 +1,42 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Camera, Zap, Clock } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Navbar from '@/components/Navbar';
 import HeroSection from '@/components/HeroSection';
 import ProductCard from '@/components/ProductCard';
+import ProductModal from '@/components/ProductModal';
 import Footer from '@/components/Footer';
 
 export default function Home() {
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const queryClient = useQueryClient();
+
   const { data: featuredProducts = [] } = useQuery({
     queryKey: ['featured-products'],
     queryFn: () => base44.entities.Product.filter({ show_on_homepage: true }, '-created_date', 6),
+  });
+
+  const addToCartMutation = useMutation({
+    mutationFn: async (item) => {
+      const { data: cartItems } = await base44.entities.CartItem.list();
+      const existingItem = cartItems.find(
+        ci => ci.product_id === item.product_id && ci.size === item.size
+      );
+      
+      if (existingItem) {
+        return base44.entities.CartItem.update(existingItem.id, {
+          quantity: existingItem.quantity + item.quantity
+        });
+      } else {
+        return base44.entities.CartItem.create(item);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cart'] });
+      setSelectedProduct(null);
+    }
   });
 
   return (
@@ -104,13 +129,20 @@ export default function Home() {
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
                 >
-                  <ProductCard product={product} onClick={() => {}} />
+                  <ProductCard product={product} onSelect={setSelectedProduct} />
                 </motion.div>
               ))}
             </div>
           </div>
         </section>
       )}
+
+      <ProductModal
+        product={selectedProduct}
+        isOpen={!!selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+        onAddToCart={(item) => addToCartMutation.mutateAsync(item)}
+      />
 
       <Footer />
     </div>
