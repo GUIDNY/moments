@@ -1,11 +1,19 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Camera, Zap, Clock } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
 import Navbar from '@/components/Navbar';
 import HeroSection from '@/components/HeroSection';
+import ProductCard from '@/components/ProductCard';
 import Footer from '@/components/Footer';
 
 export default function Home() {
+  const { data: featuredProducts = [] } = useQuery({
+    queryKey: ['featured-products'],
+    queryFn: () => base44.entities.Product.filter({ show_on_homepage: true }, '-created_date', 6),
+  });
+
   return (
     <div className="min-h-screen bg-zinc-900" dir="rtl">
       <Navbar />
@@ -70,6 +78,39 @@ export default function Home() {
           </motion.div>
         </div>
       </section>
+
+      {/* Featured Products */}
+      {featuredProducts.length > 0 && (
+        <section className="py-20 px-4">
+          <div className="max-w-7xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-12"
+            >
+              <h2 className="text-3xl md:text-4xl font-black text-white mb-4">
+                הדרופים הכי חמים עכשיו
+              </h2>
+              <p className="text-zinc-400">מוצרים נבחרים מהאירועים הגדולים</p>
+            </motion.div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuredProducts.map((product, i) => (
+                <motion.div
+                  key={product.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                >
+                  <ProductCard product={product} onClick={() => {}} />
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <Footer />
     </div>

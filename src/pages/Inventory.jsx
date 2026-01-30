@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package, Plus, Edit, Trash2, Loader2, Save, X } from 'lucide-react';
+import { Package, Plus, Edit, Trash2, Loader2, Save, X, Upload, Video, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,6 +13,8 @@ import Navbar from '@/components/Navbar';
 export default function Inventory() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: products = [], isLoading } = useQuery({
@@ -45,6 +47,22 @@ export default function Inventory() {
     }
   });
 
+  const handleFileUpload = async (file, type) => {
+    if (type === 'image') setUploadingImage(true);
+    if (type === 'video') setUploadingVideo(true);
+    
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      return file_url;
+    } catch (error) {
+      console.error('Upload error:', error);
+      return null;
+    } finally {
+      if (type === 'image') setUploadingImage(false);
+      if (type === 'video') setUploadingVideo(false);
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -53,12 +71,14 @@ export default function Inventory() {
       description: formData.get('description'),
       price: parseFloat(formData.get('price')),
       image_url: formData.get('image_url'),
+      video_url: formData.get('video_url'),
       category: formData.get('category'),
       product_type: formData.get('product_type'),
       event_date: formData.get('event_date'),
       drop_ends: formData.get('drop_ends'),
       stock_status: formData.get('stock_status'),
       is_trending: formData.get('is_trending') === 'true',
+      show_on_homepage: formData.get('show_on_homepage') === 'true',
       sizes: formData.get('sizes').split(',').map(s => s.trim()),
     };
 
@@ -238,14 +258,97 @@ export default function Inventory() {
                   </div>
                 </div>
 
+                <div className="grid md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="text-sm text-zinc-400 mb-2 block">תמונה</label>
+                    <div className="flex gap-2">
+                      <Input
+                        name="image_url"
+                        type="url"
+                        defaultValue={editingProduct?.image_url}
+                        placeholder="URL תמונה"
+                        className="bg-zinc-900 border-zinc-700 text-white flex-1"
+                      />
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const url = await handleFileUpload(file, 'image');
+                              if (url) e.target.form.image_url.value = url;
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-zinc-700 text-zinc-400 hover:bg-zinc-700"
+                          disabled={uploadingImage}
+                        >
+                          {uploadingImage ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <ImageIcon className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-zinc-400 mb-2 block">סרטון</label>
+                    <div className="flex gap-2">
+                      <Input
+                        name="video_url"
+                        type="url"
+                        defaultValue={editingProduct?.video_url}
+                        placeholder="URL סרטון"
+                        className="bg-zinc-900 border-zinc-700 text-white flex-1"
+                      />
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          accept="video/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const url = await handleFileUpload(file, 'video');
+                              if (url) e.target.form.video_url.value = url;
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-zinc-700 text-zinc-400 hover:bg-zinc-700"
+                          disabled={uploadingVideo}
+                        >
+                          {uploadingVideo ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Video className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="mb-6">
-                  <label className="text-sm text-zinc-400 mb-2 block">URL תמונה</label>
-                  <Input
-                    name="image_url"
-                    type="url"
-                    defaultValue={editingProduct?.image_url}
-                    className="bg-zinc-900 border-zinc-700 text-white"
-                  />
+                  <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="show_on_homepage"
+                      value="true"
+                      defaultChecked={editingProduct?.show_on_homepage}
+                      className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-orange-500 focus:ring-orange-500"
+                    />
+                    <span>הצג מוצר זה בדף הבית</span>
+                  </label>
                 </div>
 
                 <div className="flex gap-3">
