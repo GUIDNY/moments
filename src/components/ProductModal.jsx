@@ -8,15 +8,25 @@ import { base44 } from '@/api/base44Client';
 export default function ProductModal({ product, isOpen, onClose, onAddToCart }) {
   const [selectedSize, setSelectedSize] = useState(null);
   const [quantity, setQuantity] = useState(1);
-  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+  const [timeLeft, setTimeLeft] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
 
   useEffect(() => {
-    if (!product?.drop_ends) return;
+    if (!product?.drop_ends) {
+      setTimeLeft(null);
+      return;
+    }
 
     const updateTimer = () => {
       const now = new Date().getTime();
       const end = new Date(product.drop_ends).getTime();
+      
+      // Check if date is valid
+      if (isNaN(end)) {
+        setTimeLeft(null);
+        return;
+      }
+      
       const diff = end - now;
 
       if (diff <= 0) {
@@ -119,24 +129,26 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart }) 
 
             <div className="overflow-y-auto max-h-[calc(90vh-80px)] md:max-h-[calc(90vh-120px)]">
               {/* Timer Banner */}
-              <div className="bg-zinc-900 px-4 py-3 flex items-center justify-center gap-4 text-white">
-                <Clock className="w-5 h-5 text-orange-500" />
-                <span className="text-sm">הדרופ נסגר בעוד:</span>
-                <div className="flex gap-2">
-                  {[
-                    { value: timeLeft.hours, label: 'שעות' },
-                    { value: timeLeft.minutes, label: 'דקות' },
-                    { value: timeLeft.seconds, label: 'שניות' }
-                  ].map((item, i) => (
-                    <div key={i} className="bg-zinc-800 px-3 py-1 rounded text-center min-w-[60px]">
-                      <div className="text-xl font-mono font-bold text-orange-500">
-                        {String(item.value).padStart(2, '0')}
+              {timeLeft !== null && (
+                <div className="bg-zinc-900 px-4 py-3 flex items-center justify-center gap-4 text-white">
+                  <Clock className="w-5 h-5 text-orange-500" />
+                  <span className="text-sm">הדרופ נסגר בעוד:</span>
+                  <div className="flex gap-2">
+                    {[
+                      { value: timeLeft.hours, label: 'שעות' },
+                      { value: timeLeft.minutes, label: 'דקות' },
+                      { value: timeLeft.seconds, label: 'שניות' }
+                    ].map((item, i) => (
+                      <div key={i} className="bg-zinc-800 px-3 py-1 rounded text-center min-w-[60px]">
+                        <div className="text-xl font-mono font-bold text-orange-500">
+                          {String(item.value).padStart(2, '0')}
+                        </div>
+                        <div className="text-[10px] text-zinc-500">{item.label}</div>
                       </div>
-                      <div className="text-[10px] text-zinc-500">{item.label}</div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="p-4 md:p-6 grid md:grid-cols-2 gap-6">
                 {/* Product Image - Stamp/Barcode style */}
