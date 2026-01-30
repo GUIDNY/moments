@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import Navbar from '@/components/Navbar';
 
 export default function Inventory() {
   const [editingProduct, setEditingProduct] = useState(null);
@@ -79,8 +80,9 @@ export default function Inventory() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-900 py-8 px-4" dir="rtl">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-zinc-900" dir="rtl">
+      <Navbar />
+      <div className="max-w-7xl mx-auto py-8 px-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>

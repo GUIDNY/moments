@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Store, Loader2 } from 'lucide-react';
 
+import Navbar from '@/components/Navbar';
 import FilterBar from '@/components/FilterBar';
 import ProductCard from '@/components/ProductCard';
 import ProductModal from '@/components/ProductModal';
@@ -88,6 +89,8 @@ export default function Shop() {
 
   return (
     <div className="min-h-screen bg-zinc-900" dir="rtl">
+      <Navbar />
+      
       {/* Floating Cart Button */}
       <motion.button
         initial={{ scale: 0 }}
