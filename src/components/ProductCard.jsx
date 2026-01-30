@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Clock, TrendingUp, AlertTriangle, Calendar, Package } from 'lucide-react';
+import { Clock, TrendingUp, AlertTriangle, Calendar, Package, Video } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default function ProductCard({ product, onSelect }) {
@@ -116,6 +116,17 @@ export default function ProductCard({ product, onSelect }) {
             {getCategoryLabel(product.category)}
           </Badge>
         </div>
+
+        {/* Video indicator */}
+        {product.video_url && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="absolute top-3 left-3 bg-orange-500 text-zinc-900 p-2 rounded-full shadow-lg"
+          >
+            <Video className="w-4 h-4" />
+          </motion.div>
+        )}
       </div>
 
       {/* Product Info - Shipping label style */}

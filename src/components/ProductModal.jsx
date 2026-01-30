@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Clock, Package, Calendar, CheckCircle, Truck, AlertTriangle, Minus, Plus } from 'lucide-react';
+import { X, Clock, Package, Calendar, CheckCircle, Truck, AlertTriangle, Minus, Plus, Video, Play } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { base44 } from '@/api/base44Client';
@@ -10,6 +10,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart }) 
   const [quantity, setQuantity] = useState(1);
   const [timeLeft, setTimeLeft] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
 
   useEffect(() => {
     if (!product?.drop_ends) {
@@ -50,6 +51,7 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart }) 
     if (isOpen) {
       setSelectedSize(null);
       setQuantity(1);
+      setShowVideo(false);
     }
   }, [isOpen]);
 
@@ -151,10 +153,17 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart }) 
               )}
 
               <div className="p-4 md:p-6 grid md:grid-cols-2 gap-6">
-                {/* Product Image - Stamp/Barcode style */}
+                {/* Product Image/Video - Stamp/Barcode style */}
                 <div className="relative">
-                  <div className="aspect-square bg-white border-4 border-dashed border-zinc-300 rounded-sm p-4">
-                    {product.image_url ? (
+                  <div className="aspect-square bg-white border-4 border-dashed border-zinc-300 rounded-sm p-4 relative">
+                    {showVideo && product.video_url ? (
+                      <video
+                        src={product.video_url}
+                        controls
+                        autoPlay
+                        className="w-full h-full object-contain"
+                      />
+                    ) : product.image_url ? (
                       <img
                         src={product.image_url}
                         alt={product.name}
@@ -164,6 +173,28 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart }) 
                       <div className="w-full h-full flex items-center justify-center bg-zinc-100">
                         <Package className="w-24 h-24 text-zinc-300" />
                       </div>
+                    )}
+
+                    {/* 360 Video Button */}
+                    {product.video_url && (
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setShowVideo(!showVideo)}
+                        className="absolute bottom-4 left-4 bg-orange-500 hover:bg-orange-400 text-zinc-900 px-4 py-2 rounded-sm font-bold text-sm flex items-center gap-2 shadow-lg"
+                      >
+                        {showVideo ? (
+                          <>
+                            <Package className="w-4 h-4" />
+                            תמונה
+                          </>
+                        ) : (
+                          <>
+                            <Play className="w-4 h-4" />
+                            360° צפייה
+                          </>
+                        )}
+                      </motion.button>
                     )}
                   </div>
                   
