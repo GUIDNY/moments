@@ -2,24 +2,26 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package, Plus, Edit, Trash2, Loader2, Save, X, Upload, Video, Image as ImageIcon } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { Package, Plus, Edit, Trash2, Loader2, Save, X, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import Navbar from '@/components/Navbar';
+import FileDropZone from '@/components/inventory/FileDropZone';
 
 export default function Inventory() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
   const queryClient = useQueryClient();
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['products'],
-    queryFn: () => base44.entities.Product.list('-created_date'),
+    queryFn: () => base44.entities.Product.list('display_order'),
   });
 
   const createMutation = useMutation({
@@ -47,19 +49,36 @@ export default function Inventory() {
     }
   });
 
-  const handleFileUpload = async (file, type) => {
-    if (type === 'image') setUploadingImage(true);
-    if (type === 'video') setUploadingVideo(true);
-    
+  const handleFileUpload = async (file) => {
+    if (!file) return null;
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       return file_url;
     } catch (error) {
       console.error('Upload error:', error);
       return null;
-    } finally {
-      if (type === 'image') setUploadingImage(false);
-      if (type === 'video') setUploadingVideo(false);
+    }
+  };
+
+  const handleDragEnd = async (result) => {
+    if (!result.destination) return;
+
+    const items = Array.from(products);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    // Update display_order for all affected items
+    const updates = items.map((item, index) => ({
+      id: item.id,
+      display_order: index
+    }));
+
+    // Optimistically update UI
+    queryClient.setQueryData(['products'], items);
+
+    // Update in backend
+    for (const update of updates) {
+      await base44.entities.Product.update(update.id, { display_order: update.display_order });
     }
   };
 
@@ -70,8 +89,8 @@ export default function Inventory() {
       name: formData.get('name'),
       description: formData.get('description'),
       price: parseFloat(formData.get('price')),
-      image_url: formData.get('image_url'),
-      video_url: formData.get('video_url'),
+      image_url: imageUrl || formData.get('image_url'),
+      video_url: videoUrl || formData.get('video_url'),
       category: formData.get('category'),
       product_type: formData.get('product_type'),
       event_date: formData.get('event_date'),
@@ -79,6 +98,7 @@ export default function Inventory() {
       stock_status: formData.get('stock_status'),
       is_trending: formData.get('is_trending') === 'true',
       show_on_homepage: formData.get('show_on_homepage') === 'true',
+      display_order: editingProduct?.display_order || products.length,
       sizes: formData.get('sizes').split(',').map(s => s.trim()),
     };
 
@@ -87,6 +107,9 @@ export default function Inventory() {
     } else {
       createMutation.mutate(data);
     }
+    
+    setImageUrl('');
+    setVideoUrl('');
   };
 
   const getCategoryLabel = (cat) => {
@@ -112,6 +135,8 @@ export default function Inventory() {
           <Button
             onClick={() => {
               setEditingProduct(null);
+              setImageUrl('');
+              setVideoUrl('');
               setShowForm(!showForm);
             }}
             className="bg-orange-500 hover:bg-orange-400 text-zinc-900 font-bold"
@@ -261,80 +286,40 @@ export default function Inventory() {
                 <div className="grid md:grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="text-sm text-zinc-400 mb-2 block">תמונה</label>
-                    <div className="flex gap-2">
-                      <Input
-                        name="image_url"
-                        type="url"
-                        defaultValue={editingProduct?.image_url}
-                        placeholder="URL תמונה"
-                        className="bg-zinc-900 border-zinc-700 text-white flex-1"
-                      />
-                      <label className="cursor-pointer">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const url = await handleFileUpload(file, 'image');
-                              if (url) e.target.form.image_url.value = url;
-                            }
-                          }}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="border-zinc-700 text-zinc-400 hover:bg-zinc-700"
-                          disabled={uploadingImage}
-                        >
-                          {uploadingImage ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <ImageIcon className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </label>
-                    </div>
+                    <Input
+                      name="image_url"
+                      type="hidden"
+                      value={imageUrl || editingProduct?.image_url || ''}
+                    />
+                    <FileDropZone
+                      onFileUpload={async (file) => {
+                        const url = await handleFileUpload(file);
+                        setImageUrl(url);
+                        return url;
+                      }}
+                      accept="image/*"
+                      type="image"
+                      currentUrl={imageUrl || editingProduct?.image_url}
+                    />
                   </div>
 
                   <div>
                     <label className="text-sm text-zinc-400 mb-2 block">סרטון</label>
-                    <div className="flex gap-2">
-                      <Input
-                        name="video_url"
-                        type="url"
-                        defaultValue={editingProduct?.video_url}
-                        placeholder="URL סרטון"
-                        className="bg-zinc-900 border-zinc-700 text-white flex-1"
-                      />
-                      <label className="cursor-pointer">
-                        <input
-                          type="file"
-                          accept="video/*"
-                          className="hidden"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const url = await handleFileUpload(file, 'video');
-                              if (url) e.target.form.video_url.value = url;
-                            }
-                          }}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="border-zinc-700 text-zinc-400 hover:bg-zinc-700"
-                          disabled={uploadingVideo}
-                        >
-                          {uploadingVideo ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Video className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </label>
-                    </div>
+                    <Input
+                      name="video_url"
+                      type="hidden"
+                      value={videoUrl || editingProduct?.video_url || ''}
+                    />
+                    <FileDropZone
+                      onFileUpload={async (file) => {
+                        const url = await handleFileUpload(file);
+                        setVideoUrl(url);
+                        return url;
+                      }}
+                      accept="video/*"
+                      type="video"
+                      currentUrl={videoUrl || editingProduct?.video_url}
+                    />
                   </div>
                 </div>
 
@@ -362,6 +347,8 @@ export default function Inventory() {
                     onClick={() => {
                       setShowForm(false);
                       setEditingProduct(null);
+                      setImageUrl('');
+                      setVideoUrl('');
                     }}
                     className="border-zinc-700 text-zinc-400 hover:bg-zinc-800"
                   >
@@ -381,85 +368,106 @@ export default function Inventory() {
           </div>
         ) : (
           <div className="bg-zinc-800 rounded-sm border-2 border-zinc-700 overflow-hidden">
+            <div className="p-4 bg-zinc-900 border-b border-zinc-700">
+              <p className="text-sm text-zinc-400">גרור שורות כדי לשנות את סדר התצוגה</p>
+            </div>
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-zinc-900 border-b border-zinc-700">
-                  <tr>
-                    <th className="text-right p-4 text-sm font-bold text-zinc-400">מוצר</th>
-                    <th className="text-right p-4 text-sm font-bold text-zinc-400">קטגוריה</th>
-                    <th className="text-right p-4 text-sm font-bold text-zinc-400">מחיר</th>
-                    <th className="text-right p-4 text-sm font-bold text-zinc-400">מלאי</th>
-                    <th className="text-right p-4 text-sm font-bold text-zinc-400">סטטוס</th>
-                    <th className="text-right p-4 text-sm font-bold text-zinc-400">פעולות</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.map((product) => (
-                    <motion.tr
-                      key={product.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="border-b border-zinc-700 hover:bg-zinc-700/30 transition-colors"
-                    >
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          {product.image_url ? (
-                            <img src={product.image_url} alt={product.name} className="w-12 h-12 object-cover rounded" />
-                          ) : (
-                            <div className="w-12 h-12 bg-zinc-700 rounded flex items-center justify-center">
-                              <Package className="w-6 h-6 text-zinc-500" />
-                            </div>
-                          )}
-                          <div>
-                            <div className="font-medium text-white">{product.name}</div>
-                            <div className="text-xs text-zinc-500">{getTypeLabel(product.product_type)}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <Badge className="bg-zinc-700 text-zinc-300">
-                          {getCategoryLabel(product.category)}
-                        </Badge>
-                      </td>
-                      <td className="p-4 text-white font-bold">₪{product.price}</td>
-                      <td className="p-4 text-zinc-400 text-sm">{product.sizes?.join(', ')}</td>
-                      <td className="p-4">
-                        <Badge className={
-                          product.stock_status === 'sold_out' ? 'bg-red-500/20 text-red-400' :
-                          product.stock_status === 'low_stock' ? 'bg-orange-500/20 text-orange-400' :
-                          'bg-green-500/20 text-green-400'
-                        }>
-                          {product.stock_status === 'sold_out' ? 'אזל' :
-                           product.stock_status === 'low_stock' ? 'מלאי נמוך' : 'במלאי'}
-                        </Badge>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setEditingProduct(product);
-                              setShowForm(true);
-                            }}
-                            className="border-zinc-700 text-zinc-400 hover:bg-zinc-700"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => deleteMutation.mutate(product.id)}
-                            className="border-red-500/30 text-red-400 hover:bg-red-500/20"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
+              <DragDropContext onDragEnd={handleDragEnd}>
+                <table className="w-full">
+                  <thead className="bg-zinc-900 border-b border-zinc-700">
+                    <tr>
+                      <th className="w-8"></th>
+                      <th className="text-right p-4 text-sm font-bold text-zinc-400">מוצר</th>
+                      <th className="text-right p-4 text-sm font-bold text-zinc-400">קטגוריה</th>
+                      <th className="text-right p-4 text-sm font-bold text-zinc-400">מחיר</th>
+                      <th className="text-right p-4 text-sm font-bold text-zinc-400">מלאי</th>
+                      <th className="text-right p-4 text-sm font-bold text-zinc-400">סטטוס</th>
+                      <th className="text-right p-4 text-sm font-bold text-zinc-400">פעולות</th>
+                    </tr>
+                  </thead>
+                  <Droppable droppableId="products">
+                    {(provided) => (
+                      <tbody {...provided.droppableProps} ref={provided.innerRef}>
+                        {products.map((product, index) => (
+                          <Draggable key={product.id} draggableId={product.id} index={index}>
+                            {(provided, snapshot) => (
+                              <tr
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className={`border-b border-zinc-700 transition-colors ${
+                                  snapshot.isDragging ? 'bg-zinc-700' : 'hover:bg-zinc-700/30'
+                                }`}
+                              >
+                                <td className="p-2" {...provided.dragHandleProps}>
+                                  <GripVertical className="w-5 h-5 text-zinc-500" />
+                                </td>
+                                <td className="p-4">
+                                  <div className="flex items-center gap-3">
+                                    {product.image_url ? (
+                                      <img src={product.image_url} alt={product.name} className="w-12 h-12 object-cover rounded" />
+                                    ) : (
+                                      <div className="w-12 h-12 bg-zinc-700 rounded flex items-center justify-center">
+                                        <Package className="w-6 h-6 text-zinc-500" />
+                                      </div>
+                                    )}
+                                    <div>
+                                      <div className="font-medium text-white">{product.name}</div>
+                                      <div className="text-xs text-zinc-500">{getTypeLabel(product.product_type)}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="p-4">
+                                  <Badge className="bg-zinc-700 text-zinc-300">
+                                    {getCategoryLabel(product.category)}
+                                  </Badge>
+                                </td>
+                                <td className="p-4 text-white font-bold">₪{product.price}</td>
+                                <td className="p-4 text-zinc-400 text-sm">{product.sizes?.join(', ')}</td>
+                                <td className="p-4">
+                                  <Badge className={
+                                    product.stock_status === 'sold_out' ? 'bg-red-500/20 text-red-400' :
+                                    product.stock_status === 'low_stock' ? 'bg-orange-500/20 text-orange-400' :
+                                    'bg-green-500/20 text-green-400'
+                                  }>
+                                    {product.stock_status === 'sold_out' ? 'אזל' :
+                                     product.stock_status === 'low_stock' ? 'מלאי נמוך' : 'במלאי'}
+                                  </Badge>
+                                </td>
+                                <td className="p-4">
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setEditingProduct(product);
+                                        setImageUrl(product.image_url || '');
+                                        setVideoUrl(product.video_url || '');
+                                        setShowForm(true);
+                                      }}
+                                      className="border-zinc-700 text-zinc-400 hover:bg-zinc-700"
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => deleteMutation.mutate(product.id)}
+                                      className="border-red-500/30 text-red-400 hover:bg-red-500/20"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </tbody>
+                    )}
+                  </Droppable>
+                </table>
+              </DragDropContext>
             </div>
           </div>
         )}
