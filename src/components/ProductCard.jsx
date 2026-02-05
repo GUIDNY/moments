@@ -91,11 +91,20 @@ export default function ProductCard({ product, onSelect }) {
       {/* Product Image */}
       <div className="relative aspect-square bg-zinc-900 overflow-hidden">
         {product.image_url ? (
-          <img 
-            src={product.image_url} 
-            alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
+          <div className="relative w-full h-full">
+            <img 
+              src={product.image_url} 
+              alt={product.name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+            {product.design_image_url && (
+              <img
+                src={product.design_image_url}
+                alt="עיצוב"
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/2 h-1/2 object-contain"
+              />
+            )}
+          </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <Package className="w-20 h-20 text-zinc-700" />

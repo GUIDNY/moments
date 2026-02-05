@@ -164,11 +164,20 @@ export default function ProductModal({ product, isOpen, onClose, onAddToCart }) 
                         className="w-full h-full object-contain"
                       />
                     ) : product.image_url ? (
-                      <img
-                        src={product.image_url}
-                        alt={product.name}
-                        className="w-full h-full object-contain"
-                      />
+                      <div className="relative w-full h-full">
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
+                          className="w-full h-full object-contain"
+                        />
+                        {product.design_image_url && (
+                          <img
+                            src={product.design_image_url}
+                            alt="עיצוב"
+                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/2 h-1/2 object-contain"
+                          />
+                        )}
+                      </div>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-zinc-100">
                         <Package className="w-24 h-24 text-zinc-300" />
