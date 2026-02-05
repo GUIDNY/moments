@@ -50,6 +50,17 @@ export default function Navbar() {
               </motion.button>
             </Link>
 
+            <Link to={createPageUrl('CustomDesign')}>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-zinc-900 hover:from-orange-400 hover:to-orange-500 rounded-sm transition-colors font-bold"
+              >
+                <span className="hidden md:inline">🎨 צור עיצוב</span>
+                <span className="md:hidden">🎨</span>
+              </motion.button>
+            </Link>
+
             {isAdmin && (
               <Link to={createPageUrl('Inventory')}>
                 <motion.button
