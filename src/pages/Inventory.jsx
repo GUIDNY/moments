@@ -17,6 +17,7 @@ export default function Inventory() {
   const [showForm, setShowForm] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
+  const [designImageUrl, setDesignImageUrl] = useState('');
   const queryClient = useQueryClient();
 
   const { data: products = [], isLoading } = useQuery({
@@ -91,6 +92,7 @@ export default function Inventory() {
       price: parseFloat(formData.get('price')),
       image_url: imageUrl || formData.get('image_url'),
       video_url: videoUrl || formData.get('video_url'),
+      design_image_url: designImageUrl || formData.get('design_image_url'),
       category: formData.get('category'),
       product_type: formData.get('product_type'),
       event_date: formData.get('event_date'),
@@ -110,6 +112,7 @@ export default function Inventory() {
     
     setImageUrl('');
     setVideoUrl('');
+    setDesignImageUrl('');
   };
 
   const getCategoryLabel = (cat) => {
@@ -137,6 +140,7 @@ export default function Inventory() {
               setEditingProduct(null);
               setImageUrl('');
               setVideoUrl('');
+              setDesignImageUrl('');
               setShowForm(!showForm);
             }}
             className="bg-orange-500 hover:bg-orange-400 text-zinc-900 font-bold"
@@ -283,9 +287,9 @@ export default function Inventory() {
                   </div>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4 mb-4">
+                <div className="grid md:grid-cols-3 gap-4 mb-4">
                   <div>
-                    <label className="text-sm text-zinc-400 mb-2 block">תמונה</label>
+                    <label className="text-sm text-zinc-400 mb-2 block">תמונת מוצר</label>
                     <Input
                       name="image_url"
                       type="hidden"
@@ -304,7 +308,7 @@ export default function Inventory() {
                   </div>
 
                   <div>
-                    <label className="text-sm text-zinc-400 mb-2 block">סרטון</label>
+                    <label className="text-sm text-zinc-400 mb-2 block">סרטון 360°</label>
                     <Input
                       name="video_url"
                       type="hidden"
@@ -319,6 +323,25 @@ export default function Inventory() {
                       accept="video/*"
                       type="video"
                       currentUrl={videoUrl || editingProduct?.video_url}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-zinc-400 mb-2 block">עיצוב מותאם אישית</label>
+                    <Input
+                      name="design_image_url"
+                      type="hidden"
+                      value={designImageUrl || editingProduct?.design_image_url || ''}
+                    />
+                    <FileDropZone
+                      onFileUpload={async (file) => {
+                        const url = await handleFileUpload(file);
+                        setDesignImageUrl(url);
+                        return url;
+                      }}
+                      accept="image/*"
+                      type="image"
+                      currentUrl={designImageUrl || editingProduct?.design_image_url}
                     />
                   </div>
                 </div>
@@ -349,6 +372,7 @@ export default function Inventory() {
                       setEditingProduct(null);
                       setImageUrl('');
                       setVideoUrl('');
+                      setDesignImageUrl('');
                     }}
                     className="border-zinc-700 text-zinc-400 hover:bg-zinc-800"
                   >
@@ -442,6 +466,7 @@ export default function Inventory() {
                                         setEditingProduct(product);
                                         setImageUrl(product.image_url || '');
                                         setVideoUrl(product.video_url || '');
+                                        setDesignImageUrl(product.design_image_url || '');
                                         setShowForm(true);
                                       }}
                                       className="border-zinc-700 text-zinc-400 hover:bg-zinc-700"
