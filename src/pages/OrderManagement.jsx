@@ -246,6 +246,12 @@ ${order.notes ? `\nהערות: ${order.notes}` : ''}
                           <span className="text-zinc-500">מחיר:</span>
                           <span className="text-orange-500 font-bold">₪{order.price}</span>
                         </div>
+                        {order.overlay_text && (
+                          <div className="flex gap-2 pt-1">
+                            <span className="text-zinc-500">טקסט:</span>
+                            <span className="text-orange-400 font-bold">"{order.overlay_text}"</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
