@@ -798,27 +798,6 @@ Create visual design only based on: "${aiPrompt}"`;
               )}
 
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    onClick={handleExportGraphic}
-                    disabled={!designImageUrl}
-                    variant="outline"
-                    className="bg-purple-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20 font-bold"
-                  >
-                    <Download className="w-4 h-4 ml-2" />
-                    ייצא גרפיקה
-                  </Button>
-                  <Button
-                    onClick={handleExportMockup}
-                    disabled={!mockupUrl}
-                    variant="outline"
-                    className="bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20 font-bold"
-                  >
-                    <Download className="w-4 h-4 ml-2" />
-                    ייצא מוקאפ
-                  </Button>
-                </div>
-
                 <Button
                   onClick={handleAddToCart}
                   disabled={!designImageUrl || addToCartMutation.isPending}
