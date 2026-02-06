@@ -581,26 +581,30 @@ Create visual design only based on: "${aiPrompt}"`;
                       style={{
                         top: textPosition === 'above' ? '28%' : '72%',
                         width: '85%',
+                        filter: 'brightness(0.95) contrast(1.05)',
+                        mixBlendMode: 'multiply',
+                        opacity: 0.95
                       }}
                     >
                       <p 
                         className="font-black text-center"
                         style={{
                           fontSize: fontSize === 'small' ? '1.25rem' : fontSize === 'large' ? '2.25rem' : '1.75rem',
-                          color: textColor === 'white' ? '#FFFFFF' : 
-                                 textColor === 'black' ? '#000000' :
+                          color: textColor === 'white' ? '#F5F5F5' : 
+                                 textColor === 'black' ? '#1A1A1A' :
                                  textColor === 'orange' ? '#FF6B00' :
-                                 textColor === 'red' ? '#EF4444' :
-                                 textColor === 'blue' ? '#3B82F6' :
-                                 textColor === 'yellow' ? '#FBBF24' :
-                                 textColor === 'green' ? '#10B981' : '#FFFFFF',
+                                 textColor === 'red' ? '#DC2626' :
+                                 textColor === 'blue' ? '#2563EB' :
+                                 textColor === 'yellow' ? '#F59E0B' :
+                                 textColor === 'green' ? '#059669' : '#F5F5F5',
                           textShadow: textColor === 'white' || textColor === 'yellow' 
-                            ? '3px 3px 8px rgba(0,0,0,0.8), -1px -1px 2px rgba(0,0,0,0.5)' 
-                            : '3px 3px 8px rgba(0,0,0,0.4), -1px -1px 2px rgba(255,255,255,0.3)',
+                            ? '2px 2px 4px rgba(0,0,0,0.3), 0px 1px 2px rgba(0,0,0,0.6), inset 0px -1px 1px rgba(0,0,0,0.15)' 
+                            : '2px 2px 4px rgba(0,0,0,0.2), 0px 1px 2px rgba(0,0,0,0.4), inset 0px -1px 1px rgba(255,255,255,0.1)',
                           direction: /[\u0590-\u05FF]/.test(overlayText) ? 'rtl' : 'ltr',
-                          letterSpacing: '0.05em',
-                          WebkitTextStroke: '1px rgba(0,0,0,0.2)',
-                          fontWeight: '900'
+                          letterSpacing: '0.03em',
+                          fontWeight: '900',
+                          transform: 'perspective(500px) rotateX(2deg)',
+                          textRendering: 'geometricPrecision'
                         }}
                       >
                         {overlayText}
