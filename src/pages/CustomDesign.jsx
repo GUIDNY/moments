@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Sparkles, ShoppingCart, Loader2, Wand2 } from 'lucide-react';
+import { Upload, Sparkles, ShoppingCart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -15,8 +15,6 @@ export default function CustomDesign() {
   const [productType, setProductType] = useState('tshirt');
   const [size, setSize] = useState('M');
   const [isUploading, setIsUploading] = useState(false);
-  const [isGeneratingMockup, setIsGeneratingMockup] = useState(false);
-  const [mockupUrl, setMockupUrl] = useState('');
   const queryClient = useQueryClient();
 
   const addToCartMutation = useMutation({
@@ -51,42 +49,11 @@ export default function CustomDesign() {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setDesignImageUrl(file_url);
       setDesignImage(URL.createObjectURL(file));
-      setMockupUrl(''); // Reset mockup when new image uploaded
     } catch (error) {
       console.error('Upload error:', error);
       alert('שגיאה בהעלאת התמונה');
     } finally {
       setIsUploading(false);
-    }
-  };
-
-  const handleGenerateMockup = async () => {
-    if (!designImageUrl) {
-      alert('יש להעלות תמונה תחילה');
-      return;
-    }
-
-    setIsGeneratingMockup(true);
-    try {
-      const productNames = {
-        tshirt: 'white t-shirt',
-        hoodie: 'black hoodie',
-        cap: 'baseball cap'
-      };
-
-      const prompt = `A realistic product mockup photo of a ${productNames[productType]} with a custom design printed on it. The design should be centered and professionally printed. Professional product photography, studio lighting, high quality, realistic fabric texture.`;
-
-      const { url } = await base44.integrations.Core.GenerateImage({
-        prompt: prompt,
-        existing_image_urls: [designImageUrl]
-      });
-
-      setMockupUrl(url);
-    } catch (error) {
-      console.error('Mockup generation error:', error);
-      alert('שגיאה ביצירת התצוגה המקדימה');
-    } finally {
-      setIsGeneratingMockup(false);
     }
   };
 
@@ -213,27 +180,6 @@ export default function CustomDesign() {
                 </div>
               </div>
 
-              {designImageUrl && !mockupUrl && (
-                <Button
-                  onClick={handleGenerateMockup}
-                  disabled={isGeneratingMockup}
-                  variant="outline"
-                  className="w-full mb-4 border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
-                >
-                  {isGeneratingMockup ? (
-                    <>
-                      <Loader2 className="w-5 h-5 ml-2 animate-spin" />
-                      יוצר תצוגה מקדימה מציאותית...
-                    </>
-                  ) : (
-                    <>
-                      <Wand2 className="w-5 h-5 ml-2" />
-                      צור תצוגה מקדימה עם AI
-                    </>
-                  )}
-                </Button>
-              )}
-
               <Button
                 onClick={handleAddToCart}
                 disabled={!designImageUrl || addToCartMutation.isPending}
@@ -273,67 +219,61 @@ export default function CustomDesign() {
           >
             <h3 className="text-xl font-bold text-white mb-6">תצוגה מקדימה</h3>
             
-            <div className="relative aspect-square bg-zinc-900 rounded-sm overflow-hidden">
-              {mockupUrl ? (
-                <motion.img
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  src={mockupUrl}
-                  alt="AI Mockup"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <>
-                  <img
-                    src={getProductImage()}
-                    alt={productType}
-                    className="w-full h-full object-cover"
-                  />
-                  
-                  {designImage && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[45%] h-[45%]"
+            <div className="relative aspect-square bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-sm overflow-hidden shadow-2xl">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.05),transparent_70%)]" />
+              
+              <img
+                src={getProductImage()}
+                alt={productType}
+                className="w-full h-full object-cover"
+              />
+              
+              {designImage && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                  className="absolute"
+                  style={{
+                    top: '35%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: productType === 'cap' ? '35%' : '40%',
+                    height: productType === 'cap' ? '30%' : '40%',
+                  }}
+                >
+                  <div className="relative w-full h-full">
+                    <div className="absolute inset-0 bg-black/5 blur-md transform translate-y-1" />
+                    <img
+                      src={designImage}
+                      alt="עיצוב"
+                      className="relative w-full h-full object-contain"
                       style={{
-                        transform: 'translate(-50%, -50%) perspective(500px) rotateY(0deg)',
+                        filter: 'brightness(0.92) contrast(1.08) saturate(1.1)',
+                        mixBlendMode: 'multiply',
                       }}
-                    >
-                      <img
-                        src={designImage}
-                        alt="עיצוב"
-                        className="w-full h-full object-contain drop-shadow-lg"
-                        style={{
-                          filter: 'brightness(0.95) contrast(1.1)',
-                        }}
-                      />
-                    </motion.div>
-                  )}
-                </>
+                    />
+                  </div>
+                </motion.div>
               )}
               
-              {!designImage && !mockupUrl && (
-                <div className="absolute inset-0 flex items-center justify-center">
+              {!designImage && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
                   <div className="text-center">
-                    <Sparkles className="w-16 h-16 text-zinc-700 mx-auto mb-2" />
-                    <p className="text-zinc-600 text-sm">העלה תמונה לתצוגה מקדימה</p>
+                    <Sparkles className="w-16 h-16 text-zinc-600 mx-auto mb-3" />
+                    <p className="text-zinc-400 text-sm font-medium">העלה תמונה לתצוגה מקדימה</p>
+                    <p className="text-zinc-600 text-xs mt-1">התמונה תוצג על המוצר</p>
                   </div>
                 </div>
               )}
             </div>
 
             <div className="mt-6 text-center">
-              {mockupUrl ? (
-                <div className="bg-orange-500/10 border border-orange-500/30 rounded-sm p-3">
-                  <p className="text-orange-400 text-sm font-medium">
-                    ✨ תצוגה מקדימה נוצרה ע״י AI
-                  </p>
-                </div>
-              ) : (
+              <div className="bg-zinc-800/50 border border-zinc-700 rounded-sm p-3">
                 <p className="text-zinc-400 text-sm">
-                  {designImage ? 'לחץ "צור תצוגה מקדימה עם AI" לתוצאה מציאותית יותר' : 'המוצר הסופי יהיה באיכות HD'}
+                  {designImage ? '✨ תצוגה מקדימה - המוצר הסופי יודפס באיכות HD' : 'המוצר הסופי יהיה באיכות הדפסה מקצועית'}
                 </p>
-              )}
+              </div>
             </div>
           </motion.div>
         </div>
