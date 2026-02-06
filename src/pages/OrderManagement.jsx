@@ -127,6 +127,7 @@ export default function OrderManagement() {
       // 1. Create and download PRINT file with label
       if (order.design_with_text_url) {
         await createPrintReadyFile(order.design_with_text_url, order.id);
+        await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms
       }
 
       // 2. Download graphic with text for printing (no mockup, clean)
@@ -135,6 +136,7 @@ export default function OrderManagement() {
           order.graphic_with_text_url, 
           `order_${order.id}_for_printing.png`
         );
+        await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms
       }
 
       // 3. Create text file with order details
