@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Sparkles, ShoppingCart, Loader2 } from 'lucide-react';
+import { Upload, Sparkles, ShoppingCart, Loader2, Type, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Navbar from '@/components/Navbar';
@@ -17,6 +18,10 @@ export default function CustomDesign() {
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingMockup, setIsGeneratingMockup] = useState(false);
   const [mockupUrl, setMockupUrl] = useState('');
+  const [designMode, setDesignMode] = useState('upload'); // 'upload' or 'text'
+  const [textDesign, setTextDesign] = useState('');
+  const [textColor, setTextColor] = useState('#000000');
+  const [isGeneratingDesign, setIsGeneratingDesign] = useState(false);
   const queryClient = useQueryClient();
 
   const addToCartMutation = useMutation({
@@ -57,6 +62,44 @@ export default function CustomDesign() {
       alert('שגיאה בהעלאת התמונה');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleGenerateDesignFromText = async () => {
+    if (!textDesign.trim()) {
+      alert('אנא כתוב תיאור לעיצוב');
+      return;
+    }
+
+    setIsGeneratingDesign(true);
+    try {
+      const colorNames = {
+        '#000000': 'black',
+        '#FFFFFF': 'white',
+        '#FF0000': 'red',
+        '#0000FF': 'blue',
+        '#FFFF00': 'yellow',
+        '#00FF00': 'green',
+        '#FF6B00': 'orange',
+        '#800080': 'purple'
+      };
+
+      const colorName = colorNames[textColor] || 'black';
+      
+      const prompt = `Create a clean, high-quality graphic design with the text or concept: "${textDesign}". Style: modern, bold, suitable for printing on apparel. Main color: ${colorName}. Background: transparent. High resolution, vector-style, professional design.`;
+
+      const { url } = await base44.integrations.Core.GenerateImage({
+        prompt: prompt
+      });
+
+      setDesignImageUrl(url);
+      setDesignImage(url);
+      setMockupUrl('');
+    } catch (error) {
+      console.error('Error generating design:', error);
+      alert('שגיאה ביצירת העיצוב');
+    } finally {
+      setIsGeneratingDesign(false);
     }
   };
 
@@ -144,10 +187,37 @@ export default function CustomDesign() {
             className="space-y-6"
           >
             <div className="bg-zinc-800 border-2 border-zinc-700 rounded-sm p-6">
-              <h3 className="text-xl font-bold text-white mb-4">העלה את העיצוב שלך</h3>
+              <h3 className="text-xl font-bold text-white mb-4">בחר סוג עיצוב</h3>
               
-              <div className="mb-6">
-                <label className="block text-sm text-zinc-400 mb-3">בחר תמונה להדפסה</label>
+              {/* Design Mode Toggle */}
+              <div className="flex gap-2 mb-6">
+                <button
+                  onClick={() => setDesignMode('upload')}
+                  className={`flex-1 py-3 rounded-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                    designMode === 'upload'
+                      ? 'bg-orange-500 text-zinc-900'
+                      : 'bg-zinc-900 text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <Upload className="w-5 h-5" />
+                  העלה תמונה
+                </button>
+                <button
+                  onClick={() => setDesignMode('text')}
+                  className={`flex-1 py-3 rounded-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                    designMode === 'text'
+                      ? 'bg-orange-500 text-zinc-900'
+                      : 'bg-zinc-900 text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <Wand2 className="w-5 h-5" />
+                  צור עם AI
+                </button>
+              </div>
+
+              {designMode === 'upload' ? (
+                <div className="mb-6">
+                  <label className="block text-sm text-zinc-400 mb-3">בחר תמונה להדפסה</label>
                 <div className="relative">
                   <input
                     type="file"
@@ -173,7 +243,69 @@ export default function CustomDesign() {
                     )}
                   </label>
                 </div>
-              </div>
+              ) : (
+                <div className="mb-6 space-y-4">
+                  <div>
+                    <label className="block text-sm text-zinc-400 mb-3">תאר את העיצוב שתרצה</label>
+                    <Textarea
+                      value={textDesign}
+                      onChange={(e) => setTextDesign(e.target.value)}
+                      placeholder='לדוגמה: "כיתוב מצחיק על ספורט", "לוגו עם ציפור", "ציטוט מעורר השראה"...'
+                      className="bg-zinc-900 border-zinc-700 text-white min-h-[100px]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-zinc-400 mb-3">בחר צבע עיקרי</label>
+                    <div className="flex gap-2 flex-wrap">
+                      {[
+                        { color: '#000000', name: 'שחור' },
+                        { color: '#FFFFFF', name: 'לבן' },
+                        { color: '#FF0000', name: 'אדום' },
+                        { color: '#0000FF', name: 'כחול' },
+                        { color: '#FFFF00', name: 'צהוב' },
+                        { color: '#00FF00', name: 'ירוק' },
+                        { color: '#FF6B00', name: 'כתום' },
+                        { color: '#800080', name: 'סגול' }
+                      ].map(({ color, name }) => (
+                        <button
+                          key={color}
+                          onClick={() => setTextColor(color)}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-sm border-2 transition-all ${
+                            textColor === color
+                              ? 'border-orange-500 bg-orange-500/10'
+                              : 'border-zinc-700 hover:border-zinc-500'
+                          }`}
+                        >
+                          <div
+                            className="w-6 h-6 rounded-full border-2 border-zinc-600"
+                            style={{ backgroundColor: color }}
+                          />
+                          <span className="text-white text-sm">{name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={handleGenerateDesignFromText}
+                    disabled={isGeneratingDesign || !textDesign.trim()}
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold py-6"
+                  >
+                    {isGeneratingDesign ? (
+                      <>
+                        <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                        יוצר עיצוב...
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="w-5 h-5 ml-2" />
+                        צור עיצוב עם AI
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
 
               <div className="mb-6">
                 <label className="block text-sm text-zinc-400 mb-3">בחר סוג מוצר</label>
