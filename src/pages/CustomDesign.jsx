@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, Sparkles, ShoppingCart, Loader2, Type, Wand2, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import html2canvas from 'html2canvas';
 
 export default function CustomDesign() {
   const [designImage, setDesignImage] = useState(null);
@@ -28,6 +29,7 @@ export default function CustomDesign() {
   const [shirtColor, setShirtColor] = useState('white');
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const queryClient = useQueryClient();
+  const designPreviewRef = useRef(null);
 
   const addToCartMutation = useMutation({
     mutationFn: async (item) => {
@@ -205,6 +207,68 @@ Create visual design only based on: "${aiPrompt}"`;
     }
   };
 
+  const createDesignWithText = async () => {
+    if (!overlayText.trim() || !mockupUrl) return null;
+
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Load mockup image
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = mockupUrl;
+      });
+
+      canvas.width = img.width;
+      canvas.height = img.height;
+      
+      // Draw mockup
+      ctx.drawImage(img, 0, 0);
+      
+      // Draw text overlay
+      const fontSize = fontSize === 'small' ? img.height * 0.05 : fontSize === 'large' ? img.height * 0.09 : img.height * 0.07;
+      ctx.font = `900 ${fontSize}px ${fontFamily === 'heebo' ? 'Heebo' : fontFamily === 'rubik' ? 'Rubik' : fontFamily === 'assistant' ? 'Assistant' : fontFamily === 'impact' ? 'Impact' : 'Arial Black'}, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      const textY = (textPositionY / 100) * img.height;
+      
+      // Text shadow
+      ctx.shadowColor = 'rgba(0,0,0,0.5)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+      
+      // Text color
+      const colors = {
+        white: '#F5F5F5',
+        black: '#1A1A1A',
+        orange: '#FF6B00',
+        red: '#DC2626',
+        blue: '#2563EB',
+        yellow: '#F59E0B',
+        green: '#059669'
+      };
+      ctx.fillStyle = colors[textColor] || '#F5F5F5';
+      
+      ctx.fillText(overlayText, img.width / 2, textY);
+      
+      // Convert to blob and upload
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+      const file = new File([blob], 'design-with-text.jpg', { type: 'image/jpeg' });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      
+      return file_url;
+    } catch (error) {
+      console.error('Error creating design with text:', error);
+      return null;
+    }
+  };
+
   const handleAddToCart = async () => {
     if (!designImageUrl) {
       alert('יש להעלות תמונת עיצוב תחילה');
@@ -217,6 +281,12 @@ Create visual design only based on: "${aiPrompt}"`;
     try {
       const user = await base44.auth.me();
       
+      // Create design with text if overlay text exists
+      let designWithTextUrl = null;
+      if (overlayText.trim() && mockupUrl) {
+        designWithTextUrl = await createDesignWithText();
+      }
+      
       // Create order for supplier
       await base44.entities.Order.create({
         customer_email: user.email,
@@ -227,7 +297,9 @@ Create visual design only based on: "${aiPrompt}"`;
         quantity: 1,
         price: prices[productType],
         design_image_url: designImageUrl,
+        design_with_text_url: designWithTextUrl,
         mockup_image_url: mockupUrl || null,
+        overlay_text: overlayText.trim() || null,
         shirt_color: shirtColor,
         status: 'pending'
       });

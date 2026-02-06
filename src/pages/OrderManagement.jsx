@@ -68,11 +68,26 @@ export default function OrderManagement() {
   };
 
   const handleExportForSupplier = async (order) => {
+    let fileCount = 1;
+    let filesList = '';
+
+    // Download design with text if exists (THIS IS THE MAIN FILE FOR PRINTING)
+    if (order.design_with_text_url) {
+      await downloadImage(
+        order.design_with_text_url, 
+        `order_${order.id}_design_WITH_TEXT.jpg`
+      );
+      filesList += `${fileCount}. order_${order.id}_design_WITH_TEXT.jpg - העיצוב להדפסה כולל טקסט (קובץ עיקרי!)\n`;
+      fileCount++;
+    }
+
     // Download design image (without text)
     await downloadImage(
       order.design_image_url, 
-      `order_${order.id}_design.jpg`
+      `order_${order.id}_design_no_text.jpg`
     );
+    filesList += `${fileCount}. order_${order.id}_design_no_text.jpg - העיצוב המקורי ללא טקסט\n`;
+    fileCount++;
 
     // Download mockup image if exists
     if (order.mockup_image_url) {
@@ -80,6 +95,7 @@ export default function OrderManagement() {
         order.mockup_image_url, 
         `order_${order.id}_mockup.jpg`
       );
+      filesList += `${fileCount}. order_${order.id}_mockup.jpg - תמונת מוקאפ לדוגמה\n`;
     }
 
     // Create text file with details
@@ -95,10 +111,12 @@ export default function OrderManagement() {
 - צבע: ${order.shirt_color}
 - מידה: ${order.size}
 - כמות: ${order.quantity}
+${order.overlay_text ? `- טקסט: "${order.overlay_text}"` : ''}
 
-הורדו 2 תמונות:
-1. order_${order.id}_design.jpg - העיצוב המקורי להדפסה (ללא טקסט)
-2. order_${order.id}_mockup.jpg - תמונת מוקאפ לדוגמה
+קבצים שהורדו:
+${filesList}
+
+${order.design_with_text_url ? '⚠️ שים לב: להדפסה יש להשתמש בקובץ "design_WITH_TEXT.jpg"!' : ''}
 
 תאריך הזמנה: ${new Date(order.created_date).toLocaleDateString('he-IL')}
 ${order.notes ? `\nהערות: ${order.notes}` : ''}
@@ -248,10 +266,19 @@ ${order.notes ? `\nהערות: ${order.notes}` : ''}
                         ייצא קובץ לספק
                       </Button>
 
+                      {order.design_with_text_url && (
+                        <a href={order.design_with_text_url} target="_blank" rel="noopener noreferrer">
+                          <Button variant="outline" size="sm" className="bg-green-500/20 border-green-500/30 text-green-400 hover:bg-green-500/30">
+                            <Eye className="w-4 h-4 ml-2" />
+                            עיצוב + טקסט
+                          </Button>
+                        </a>
+                      )}
+
                       <a href={order.design_image_url} target="_blank" rel="noopener noreferrer">
                         <Button variant="outline" size="sm" className="bg-zinc-900 border-zinc-600 hover:bg-zinc-800">
                           <Eye className="w-4 h-4 ml-2" />
-                          עיצוב מקורי
+                          עיצוב בלבד
                         </Button>
                       </a>
 
