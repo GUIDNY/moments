@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { Package, Download, Check, Truck, Eye, ExternalLink } from 'lucide-react';
+import { Package, Download, Check, Truck, Eye, ExternalLink, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -23,6 +23,13 @@ export default function OrderManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       setSelectedOrder(null);
+    }
+  });
+
+  const deleteOrderMutation = useMutation({
+    mutationFn: (id) => base44.entities.Order.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
     }
   });
 
@@ -305,6 +312,20 @@ ${order.notes ? `\nהערות: ${order.notes}` : ''}
                       >
                         <Check className="w-4 h-4 ml-2" />
                         עדכן סטטוס
+                      </Button>
+
+                      <Button
+                        onClick={() => {
+                          if (confirm('האם אתה בטוח שברצונך למחוק הזמנה זו?')) {
+                            deleteOrderMutation.mutate(order.id);
+                          }
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500/20"
+                      >
+                        <Trash2 className="w-4 h-4 ml-2" />
+                        מחק
                       </Button>
                     </div>
                   </div>

@@ -198,7 +198,17 @@ Create visual design only based on: "${aiPrompt}"`;
 
     setIsGeneratingMockup(true);
     try {
-      await generateMockupFromUrl(designImageUrl);
+      // If there's text, create design with text first, then generate mockup from it
+      let finalImageUrl = designImageUrl;
+      
+      if (overlayText.trim()) {
+        const designWithTextUrl = await createDesignWithText();
+        if (designWithTextUrl) {
+          finalImageUrl = designWithTextUrl;
+        }
+      }
+      
+      await generateMockupFromUrl(finalImageUrl);
     } catch (error) {
       alert(error.message || 'שגיאה ביצירת המוקאפ');
       setMockupUrl('');
@@ -458,11 +468,11 @@ Create visual design only based on: "${aiPrompt}"`;
               )}
 
               {/* Text Overlay Option - Always Available */}
-              {mockupUrl && (
+              {designImageUrl && (
                 <div className="mb-6 p-4 bg-zinc-900 rounded-sm border border-zinc-700">
                   <label className="block text-sm text-zinc-400 mb-3">
                     <Type className="w-4 h-4 inline ml-1" />
-                    הוסף כתובית על המוקאפ (אופציונלי)
+                    הוסף טקסט על המוצר (אופציונלי)
                   </label>
                   <Input
                     value={overlayText}
@@ -556,7 +566,7 @@ Create visual design only based on: "${aiPrompt}"`;
                     </div>
                   </div>
                   
-                  <p className="text-xs text-zinc-500">הטקסט יופיע על המוקאפ בלבד (לא על המוצר הסופי)</p>
+                  <p className="text-xs text-zinc-500">הטקסט יופיע על המוצר עצמו בתמונה הסופית</p>
                 </div>
               )}
 
@@ -698,50 +708,6 @@ Create visual design only based on: "${aiPrompt}"`;
                     alt="AI Generated Mockup"
                     className="w-full h-full object-cover"
                   />
-                  
-                  {overlayText.trim() && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="absolute left-1/2 -translate-x-1/2"
-                      style={{
-                        top: `${textPositionY}%`,
-                        width: '85%',
-                        filter: 'brightness(0.95) contrast(1.05)',
-                        mixBlendMode: 'multiply',
-                        opacity: 0.95
-                      }}
-                    >
-                      <p 
-                        className="font-black text-center"
-                        style={{
-                          fontSize: fontSize === 'small' ? '1.25rem' : fontSize === 'large' ? '2.25rem' : '1.75rem',
-                          color: textColor === 'white' ? '#F5F5F5' : 
-                                 textColor === 'black' ? '#1A1A1A' :
-                                 textColor === 'orange' ? '#FF6B00' :
-                                 textColor === 'red' ? '#DC2626' :
-                                 textColor === 'blue' ? '#2563EB' :
-                                 textColor === 'yellow' ? '#F59E0B' :
-                                 textColor === 'green' ? '#059669' : '#F5F5F5',
-                          textShadow: textColor === 'white' || textColor === 'yellow' 
-                            ? '2px 2px 4px rgba(0,0,0,0.3), 0px 1px 2px rgba(0,0,0,0.6), inset 0px -1px 1px rgba(0,0,0,0.15)' 
-                            : '2px 2px 4px rgba(0,0,0,0.2), 0px 1px 2px rgba(0,0,0,0.4), inset 0px -1px 1px rgba(255,255,255,0.1)',
-                          direction: /[\u0590-\u05FF]/.test(overlayText) ? 'rtl' : 'ltr',
-                          letterSpacing: '0.03em',
-                          fontWeight: '900',
-                          fontFamily: fontFamily === 'heebo' ? 'Heebo, sans-serif' :
-                                      fontFamily === 'rubik' ? 'Rubik, sans-serif' :
-                                      fontFamily === 'assistant' ? 'Assistant, sans-serif' :
-                                      fontFamily === 'impact' ? 'Impact, Arial Black, sans-serif' :
-                                      fontFamily === 'arial' ? 'Arial Black, Arial, sans-serif' : 'Heebo, sans-serif',
-                          transform: 'perspective(500px) rotateX(2deg)',
-                          textRendering: 'geometricPrecision'
-                        }}
-                      >
-                        {overlayText}
-                      </p>
-                    </motion.div>
-                  )}
                 </div>
               ) : (
                 <div className="relative w-full h-full flex items-center justify-center">
