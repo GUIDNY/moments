@@ -205,7 +205,7 @@ Create visual design only based on: "${aiPrompt}"`;
     }
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!designImageUrl) {
       alert('יש להעלות תמונת עיצוב תחילה');
       return;
@@ -214,14 +214,36 @@ Create visual design only based on: "${aiPrompt}"`;
     const prices = { tshirt: 89, hoodie: 149, cap: 69, mug: 59 };
     const names = { tshirt: 'חולצה מעוצבת', hoodie: 'קפוצ\'ון מעוצב', cap: 'כובע מעוצב', mug: 'ספל מעוצב' };
 
-    addToCartMutation.mutate({
-      product_id: `custom_${Date.now()}`,
-      product_name: names[productType],
-      size: size,
-      quantity: 1,
-      price: prices[productType],
-      image_url: designImageUrl
-    });
+    try {
+      const user = await base44.auth.me();
+      
+      // Create order for supplier
+      await base44.entities.Order.create({
+        customer_email: user.email,
+        customer_name: user.full_name || user.email,
+        product_type: productType,
+        product_name: names[productType],
+        size: size,
+        quantity: 1,
+        price: prices[productType],
+        design_image_url: mockupUrl || designImageUrl,
+        shirt_color: shirtColor,
+        status: 'pending'
+      });
+
+      // Add to cart
+      addToCartMutation.mutate({
+        product_id: `custom_${Date.now()}`,
+        product_name: names[productType],
+        size: size,
+        quantity: 1,
+        price: prices[productType],
+        image_url: designImageUrl
+      });
+    } catch (error) {
+      console.error('Error creating order:', error);
+      alert('שגיאה בהוספה לעגלה');
+    }
   };
 
   const getProductImage = () => {

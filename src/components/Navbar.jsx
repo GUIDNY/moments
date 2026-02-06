@@ -62,16 +62,28 @@ export default function Navbar() {
             </Link>
 
             {isAdmin && (
-              <Link to={createPageUrl('Inventory')}>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-2 px-4 py-2 bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 rounded-sm transition-colors border border-orange-500/30"
-                >
-                  <Settings className="w-4 h-4" />
-                  <span className="hidden md:inline">ניהול מלאי</span>
-                </motion.button>
-              </Link>
+              <>
+                <Link to={createPageUrl('OrderManagement')}>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 rounded-sm transition-colors border border-purple-500/30"
+                  >
+                    <Package className="w-4 h-4" />
+                    <span className="hidden md:inline">הזמנות</span>
+                  </motion.button>
+                </Link>
+                <Link to={createPageUrl('Inventory')}>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-2 px-4 py-2 bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 rounded-sm transition-colors border border-orange-500/30"
+                  >
+                    <Settings className="w-4 h-4" />
+                    <span className="hidden md:inline">מלאי</span>
+                  </motion.button>
+                </Link>
+              </>
             )}
           </div>
         </div>

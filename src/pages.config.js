@@ -51,6 +51,7 @@ import CustomDesign from './pages/CustomDesign';
 import Home from './pages/Home';
 import Inventory from './pages/Inventory';
 import Shop from './pages/Shop';
+import OrderManagement from './pages/OrderManagement';
 import __Layout from './Layout.jsx';
 
 
@@ -59,6 +60,7 @@ export const PAGES = {
     "Home": Home,
     "Inventory": Inventory,
     "Shop": Shop,
+    "OrderManagement": OrderManagement,
 }
 
 export const pagesConfig = {
