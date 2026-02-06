@@ -20,7 +20,7 @@ export default function CustomDesign() {
   const [mockupUrl, setMockupUrl] = useState('');
   const [designMode, setDesignMode] = useState('upload'); // 'upload' or 'text'
   const [textDesign, setTextDesign] = useState('');
-  const [textColor, setTextColor] = useState('#000000');
+  const [shirtColor, setShirtColor] = useState('white');
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const queryClient = useQueryClient();
 
@@ -74,31 +74,20 @@ export default function CustomDesign() {
     setIsProcessingAI(true);
     setMockupUrl('');
     try {
-      const colorNames = {
-        '#000000': 'שחור / black',
-        '#FFFFFF': 'לבן / white',
-        '#FF0000': 'אדום / red',
-        '#0000FF': 'כחול / blue',
-        '#FFFF00': 'צהוב / yellow',
-        '#00FF00': 'ירוק / green',
-        '#FF6B00': 'כתום / orange',
-        '#800080': 'סגול / purple'
-      };
+      // יצירת העיצוב עם תמיכה מלאה בעברית
+      const prompt = `Create a clean, professional graphic design for a t-shirt print.
+The text or concept is: "${textDesign}"
 
-      const colorName = colorNames[textColor] || 'שחור / black';
-      
-      const prompt = `צור עיצוב גרפי נקי ואיכותי עם הטקסט או הקונספט הבא: "${textDesign}". 
-      סגנון: מודרני, בולט, מתאים להדפסה על בגדים. 
-      צבע ראשי: ${colorName}. 
-      רקע: שקוף. 
-      רזולוציה גבוהה, סגנון וקטורי, עיצוב מקצועי.
-      אם הטקסט בעברית - הצג אותו בעברית. אם באנגלית - באנגלית.
-      Create a clean, high-quality graphic design with the Hebrew or English text/concept: "${textDesign}". 
-      Style: modern, bold, suitable for printing on apparel. 
-      Main color: ${colorName}. 
-      Background: transparent. 
-      High resolution, vector-style, professional design.
-      Support Hebrew RTL text if needed.`;
+CRITICAL INSTRUCTIONS:
+- If the text is in Hebrew (עברית), display it EXACTLY as written, character by character, in Hebrew letters
+- Preserve the exact Hebrew text direction (right-to-left)
+- Use a bold, modern, readable Hebrew font
+- Style: modern, bold, suitable for printing on apparel
+- Background: transparent PNG
+- High resolution, professional design
+- Make the text/design prominent and clear
+
+Text to print: "${textDesign}"`;
 
       const { url: generatedDesignUrl } = await base44.integrations.Core.GenerateImage({
         prompt: prompt
@@ -127,10 +116,21 @@ export default function CustomDesign() {
 
   const generateMockupFromUrl = async (imageUrl) => {
     try {
+      const shirtColorNames = {
+        white: 'white',
+        black: 'black',
+        gray: 'gray',
+        blue: 'blue',
+        red: 'red',
+        green: 'green',
+        yellow: 'yellow',
+        pink: 'pink'
+      };
+
       const productPrompts = {
-        tshirt: 'professional product photography of a white t-shirt on a person, front view, centered, clean background, studio lighting, the t-shirt has a custom printed design in the center of the chest area',
-        hoodie: 'professional product photography of a black hoodie on a person, front view, centered, clean background, studio lighting, the hoodie has a custom printed design in the center of the chest area',
-        cap: 'professional product photography of a baseball cap on a person, front view, centered, clean background, studio lighting, the cap has a custom printed design on the front panel'
+        tshirt: `professional product photography of a ${shirtColorNames[shirtColor]} t-shirt on a person, front view, centered, clean background, studio lighting, photorealistic, the t-shirt has a custom printed design in the center of the chest area`,
+        hoodie: `professional product photography of a ${shirtColorNames[shirtColor]} hoodie on a person, front view, centered, clean background, studio lighting, photorealistic, the hoodie has a custom printed design in the center of the chest area`,
+        cap: `professional product photography of a ${shirtColorNames[shirtColor]} baseball cap on a person, front view, centered, clean background, studio lighting, photorealistic, the cap has a custom printed design on the front panel`
       };
 
       const { url } = await base44.integrations.Core.GenerateImage({
@@ -276,87 +276,18 @@ export default function CustomDesign() {
                       </label>
                     </div>
                   </div>
-                  
-                  {/* בחירת צבע גם בהעלאת תמונה */}
-                  {designImage && (
-                    <div>
-                      <label className="block text-sm text-zinc-400 mb-3">תוכל להוסיף אפקט צבע (אופציונלי)</label>
-                      <div className="flex gap-2 flex-wrap">
-                        {[
-                          { color: 'none', name: 'ללא אפקט' },
-                          { color: '#000000', name: 'שחור' },
-                          { color: '#FFFFFF', name: 'לבן' },
-                          { color: '#FF0000', name: 'אדום' },
-                          { color: '#0000FF', name: 'כחול' },
-                          { color: '#FFFF00', name: 'צהוב' },
-                          { color: '#00FF00', name: 'ירוק' },
-                          { color: '#FF6B00', name: 'כתום' },
-                          { color: '#800080', name: 'סגול' }
-                        ].map(({ color, name }) => (
-                          <button
-                            key={color}
-                            onClick={() => setTextColor(color)}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-sm border-2 transition-all ${
-                              textColor === color
-                                ? 'border-orange-500 bg-orange-500/10'
-                                : 'border-zinc-700 hover:border-zinc-500'
-                            }`}
-                          >
-                            {color !== 'none' && (
-                              <div
-                                className="w-6 h-6 rounded-full border-2 border-zinc-600"
-                                style={{ backgroundColor: color }}
-                              />
-                            )}
-                            <span className="text-white text-sm">{name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="mb-6 space-y-4">
                   <div>
-                    <label className="block text-sm text-zinc-400 mb-3">תאר את העיצוב שתרצה</label>
+                    <label className="block text-sm text-zinc-400 mb-3">תאר את העיצוב שתרצה (בעברית או אנגלית)</label>
                     <Textarea
                       value={textDesign}
                       onChange={(e) => setTextDesign(e.target.value)}
-                      placeholder='לדוגמה: "כיתוב מצחיק על ספורט", "לוגו עם ציפור", "ציטוט מעורר השראה"...'
+                      placeholder='דוגמאות: "שלום עולם", "אני אוהב פיצה", "GAME ON", "לחיות את הרגע"...'
                       className="bg-zinc-900 border-zinc-700 text-white min-h-[100px]"
+                      dir="auto"
                     />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-zinc-400 mb-3">בחר צבע עיקרי</label>
-                    <div className="flex gap-2 flex-wrap">
-                      {[
-                        { color: '#000000', name: 'שחור' },
-                        { color: '#FFFFFF', name: 'לבן' },
-                        { color: '#FF0000', name: 'אדום' },
-                        { color: '#0000FF', name: 'כחול' },
-                        { color: '#FFFF00', name: 'צהוב' },
-                        { color: '#00FF00', name: 'ירוק' },
-                        { color: '#FF6B00', name: 'כתום' },
-                        { color: '#800080', name: 'סגול' }
-                      ].map(({ color, name }) => (
-                        <button
-                          key={color}
-                          onClick={() => setTextColor(color)}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-sm border-2 transition-all ${
-                            textColor === color
-                              ? 'border-orange-500 bg-orange-500/10'
-                              : 'border-zinc-700 hover:border-zinc-500'
-                          }`}
-                        >
-                          <div
-                            className="w-6 h-6 rounded-full border-2 border-zinc-600"
-                            style={{ backgroundColor: color }}
-                          />
-                          <span className="text-white text-sm">{name}</span>
-                        </button>
-                      ))}
-                    </div>
                   </div>
 
                   <Button
@@ -378,6 +309,38 @@ export default function CustomDesign() {
                   </Button>
                 </div>
               )}
+
+              <div className="mb-6">
+                <label className="block text-sm text-zinc-400 mb-3">בחר צבע מוצר</label>
+                <div className="flex gap-2 flex-wrap mb-6">
+                  {[
+                    { color: 'white', hex: '#FFFFFF', name: 'לבן' },
+                    { color: 'black', hex: '#000000', name: 'שחור' },
+                    { color: 'gray', hex: '#9CA3AF', name: 'אפור' },
+                    { color: 'blue', hex: '#3B82F6', name: 'כחול' },
+                    { color: 'red', hex: '#EF4444', name: 'אדום' },
+                    { color: 'green', hex: '#10B981', name: 'ירוק' },
+                    { color: 'yellow', hex: '#F59E0B', name: 'צהוב' },
+                    { color: 'pink', hex: '#EC4899', name: 'ורוד' }
+                  ].map(({ color, hex, name }) => (
+                    <button
+                      key={color}
+                      onClick={() => setShirtColor(color)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-sm border-2 transition-all ${
+                        shirtColor === color
+                          ? 'border-orange-500 bg-orange-500/10'
+                          : 'border-zinc-700 hover:border-zinc-500'
+                      }`}
+                    >
+                      <div
+                        className="w-6 h-6 rounded-full border-2 border-zinc-600"
+                        style={{ backgroundColor: hex }}
+                      />
+                      <span className="text-white text-sm">{name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               <div className="mb-6">
                 <label className="block text-sm text-zinc-400 mb-3">בחר סוג מוצר</label>
