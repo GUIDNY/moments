@@ -75,37 +75,21 @@ export default function OrderManagement() {
   };
 
   const handleExportForSupplier = async (order) => {
-    let fileCount = 1;
-    let filesList = '';
-
-    // Download design with text if exists (THIS IS THE MAIN FILE FOR PRINTING)
+    // 1. Download mockup with text - THE MAIN PRINT FILE
     if (order.design_with_text_url) {
       await downloadImage(
         order.design_with_text_url, 
-        `order_${order.id}_design_WITH_TEXT.jpg`
+        `order_${order.id}_PRINT_FILE.jpg`
       );
-      filesList += `${fileCount}. order_${order.id}_design_WITH_TEXT.jpg - העיצוב להדפסה כולל טקסט (קובץ עיקרי!)\n`;
-      fileCount++;
     }
 
-    // Download design image (without text)
+    // 2. Download graphic design only (without text)
     await downloadImage(
       order.design_image_url, 
-      `order_${order.id}_design_no_text.jpg`
+      `order_${order.id}_graphic_only.jpg`
     );
-    filesList += `${fileCount}. order_${order.id}_design_no_text.jpg - העיצוב המקורי ללא טקסט\n`;
-    fileCount++;
 
-    // Download mockup image if exists
-    if (order.mockup_image_url) {
-      await downloadImage(
-        order.mockup_image_url, 
-        `order_${order.id}_mockup.jpg`
-      );
-      filesList += `${fileCount}. order_${order.id}_mockup.jpg - תמונת מוקאפ לדוגמה\n`;
-    }
-
-    // Create text file with details
+    // 3. Create text file with order details
     const supplierData = `
 === הזמנה #${order.id} ===
 
@@ -118,12 +102,11 @@ export default function OrderManagement() {
 - צבע: ${order.shirt_color}
 - מידה: ${order.size}
 - כמות: ${order.quantity}
-${order.overlay_text ? `- טקסט: "${order.overlay_text}"` : ''}
+${order.overlay_text ? `- טקסט על המוצר: "${order.overlay_text}"` : ''}
 
-קבצים שהורדו:
-${filesList}
-
-${order.design_with_text_url ? '⚠️ שים לב: להדפסה יש להשתמש בקובץ "design_WITH_TEXT.jpg"!' : ''}
+קבצים:
+1. order_${order.id}_PRINT_FILE.jpg - קובץ להדפסה (חולצה + טקסט) ⭐
+2. order_${order.id}_graphic_only.jpg - גרפיקה בלבד
 
 תאריך הזמנה: ${new Date(order.created_date).toLocaleDateString('he-IL')}
 ${order.notes ? `\nהערות: ${order.notes}` : ''}
