@@ -308,21 +308,23 @@ ${order.notes ? `\n📝 הערות: ${order.notes}` : ''}
                     )}
 
                     <div className="flex flex-wrap gap-2 pt-2">
-                      <Button
-                        onClick={async () => {
-                          if (order.graphic_with_text_url) {
-                            await downloadImage(order.graphic_with_text_url, `order_${order.id}_graphic.png`);
-                          } else {
-                            await downloadImage(order.design_image_url, `order_${order.id}_graphic.png`);
-                          }
-                        }}
-                        variant="outline"
-                        size="sm"
-                        className="bg-purple-500/20 border-purple-500/30 text-purple-400 hover:bg-purple-500/30 font-bold"
-                      >
-                        <Download className="w-4 h-4 ml-2" />
-                        ייצא גרפיקה {order.overlay_text ? '+ טקסט' : 'בלבד'}
-                      </Button>
+                      {(order.graphic_with_text_url || order.design_image_url) && (
+                        <Button
+                          onClick={async () => {
+                            const fileUrl = order.graphic_with_text_url || order.design_image_url;
+                            const filename = order.graphic_with_text_url 
+                              ? `order_${order.id}_graphic_with_text.png`
+                              : `order_${order.id}_graphic.png`;
+                            await downloadImage(fileUrl, filename);
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="bg-purple-500/20 border-purple-500/30 text-purple-400 hover:bg-purple-500/30 font-bold"
+                        >
+                          <Download className="w-4 h-4 ml-2" />
+                          גרפיקה להדפסה
+                        </Button>
+                      )}
 
                       {order.design_with_text_url && (
                         <Button
