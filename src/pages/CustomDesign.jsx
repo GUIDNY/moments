@@ -207,6 +207,74 @@ Create visual design only based on: "${aiPrompt}"`;
     }
   };
 
+  const createGraphicWithText = async () => {
+    if (!designImageUrl || !overlayText.trim()) return null;
+
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Load design image
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = designImageUrl;
+      });
+
+      // Set canvas size based on image
+      const padding = 100;
+      canvas.width = Math.max(img.width, 800);
+      canvas.height = img.height + 300;
+      
+      // Transparent background
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw design image centered
+      const x = (canvas.width - img.width) / 2;
+      ctx.drawImage(img, x, 0, img.width, img.height);
+      
+      // Draw text below design
+      const textFontSize = canvas.width * (fontSize === 'small' ? 0.08 : fontSize === 'large' ? 0.15 : 0.12);
+      ctx.font = `900 ${textFontSize}px ${fontFamily === 'heebo' ? 'Heebo' : fontFamily === 'rubik' ? 'Rubik' : fontFamily === 'assistant' ? 'Assistant' : fontFamily === 'impact' ? 'Impact' : 'Arial Black'}, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      const textY = img.height + 150;
+      
+      // Text shadow
+      ctx.shadowColor = 'rgba(0,0,0,0.5)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetX = 3;
+      ctx.shadowOffsetY = 3;
+      
+      // Text color
+      const colors = {
+        white: '#F5F5F5',
+        black: '#1A1A1A',
+        orange: '#FF6B00',
+        red: '#DC2626',
+        blue: '#2563EB',
+        yellow: '#F59E0B',
+        green: '#059669'
+      };
+      ctx.fillStyle = colors[textColor] || '#1A1A1A';
+      
+      ctx.fillText(overlayText, canvas.width / 2, textY);
+      
+      // Convert to blob and upload
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+      const file = new File([blob], 'graphic-with-text.png', { type: 'image/png' });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      
+      return file_url;
+    } catch (error) {
+      console.error('Error creating graphic with text:', error);
+      return null;
+    }
+  };
+
   const captureMockupWithText = async () => {
     if (!mockupUrl || !overlayText.trim()) return null;
 
@@ -298,7 +366,13 @@ Create visual design only based on: "${aiPrompt}"`;
     try {
       const user = await base44.auth.me();
       
-      // Capture mockup with text if overlay text exists
+      // Create graphic with text for printing (no mockup)
+      let graphicWithTextUrl = null;
+      if (overlayText.trim()) {
+        graphicWithTextUrl = await createGraphicWithText();
+      }
+      
+      // Capture mockup with text for display
       let designWithTextUrl = null;
       if (overlayText.trim() && mockupUrl) {
         designWithTextUrl = await captureMockupWithText();
@@ -315,6 +389,7 @@ Create visual design only based on: "${aiPrompt}"`;
         price: prices[productType],
         design_image_url: designImageUrl,
         design_with_text_url: designWithTextUrl,
+        graphic_with_text_url: graphicWithTextUrl,
         mockup_image_url: mockupUrl || null,
         overlay_text: overlayText.trim() || null,
         shirt_color: shirtColor,
