@@ -18,8 +18,9 @@ export default function CustomDesign() {
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingMockup, setIsGeneratingMockup] = useState(false);
   const [mockupUrl, setMockupUrl] = useState('');
-  const [designMode, setDesignMode] = useState('upload'); // 'upload' or 'text'
-  const [textDesign, setTextDesign] = useState('');
+  const [designMode, setDesignMode] = useState('upload'); // 'upload' or 'ai'
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [overlayText, setOverlayText] = useState('');
   const [shirtColor, setShirtColor] = useState('white');
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const queryClient = useQueryClient();
@@ -127,6 +128,10 @@ Text to print: "${textDesign}"`;
         pink: 'pink'
       };
 
+      const textOverlay = overlayText.trim() 
+        ? `IMPORTANT: Add the text "${overlayText}" overlaid on top of the design in a bold, clear font.` 
+        : '';
+
       const productPrompts = {
         tshirt: `CRITICAL INSTRUCTIONS: Create a photorealistic product mockup of a ${shirtColorNames[shirtColor]} t-shirt worn by a person.
         
@@ -137,6 +142,7 @@ Text to print: "${textDesign}"`;
         4. The image should look printed/pressed onto the fabric
         5. Professional studio lighting, clean background
         6. Front view, centered composition
+        ${textOverlay}
         
         The result must show the t-shirt with the exact provided image printed on it.`,
         
@@ -149,6 +155,7 @@ Text to print: "${textDesign}"`;
         4. The image should look printed/pressed onto the fabric
         5. Professional studio lighting, clean background
         6. Front view, centered composition
+        ${textOverlay}
         
         The result must show the hoodie with the exact provided image printed on it.`,
         
@@ -161,6 +168,7 @@ Text to print: "${textDesign}"`;
         4. The image should look embroidered or printed onto the cap
         5. Professional studio lighting, clean background
         6. Front view, centered composition
+        ${textOverlay}
         
         The result must show the cap with the exact provided image on it.`
       };
@@ -266,15 +274,15 @@ Text to print: "${textDesign}"`;
                   העלה תמונה
                 </button>
                 <button
-                  onClick={() => setDesignMode('text')}
+                  onClick={() => setDesignMode('ai')}
                   className={`flex-1 py-3 rounded-sm font-bold transition-all flex items-center justify-center gap-2 ${
-                    designMode === 'text'
+                    designMode === 'ai'
                       ? 'bg-orange-500 text-zinc-900'
                       : 'bg-zinc-900 text-zinc-400 hover:text-white'
                   }`}
                 >
                   <Wand2 className="w-5 h-5" />
-                  צור עם AI
+                  צור עיצוב עם AI
                 </button>
               </div>
 
@@ -312,25 +320,25 @@ Text to print: "${textDesign}"`;
               ) : (
                 <div className="mb-6 space-y-4">
                   <div>
-                    <label className="block text-sm text-zinc-400 mb-3">תאר את העיצוב שתרצה (בעברית או אנגלית)</label>
+                    <label className="block text-sm text-zinc-400 mb-3">תאר עיצוב גרפי (ללא טקסט)</label>
                     <Textarea
-                      value={textDesign}
-                      onChange={(e) => setTextDesign(e.target.value)}
-                      placeholder='דוגמאות: "שלום עולם", "אני אוהב פיצה", "GAME ON", "לחיות את הרגע"...'
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      placeholder='דוגמאות: "ציפור צבעונית", "הר עם שמש", "גלי ים מופשטים", "פרח טרופי"...'
                       className="bg-zinc-900 border-zinc-700 text-white min-h-[100px]"
                       dir="auto"
                     />
                   </div>
 
                   <Button
-                    onClick={handleGenerateDesignFromText}
-                    disabled={isProcessingAI || !textDesign.trim()}
+                    onClick={handleGenerateAIDesign}
+                    disabled={isProcessingAI || !aiPrompt.trim()}
                     className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold py-6"
                   >
                     {isProcessingAI ? (
                       <>
                         <Loader2 className="w-5 h-5 ml-2 animate-spin" />
-                        יוצר עיצוב ומוקאפ...
+                        יוצר עיצוב...
                       </>
                     ) : (
                       <>
@@ -341,6 +349,22 @@ Text to print: "${textDesign}"`;
                   </Button>
                 </div>
               )}
+
+              {/* Text Overlay Option - Always Available */}
+              <div className="mb-6">
+                <label className="block text-sm text-zinc-400 mb-3">
+                  <Type className="w-4 h-4 inline ml-1" />
+                  הוסף כתובית על העיצוב (אופציונלי)
+                </label>
+                <Input
+                  value={overlayText}
+                  onChange={(e) => setOverlayText(e.target.value)}
+                  placeholder="לדוגמה: שלום עולם, GAME ON..."
+                  className="bg-zinc-900 border-zinc-700 text-white"
+                  dir="auto"
+                />
+                <p className="text-xs text-zinc-500 mt-2">הטקסט יופיע על התמונה במוקאפ</p>
+              </div>
 
               <div className="mb-6">
                 <label className="block text-sm text-zinc-400 mb-3">בחר צבע מוצר</label>
