@@ -124,22 +124,19 @@ export default function OrderManagement() {
 
   const handleExportForSupplier = async (order) => {
     try {
-      // Use graphic_with_text_url if exists, otherwise use design_image_url
-      // NEVER use design_with_text_url or mockup_image_url (those are mockups, not print files)
-      let printGraphicUrl = order.graphic_with_text_url || order.design_image_url;
-      
-      // Double-check we're not accidentally using a mockup URL
-      if (printGraphicUrl === order.design_with_text_url || printGraphicUrl === order.mockup_image_url) {
-        printGraphicUrl = order.design_image_url;
+      // 1. Download mockup (shirt design) if exists
+      if (order.design_with_text_url || order.mockup_image_url) {
+        const mockupUrl = order.design_with_text_url || order.mockup_image_url;
+        await downloadImage(mockupUrl, `order_${order.id}_mockup.jpg`);
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
-      
-      if (!printGraphicUrl) {
-        alert('לא נמצאה גרפיקה להדפסה');
-        return;
+
+      // 2. Download clean graphic for printing
+      const printGraphicUrl = order.graphic_with_text_url || order.design_image_url;
+      if (printGraphicUrl) {
+        await downloadImage(printGraphicUrl, `order_${order.id}_for_print.png`);
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
-      
-      await createPrintReadyFile(printGraphicUrl, order.id);
-      await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms
 
       // 3. Create text file with order details
       const supplierData = `
@@ -157,8 +154,8 @@ export default function OrderManagement() {
 ${order.overlay_text ? `- טקסט: "${order.overlay_text}"` : ''}
 
 📦 קבצים:
-1. order_${order.id}_PRINT.jpg - עם סימון "PRINT"
-2. order_${order.id}_for_printing.png ⭐ - גרפיקה + טקסט נקי (להדפסה)
+1. order_${order.id}_mockup.jpg - עיצוב החולצה (תצוגה)
+2. order_${order.id}_for_print.png ⭐ - גרפיקה נקייה להדפסה
 
 📅 תאריך: ${new Date(order.created_date).toLocaleDateString('he-IL')}
 ${order.notes ? `\n📝 הערות: ${order.notes}` : ''}
