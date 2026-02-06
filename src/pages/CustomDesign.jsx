@@ -164,7 +164,19 @@ Create visual design only based on: "${aiPrompt}"`;
         5. Professional studio lighting, clean background
         6. Front view, centered composition
         
-        The result must show the cap with the exact provided image on it.`
+        The result must show the cap with the exact provided image on it.`,
+        
+        mug: `CRITICAL INSTRUCTIONS: Create a photorealistic product mockup of a ${shirtColorNames[shirtColor]} coffee mug on a clean surface.
+        
+        YOU MUST:
+        1. Place the EXACT image provided as a print/design on the front side of the mug
+        2. Keep the image EXACTLY as it appears - DO NOT modify, recreate, or interpret it
+        3. Make it look like a real photograph of the printed mug
+        4. The image should look professionally printed onto the ceramic mug
+        5. Professional studio lighting, clean background or coffee shop setting
+        6. Slight angle view showing the front of the mug clearly
+        
+        The result must show the mug with the exact provided image printed on it.`
       };
 
       const { url } = await base44.integrations.Core.GenerateImage({
@@ -199,8 +211,8 @@ Create visual design only based on: "${aiPrompt}"`;
       return;
     }
 
-    const prices = { tshirt: 89, hoodie: 149, cap: 69 };
-    const names = { tshirt: 'חולצה מעוצבת', hoodie: 'קפוצ\'ון מעוצב', cap: 'כובע מעוצב' };
+    const prices = { tshirt: 89, hoodie: 149, cap: 69, mug: 59 };
+    const names = { tshirt: 'חולצה מעוצבת', hoodie: 'קפוצ\'ון מעוצב', cap: 'כובע מעוצב', mug: 'ספל מעוצב' };
 
     addToCartMutation.mutate({
       product_id: `custom_${Date.now()}`,
@@ -216,7 +228,8 @@ Create visual design only based on: "${aiPrompt}"`;
     const images = {
       tshirt: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500',
       hoodie: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=500',
-      cap: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=500'
+      cap: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=500',
+      mug: 'https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=500'
     };
     return images[productType];
   };
@@ -489,6 +502,7 @@ Create visual design only based on: "${aiPrompt}"`;
                     <SelectItem value="tshirt">חולצה (₪89)</SelectItem>
                     <SelectItem value="hoodie">קפוצ'ון (₪149)</SelectItem>
                     <SelectItem value="cap">כובע (₪69)</SelectItem>
+                    <SelectItem value="mug">ספל קפה (₪59)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
