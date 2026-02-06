@@ -312,9 +312,6 @@ ${order.notes ? `\n📝 הערות: ${order.notes}` : ''}
                         onClick={async () => {
                           if (order.graphic_with_text_url) {
                             await downloadImage(order.graphic_with_text_url, `order_${order.id}_graphic.png`);
-                          } else if (order.overlay_text) {
-                            const graphicUrl = await createPrintFile(order.design_image_url, order.overlay_text);
-                            await downloadImage(graphicUrl, `order_${order.id}_graphic.png`);
                           } else {
                             await downloadImage(order.design_image_url, `order_${order.id}_graphic.png`);
                           }
