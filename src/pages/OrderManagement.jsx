@@ -49,7 +49,40 @@ export default function OrderManagement() {
     mug: 'ספל קפה'
   };
 
-  const handleExportForSupplier = (order) => {
+  const downloadImage = async (url, filename) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(blobUrl);
+      a.remove();
+    } catch (error) {
+      console.error('Error downloading image:', error);
+      alert('שגיאה בהורדת התמונה');
+    }
+  };
+
+  const handleExportForSupplier = async (order) => {
+    // Download design image (without text)
+    await downloadImage(
+      order.design_image_url, 
+      `order_${order.id}_design.jpg`
+    );
+
+    // Download mockup image if exists
+    if (order.mockup_image_url) {
+      await downloadImage(
+        order.mockup_image_url, 
+        `order_${order.id}_mockup.jpg`
+      );
+    }
+
+    // Create text file with details
     const supplierData = `
 === הזמנה #${order.id} ===
 
@@ -63,8 +96,9 @@ export default function OrderManagement() {
 - מידה: ${order.size}
 - כמות: ${order.quantity}
 
-קישור לתמונת העיצוב:
-${order.design_image_url}
+הורדו 2 תמונות:
+1. order_${order.id}_design.jpg - העיצוב המקורי להדפסה (ללא טקסט)
+2. order_${order.id}_mockup.jpg - תמונת מוקאפ לדוגמה
 
 תאריך הזמנה: ${new Date(order.created_date).toLocaleDateString('he-IL')}
 ${order.notes ? `\nהערות: ${order.notes}` : ''}
@@ -74,7 +108,7 @@ ${order.notes ? `\nהערות: ${order.notes}` : ''}
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `order_${order.id}_${order.customer_name}.txt`;
+    a.download = `order_${order.id}_details.txt`;
     document.body.appendChild(a);
     a.click();
     URL.revokeObjectURL(url);
@@ -138,7 +172,7 @@ ${order.notes ? `\nהערות: ${order.notes}` : ''}
                   {/* Image */}
                   <div className="w-full md:w-48 h-48 bg-zinc-900 rounded overflow-hidden flex-shrink-0">
                     <img
-                      src={order.design_image_url}
+                      src={order.mockup_image_url || order.design_image_url}
                       alt="עיצוב"
                       className="w-full h-full object-contain"
                     />
@@ -216,10 +250,19 @@ ${order.notes ? `\nהערות: ${order.notes}` : ''}
 
                       <a href={order.design_image_url} target="_blank" rel="noopener noreferrer">
                         <Button variant="outline" size="sm" className="bg-zinc-900 border-zinc-600 hover:bg-zinc-800">
-                          <ExternalLink className="w-4 h-4 ml-2" />
-                          פתח תמונה
+                          <Eye className="w-4 h-4 ml-2" />
+                          עיצוב מקורי
                         </Button>
                       </a>
+
+                      {order.mockup_image_url && (
+                        <a href={order.mockup_image_url} target="_blank" rel="noopener noreferrer">
+                          <Button variant="outline" size="sm" className="bg-zinc-900 border-zinc-600 hover:bg-zinc-800">
+                            <Eye className="w-4 h-4 ml-2" />
+                            מוקאפ
+                          </Button>
+                        </a>
+                      )}
 
                       <Button
                         onClick={() => setSelectedOrder(order)}

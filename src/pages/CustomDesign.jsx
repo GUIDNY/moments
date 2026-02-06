@@ -226,7 +226,8 @@ Create visual design only based on: "${aiPrompt}"`;
         size: size,
         quantity: 1,
         price: prices[productType],
-        design_image_url: mockupUrl || designImageUrl,
+        design_image_url: designImageUrl,
+        mockup_image_url: mockupUrl || null,
         shirt_color: shirtColor,
         status: 'pending'
       });
