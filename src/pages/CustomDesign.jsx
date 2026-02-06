@@ -218,30 +218,31 @@ export default function CustomDesign() {
               {designMode === 'upload' ? (
                 <div className="mb-6">
                   <label className="block text-sm text-zinc-400 mb-3">בחר תמונה להדפסה</label>
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    id="design-upload"
-                  />
-                  <label
-                    htmlFor="design-upload"
-                    className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-zinc-600 rounded-sm cursor-pointer hover:border-orange-500 transition-colors bg-zinc-900"
-                  >
-                    {isUploading ? (
-                      <Loader2 className="w-12 h-12 text-orange-500 animate-spin" />
-                    ) : designImage ? (
-                      <img src={designImage} alt="עיצוב" className="w-full h-full object-contain p-4" />
-                    ) : (
-                      <>
-                        <Upload className="w-12 h-12 text-zinc-500 mb-2" />
-                        <span className="text-zinc-400 text-sm">לחץ להעלאת תמונה</span>
-                        <span className="text-zinc-600 text-xs mt-1">JPG, PNG עד 10MB</span>
-                      </>
-                    )}
-                  </label>
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      id="design-upload"
+                    />
+                    <label
+                      htmlFor="design-upload"
+                      className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-zinc-600 rounded-sm cursor-pointer hover:border-orange-500 transition-colors bg-zinc-900"
+                    >
+                      {isUploading ? (
+                        <Loader2 className="w-12 h-12 text-orange-500 animate-spin" />
+                      ) : designImage ? (
+                        <img src={designImage} alt="עיצוב" className="w-full h-full object-contain p-4" />
+                      ) : (
+                        <>
+                          <Upload className="w-12 h-12 text-zinc-500 mb-2" />
+                          <span className="text-zinc-400 text-sm">לחץ להעלאת תמונה</span>
+                          <span className="text-zinc-600 text-xs mt-1">JPG, PNG עד 10MB</span>
+                        </>
+                      )}
+                    </label>
+                  </div>
                 </div>
               ) : (
                 <div className="mb-6 space-y-4">
