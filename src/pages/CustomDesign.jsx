@@ -257,12 +257,12 @@ Create visual design only based on: "${aiPrompt}"`;
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="flex flex-col md:grid md:grid-cols-2 gap-8">
           {/* Left - Controls */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="space-y-6"
+            className="space-y-6 order-2 md:order-1"
           >
             <div className="bg-zinc-800 border-2 border-zinc-700 rounded-sm p-6">
               <h3 className="text-xl font-bold text-white mb-4">בחר סוג עיצוב</h3>
@@ -583,7 +583,7 @@ Create visual design only based on: "${aiPrompt}"`;
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="bg-zinc-800 border-2 border-zinc-700 rounded-sm p-6 sticky top-8"
+            className="bg-zinc-800 border-2 border-zinc-700 rounded-sm p-6 md:sticky md:top-8 order-1 md:order-2"
           >
             <h3 className="text-xl font-bold text-white mb-6">תצוגה מקדימה</h3>
             
