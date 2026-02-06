@@ -308,6 +308,30 @@ ${order.notes ? `\n📝 הערות: ${order.notes}` : ''}
                     )}
 
                     <div className="flex flex-wrap gap-2 pt-2">
+                      {order.graphic_with_text_url && (
+                        <Button
+                          onClick={() => downloadImage(order.graphic_with_text_url, `order_${order.id}_graphic.png`)}
+                          variant="outline"
+                          size="sm"
+                          className="bg-purple-500/20 border-purple-500/30 text-purple-400 hover:bg-purple-500/30 font-bold"
+                        >
+                          <Download className="w-4 h-4 ml-2" />
+                          ייצא גרפיקה להדפסה
+                        </Button>
+                      )}
+
+                      {order.design_with_text_url && (
+                        <Button
+                          onClick={() => downloadImage(order.design_with_text_url, `order_${order.id}_mockup.jpg`)}
+                          variant="outline"
+                          size="sm"
+                          className="bg-blue-500/20 border-blue-500/30 text-blue-400 hover:bg-blue-500/30 font-bold"
+                        >
+                          <Download className="w-4 h-4 ml-2" />
+                          ייצא עיצוב חולצה
+                        </Button>
+                      )}
+
                       <Button
                         onClick={() => handleExportForSupplier(order)}
                         variant="outline"
@@ -315,7 +339,7 @@ ${order.notes ? `\n📝 הערות: ${order.notes}` : ''}
                         className="bg-zinc-900 border-zinc-600 hover:bg-zinc-800"
                       >
                         <Download className="w-4 h-4 ml-2" />
-                        ייצא קובץ לספק
+                        ייצא הכל לספק
                       </Button>
 
                       {order.design_with_text_url && (
