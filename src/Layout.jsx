@@ -4,7 +4,7 @@ export default function Layout({ children, currentPageName }) {
   return (
     <div className="font-heebo" dir="rtl">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Rubik:wght@300;400;500;600;700;800;900&family=Assistant:wght@300;400;500;600;700;800&display=swap');
         
         * {
           font-family: 'Heebo', sans-serif;

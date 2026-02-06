@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Sparkles, ShoppingCart, Loader2, Type, Wand2 } from 'lucide-react';
+import { Upload, Sparkles, ShoppingCart, Loader2, Type, Wand2, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -21,9 +21,10 @@ export default function CustomDesign() {
   const [designMode, setDesignMode] = useState('upload'); // 'upload' or 'ai'
   const [aiPrompt, setAiPrompt] = useState('');
   const [overlayText, setOverlayText] = useState('');
-  const [textPosition, setTextPosition] = useState('below'); // 'above' or 'below'
+  const [textPositionY, setTextPositionY] = useState(72); // vertical position in %
   const [fontSize, setFontSize] = useState('medium'); // 'small', 'medium', 'large'
   const [textColor, setTextColor] = useState('white'); // 'white', 'black', 'orange', etc
+  const [fontFamily, setFontFamily] = useState('heebo'); // 'heebo', 'rubik', 'assistant', 'secular', 'impact'
   const [shirtColor, setShirtColor] = useState('white');
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const queryClient = useQueryClient();
@@ -358,33 +359,28 @@ Create visual design only based on: "${aiPrompt}"`;
                     dir="auto"
                   />
                   
-                  <div className="grid grid-cols-2 gap-3 mb-3">
-                    <div>
-                      <label className="block text-xs text-zinc-500 mb-2">מיקום הטקסט</label>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setTextPosition('above')}
-                          className={`flex-1 py-2 px-3 rounded text-xs font-bold transition-all ${
-                            textPosition === 'above'
-                              ? 'bg-orange-500 text-zinc-900'
-                              : 'bg-zinc-800 text-zinc-400 hover:text-white'
-                          }`}
-                        >
-                          למעלה
-                        </button>
-                        <button
-                          onClick={() => setTextPosition('below')}
-                          className={`flex-1 py-2 px-3 rounded text-xs font-bold transition-all ${
-                            textPosition === 'below'
-                              ? 'bg-orange-500 text-zinc-900'
-                              : 'bg-zinc-800 text-zinc-400 hover:text-white'
-                          }`}
-                        >
-                          למטה
-                        </button>
+                  <div className="mb-3">
+                    <label className="block text-xs text-zinc-500 mb-2">מיקום הטקסט (גובה)</label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setTextPositionY(Math.max(10, textPositionY - 5))}
+                        className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded transition-all"
+                      >
+                        <ChevronUp className="w-4 h-4 text-white" />
+                      </button>
+                      <div className="flex-1 bg-zinc-800 rounded px-3 py-2 text-center">
+                        <span className="text-white text-sm font-bold">{textPositionY}%</span>
                       </div>
+                      <button
+                        onClick={() => setTextPositionY(Math.min(90, textPositionY + 5))}
+                        className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded transition-all"
+                      >
+                        <ChevronDown className="w-4 h-4 text-white" />
+                      </button>
                     </div>
+                  </div>
 
+                  <div className="grid grid-cols-2 gap-3 mb-3">
                     <div>
                       <label className="block text-xs text-zinc-500 mb-2">גודל פונט</label>
                       <Select value={fontSize} onValueChange={setFontSize}>
@@ -395,6 +391,22 @@ Create visual design only based on: "${aiPrompt}"`;
                           <SelectItem value="small">קטן</SelectItem>
                           <SelectItem value="medium">בינוני</SelectItem>
                           <SelectItem value="large">גדול</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-zinc-500 mb-2">גופן</label>
+                      <Select value={fontFamily} onValueChange={setFontFamily}>
+                        <SelectTrigger className="bg-zinc-800 border-zinc-600 text-white h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="heebo">Heebo</SelectItem>
+                          <SelectItem value="rubik">Rubik</SelectItem>
+                          <SelectItem value="assistant">Assistant</SelectItem>
+                          <SelectItem value="impact">Impact</SelectItem>
+                          <SelectItem value="arial">Arial Black</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -579,7 +591,7 @@ Create visual design only based on: "${aiPrompt}"`;
                       animate={{ opacity: 1 }}
                       className="absolute left-1/2 -translate-x-1/2"
                       style={{
-                        top: textPosition === 'above' ? '28%' : '72%',
+                        top: `${textPositionY}%`,
                         width: '85%',
                         filter: 'brightness(0.95) contrast(1.05)',
                         mixBlendMode: 'multiply',
@@ -603,6 +615,11 @@ Create visual design only based on: "${aiPrompt}"`;
                           direction: /[\u0590-\u05FF]/.test(overlayText) ? 'rtl' : 'ltr',
                           letterSpacing: '0.03em',
                           fontWeight: '900',
+                          fontFamily: fontFamily === 'heebo' ? 'Heebo, sans-serif' :
+                                      fontFamily === 'rubik' ? 'Rubik, sans-serif' :
+                                      fontFamily === 'assistant' ? 'Assistant, sans-serif' :
+                                      fontFamily === 'impact' ? 'Impact, Arial Black, sans-serif' :
+                                      fontFamily === 'arial' ? 'Arial Black, Arial, sans-serif' : 'Heebo, sans-serif',
                           transform: 'perspective(500px) rotateX(2deg)',
                           textRendering: 'geometricPrecision'
                         }}
