@@ -132,53 +132,13 @@ Create visual design only based on: "${aiPrompt}"`;
       };
 
       const productPrompts = {
-        tshirt: `CRITICAL INSTRUCTIONS: Create a photorealistic product mockup of a ${shirtColorNames[shirtColor]} t-shirt worn by a person.
+        tshirt: `Photorealistic ${shirtColorNames[shirtColor]} t-shirt mockup worn by person. Place the provided image EXACTLY as-is on center chest. Professional photo, studio lighting, front view.`,
         
-        YOU MUST:
-        1. Place the EXACT image provided as a print/design on the center of the t-shirt chest
-        2. Keep the image EXACTLY as it appears - DO NOT modify, recreate, or interpret it
-        3. Make it look like a real photograph of the printed t-shirt
-        4. The image should look printed/pressed onto the fabric
-        5. Professional studio lighting, clean background
-        6. Front view, centered composition
+        hoodie: `Photorealistic ${shirtColorNames[shirtColor]} hoodie mockup worn by person. Place the provided image EXACTLY as-is on center chest. Professional photo, studio lighting, front view.`,
         
-        The result must show the t-shirt with the exact provided image printed on it.`,
+        cap: `Photorealistic ${shirtColorNames[shirtColor]} baseball cap mockup worn by person. Place the provided image EXACTLY as-is on front panel. Professional photo, studio lighting, front view.`,
         
-        hoodie: `CRITICAL INSTRUCTIONS: Create a photorealistic product mockup of a ${shirtColorNames[shirtColor]} hoodie worn by a person.
-        
-        YOU MUST:
-        1. Place the EXACT image provided as a print/design on the center of the hoodie chest
-        2. Keep the image EXACTLY as it appears - DO NOT modify, recreate, or interpret it
-        3. Make it look like a real photograph of the printed hoodie
-        4. The image should look printed/pressed onto the fabric
-        5. Professional studio lighting, clean background
-        6. Front view, centered composition
-        
-        The result must show the hoodie with the exact provided image printed on it.`,
-        
-        cap: `CRITICAL INSTRUCTIONS: Create a photorealistic product mockup of a ${shirtColorNames[shirtColor]} baseball cap worn by a person.
-        
-        YOU MUST:
-        1. Place the EXACT image provided as a print/design on the front panel of the cap
-        2. Keep the image EXACTLY as it appears - DO NOT modify, recreate, or interpret it
-        3. Make it look like a real photograph of the printed cap
-        4. The image should look embroidered or printed onto the cap
-        5. Professional studio lighting, clean background
-        6. Front view, centered composition
-        
-        The result must show the cap with the exact provided image on it.`,
-        
-        mug: `CRITICAL INSTRUCTIONS: Create a photorealistic product mockup of a ${shirtColorNames[shirtColor]} coffee mug on a clean surface.
-        
-        YOU MUST:
-        1. Place the EXACT image provided as a print/design on the front side of the mug
-        2. Keep the image EXACTLY as it appears - DO NOT modify, recreate, or interpret it
-        3. Make it look like a real photograph of the printed mug
-        4. The image should look professionally printed onto the ceramic mug
-        5. Professional studio lighting, clean background or coffee shop setting
-        6. Slight angle view showing the front of the mug clearly
-        
-        The result must show the mug with the exact provided image printed on it.`
+        mug: `Photorealistic ${shirtColorNames[shirtColor]} coffee mug on clean surface. Place the provided image EXACTLY as-is on front. Professional photo, studio lighting.`
       };
 
       const { url } = await base44.integrations.Core.GenerateImage({
