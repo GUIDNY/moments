@@ -15,6 +15,8 @@ export default function CustomDesign() {
   const [productType, setProductType] = useState('tshirt');
   const [size, setSize] = useState('M');
   const [isUploading, setIsUploading] = useState(false);
+  const [isGeneratingMockup, setIsGeneratingMockup] = useState(false);
+  const [mockupUrl, setMockupUrl] = useState('');
   const queryClient = useQueryClient();
 
   const addToCartMutation = useMutation({
@@ -45,6 +47,7 @@ export default function CustomDesign() {
     if (!file) return;
 
     setIsUploading(true);
+    setMockupUrl(''); // Reset mockup on new upload
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setDesignImageUrl(file_url);
@@ -54,6 +57,31 @@ export default function CustomDesign() {
       alert('שגיאה בהעלאת התמונה');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleGenerateMockup = async () => {
+    if (!designImageUrl) return;
+
+    setIsGeneratingMockup(true);
+    try {
+      const productPrompts = {
+        tshirt: 'professional product photography of a white t-shirt on a person, front view, centered, clean background, studio lighting, the t-shirt has a custom printed design in the center of the chest area',
+        hoodie: 'professional product photography of a black hoodie on a person, front view, centered, clean background, studio lighting, the hoodie has a custom printed design in the center of the chest area',
+        cap: 'professional product photography of a baseball cap on a person, front view, centered, clean background, studio lighting, the cap has a custom printed design on the front panel'
+      };
+
+      const { url } = await base44.integrations.Core.GenerateImage({
+        prompt: productPrompts[productType],
+        existing_image_urls: [designImageUrl]
+      });
+
+      setMockupUrl(url);
+    } catch (error) {
+      console.error('Error generating mockup:', error);
+      alert('שגיאה ביצירת המוקאפ');
+    } finally {
+      setIsGeneratingMockup(false);
     }
   };
 
@@ -180,6 +208,28 @@ export default function CustomDesign() {
                 </div>
               </div>
 
+              {designImageUrl && (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleGenerateMockup}
+                  disabled={isGeneratingMockup}
+                  className="w-full mb-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-zinc-700 disabled:to-zinc-700 text-white rounded-sm font-bold flex items-center justify-center gap-2 transition-all"
+                >
+                  {isGeneratingMockup ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      יוצר מוקאפ מציאותי...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-5 h-5" />
+                      {mockupUrl ? 'צור מוקאפ מחדש עם AI' : 'צור מוקאפ מציאותי עם AI'}
+                    </>
+                  )}
+                </motion.button>
+              )}
+
               <Button
                 onClick={handleAddToCart}
                 disabled={!designImageUrl || addToCartMutation.isPending}
@@ -220,58 +270,80 @@ export default function CustomDesign() {
             <h3 className="text-xl font-bold text-white mb-6">תצוגה מקדימה</h3>
             
             <div className="relative aspect-square bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-sm overflow-hidden shadow-2xl">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.05),transparent_70%)]" />
-              
-              <img
-                src={getProductImage()}
-                alt={productType}
-                className="w-full h-full object-cover"
-              />
-              
-              {designImage && (
-                <motion.div
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                  className="absolute"
-                  style={{
-                    top: '35%',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: productType === 'cap' ? '35%' : '40%',
-                    height: productType === 'cap' ? '30%' : '40%',
-                  }}
-                >
-                  <div className="relative w-full h-full">
-                    <div className="absolute inset-0 bg-black/5 blur-md transform translate-y-1" />
-                    <img
-                      src={designImage}
-                      alt="עיצוב"
-                      className="relative w-full h-full object-contain"
+              {mockupUrl ? (
+                <motion.img
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5 }}
+                  src={mockupUrl}
+                  alt="AI Generated Mockup"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <>
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.05),transparent_70%)]" />
+                  
+                  <img
+                    src={getProductImage()}
+                    alt={productType}
+                    className="w-full h-full object-cover"
+                  />
+                  
+                  {designImage && (
+                    <motion.div
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                      className="absolute"
                       style={{
-                        filter: 'brightness(0.92) contrast(1.08) saturate(1.1)',
-                        mixBlendMode: 'multiply',
+                        top: '35%',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        width: productType === 'cap' ? '35%' : '40%',
+                        height: productType === 'cap' ? '30%' : '40%',
                       }}
-                    />
-                  </div>
-                </motion.div>
-              )}
-              
-              {!designImage && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-                  <div className="text-center">
-                    <Sparkles className="w-16 h-16 text-zinc-600 mx-auto mb-3" />
-                    <p className="text-zinc-400 text-sm font-medium">העלה תמונה לתצוגה מקדימה</p>
-                    <p className="text-zinc-600 text-xs mt-1">התמונה תוצג על המוצר</p>
-                  </div>
-                </div>
+                    >
+                      <div className="relative w-full h-full">
+                        <div className="absolute inset-0 bg-black/5 blur-md transform translate-y-1" />
+                        <img
+                          src={designImage}
+                          alt="עיצוב"
+                          className="relative w-full h-full object-contain"
+                          style={{
+                            filter: 'brightness(0.92) contrast(1.08) saturate(1.1)',
+                            mixBlendMode: 'multiply',
+                          }}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                  
+                  {!designImage && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+                      <div className="text-center">
+                        <Sparkles className="w-16 h-16 text-zinc-600 mx-auto mb-3" />
+                        <p className="text-zinc-400 text-sm font-medium">העלה תמונה לתצוגה מקדימה</p>
+                        <p className="text-zinc-600 text-xs mt-1">התמונה תוצג על המוצר</p>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
             <div className="mt-6 text-center">
-              <div className="bg-zinc-800/50 border border-zinc-700 rounded-sm p-3">
-                <p className="text-zinc-400 text-sm">
-                  {designImage ? '✨ תצוגה מקדימה - המוצר הסופי יודפס באיכות HD' : 'המוצר הסופי יהיה באיכות הדפסה מקצועית'}
+              <div className={`border rounded-sm p-3 ${
+                mockupUrl 
+                  ? 'bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-purple-500/30' 
+                  : 'bg-zinc-800/50 border-zinc-700'
+              }`}>
+                <p className={`text-sm ${mockupUrl ? 'text-purple-300' : 'text-zinc-400'}`}>
+                  {mockupUrl 
+                    ? '✨ מוקאפ נוצר באמצעות AI - כך המוצר ייראה במציאות!' 
+                    : designImage 
+                      ? '💡 לחץ "צור מוקאפ מציאותי עם AI" לתוצאה מושלמת' 
+                      : 'המוצר הסופי יהיה באיכות הדפסה מקצועית'
+                  }
                 </p>
               </div>
             </div>
