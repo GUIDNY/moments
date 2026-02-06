@@ -129,11 +129,13 @@ export default function OrderManagement() {
         await createPrintReadyFile(order.design_with_text_url, order.id);
       }
 
-      // 2. Download graphic design only (without text)
-      await downloadImage(
-        order.design_image_url, 
-        `order_${order.id}_graphic_only.jpg`
-      );
+      // 2. Download design with text for printing (clean, without label)
+      if (order.design_with_text_url) {
+        await downloadImage(
+          order.design_with_text_url, 
+          `order_${order.id}_for_printing.jpg`
+        );
+      }
 
       // 3. Create text file with order details
       const supplierData = `
@@ -151,8 +153,8 @@ export default function OrderManagement() {
 ${order.overlay_text ? `- טקסט: "${order.overlay_text}"` : ''}
 
 📦 קבצים:
-1. order_${order.id}_PRINT.jpg ⭐ - להדפסה (עם סימון "PRINT")
-2. order_${order.id}_graphic_only.jpg - גרפיקה בלבד
+1. order_${order.id}_PRINT.jpg - עם סימון למעלה
+2. order_${order.id}_for_printing.jpg ⭐ - להדפסה (עיצוב + טקסט נקי)
 
 📅 תאריך: ${new Date(order.created_date).toLocaleDateString('he-IL')}
 ${order.notes ? `\n📝 הערות: ${order.notes}` : ''}
