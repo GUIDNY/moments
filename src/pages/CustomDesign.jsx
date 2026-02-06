@@ -428,10 +428,10 @@ Create visual design only based on: "${aiPrompt}"`;
     try {
       const user = await base44.auth.me();
       
-      // Create graphic with text for printing (no mockup)
-      let graphicWithTextUrl = designImageUrl; // Always save the graphic URL
+      // Always save graphic URL for printing (with or without text)
+      let graphicWithTextUrl = designImageUrl;
       if (overlayText.trim()) {
-        graphicWithTextUrl = await createGraphicWithText(); // Override with text version if text exists
+        graphicWithTextUrl = await createGraphicWithText();
       }
       
       // Capture mockup with text for display
