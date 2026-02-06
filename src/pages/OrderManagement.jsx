@@ -74,53 +74,105 @@ export default function OrderManagement() {
     }
   };
 
+  const createPrintReadyFile = async (imageUrl, orderId) => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => {
+        // Set canvas size with extra space for "PRINT" label
+        canvas.width = img.width;
+        canvas.height = img.height + 150;
+        
+        // White background
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw the main image
+        ctx.drawImage(img, 0, 80, img.width, img.height);
+        
+        // Draw "PRINT" label at top
+        ctx.fillStyle = '#FF6B00';
+        ctx.fillRect(0, 0, canvas.width, 80);
+        
+        ctx.fillStyle = '#000000';
+        ctx.font = 'bold 48px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🖨️ PRINT FILE - להדפסה', canvas.width / 2, 40);
+        
+        // Convert to blob
+        canvas.toBlob((blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `order_${orderId}_PRINT.jpg`;
+          document.body.appendChild(a);
+          a.click();
+          URL.revokeObjectURL(url);
+          a.remove();
+          resolve();
+        }, 'image/jpeg', 0.95);
+      };
+      
+      img.onerror = reject;
+      img.src = imageUrl;
+    });
+  };
+
   const handleExportForSupplier = async (order) => {
-    // 1. Download mockup with text - THE MAIN PRINT FILE
-    if (order.design_with_text_url) {
+    try {
+      // 1. Create and download PRINT file with label
+      if (order.design_with_text_url) {
+        await createPrintReadyFile(order.design_with_text_url, order.id);
+      }
+
+      // 2. Download graphic design only (without text)
       await downloadImage(
-        order.design_with_text_url, 
-        `order_${order.id}_PRINT_FILE.jpg`
+        order.design_image_url, 
+        `order_${order.id}_graphic_only.jpg`
       );
-    }
 
-    // 2. Download graphic design only (without text)
-    await downloadImage(
-      order.design_image_url, 
-      `order_${order.id}_graphic_only.jpg`
-    );
-
-    // 3. Create text file with order details
-    const supplierData = `
+      // 3. Create text file with order details
+      const supplierData = `
 === הזמנה #${order.id} ===
 
-פרטי לקוח:
+📋 פרטי לקוח:
 - שם: ${order.customer_name}
 - אימייל: ${order.customer_email}
 
-פרטי מוצר:
+👕 פרטי מוצר:
 - סוג: ${productTypeLabels[order.product_type]}
 - צבע: ${order.shirt_color}
 - מידה: ${order.size}
 - כמות: ${order.quantity}
-${order.overlay_text ? `- טקסט על המוצר: "${order.overlay_text}"` : ''}
+${order.overlay_text ? `- טקסט: "${order.overlay_text}"` : ''}
 
-קבצים:
-1. order_${order.id}_PRINT_FILE.jpg - קובץ להדפסה (חולצה + טקסט) ⭐
+📦 קבצים:
+1. order_${order.id}_PRINT.jpg ⭐ - להדפסה (עם סימון "PRINT")
 2. order_${order.id}_graphic_only.jpg - גרפיקה בלבד
 
-תאריך הזמנה: ${new Date(order.created_date).toLocaleDateString('he-IL')}
-${order.notes ? `\nהערות: ${order.notes}` : ''}
-    `.trim();
+📅 תאריך: ${new Date(order.created_date).toLocaleDateString('he-IL')}
+${order.notes ? `\n📝 הערות: ${order.notes}` : ''}
+      `.trim();
 
-    const blob = new Blob([supplierData], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `order_${order.id}_details.txt`;
-    document.body.appendChild(a);
-    a.click();
-    URL.revokeObjectURL(url);
-    a.remove();
+      const blob = new Blob([supplierData], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `order_${order.id}_details.txt`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+      
+      alert('הקבצים הורדו בהצלחה! ✅');
+    } catch (error) {
+      console.error('Error exporting for supplier:', error);
+      alert('שגיאה בייצוא הקבצים');
+    }
   };
 
   return (
