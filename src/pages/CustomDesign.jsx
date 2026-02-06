@@ -21,6 +21,8 @@ export default function CustomDesign() {
   const [designMode, setDesignMode] = useState('upload'); // 'upload' or 'ai'
   const [aiPrompt, setAiPrompt] = useState('');
   const [overlayText, setOverlayText] = useState('');
+  const [textPosition, setTextPosition] = useState('below'); // 'above' or 'below'
+  const [fontSize, setFontSize] = useState('medium'); // 'small', 'medium', 'large'
   const [shirtColor, setShirtColor] = useState('white');
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const queryClient = useQueryClient();
@@ -341,20 +343,65 @@ Create visual design only based on: "${aiPrompt}"`;
               )}
 
               {/* Text Overlay Option - Always Available */}
-              <div className="mb-6">
-                <label className="block text-sm text-zinc-400 mb-3">
-                  <Type className="w-4 h-4 inline ml-1" />
-                  הוסף כתובית על המוצר (אופציונלי)
-                </label>
-                <Input
-                  value={overlayText}
-                  onChange={(e) => setOverlayText(e.target.value)}
-                  placeholder="לדוגמה: שלום עולם, GAME ON..."
-                  className="bg-zinc-900 border-zinc-700 text-white"
-                  dir="auto"
-                />
-                <p className="text-xs text-zinc-500 mt-2">הטקסט יופיע מתחת לתמונה בתצוגה המקדימה בלבד</p>
-              </div>
+              {mockupUrl && (
+                <div className="mb-6 p-4 bg-zinc-900 rounded-sm border border-zinc-700">
+                  <label className="block text-sm text-zinc-400 mb-3">
+                    <Type className="w-4 h-4 inline ml-1" />
+                    הוסף כתובית על המוקאפ (אופציונלי)
+                  </label>
+                  <Input
+                    value={overlayText}
+                    onChange={(e) => setOverlayText(e.target.value)}
+                    placeholder="לדוגמה: שלום עולם, GAME ON..."
+                    className="bg-zinc-800 border-zinc-600 text-white mb-3"
+                    dir="auto"
+                  />
+                  
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label className="block text-xs text-zinc-500 mb-2">מיקום הטקסט</label>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setTextPosition('above')}
+                          className={`flex-1 py-2 px-3 rounded text-xs font-bold transition-all ${
+                            textPosition === 'above'
+                              ? 'bg-orange-500 text-zinc-900'
+                              : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                          }`}
+                        >
+                          למעלה
+                        </button>
+                        <button
+                          onClick={() => setTextPosition('below')}
+                          className={`flex-1 py-2 px-3 rounded text-xs font-bold transition-all ${
+                            textPosition === 'below'
+                              ? 'bg-orange-500 text-zinc-900'
+                              : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                          }`}
+                        >
+                          למטה
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs text-zinc-500 mb-2">גודל פונט</label>
+                      <Select value={fontSize} onValueChange={setFontSize}>
+                        <SelectTrigger className="bg-zinc-800 border-zinc-600 text-white h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="small">קטן</SelectItem>
+                          <SelectItem value="medium">בינוני</SelectItem>
+                          <SelectItem value="large">גדול</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <p className="text-xs text-zinc-500">הטקסט יופיע על המוקאפ בלבד (לא על המוצר הסופי)</p>
+                </div>
+              )}
 
               <div className="mb-6">
                 <label className="block text-sm text-zinc-400 mb-3">בחר צבע מוצר</label>
@@ -484,14 +531,42 @@ Create visual design only based on: "${aiPrompt}"`;
             
             <div className="relative aspect-square bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-sm overflow-hidden shadow-2xl">
               {mockupUrl ? (
-                <motion.img
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5 }}
-                  src={mockupUrl}
-                  alt="AI Generated Mockup"
-                  className="w-full h-full object-cover"
-                />
+                <div className="relative w-full h-full">
+                  <motion.img
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5 }}
+                    src={mockupUrl}
+                    alt="AI Generated Mockup"
+                    className="w-full h-full object-cover"
+                  />
+                  
+                  {overlayText.trim() && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="absolute left-1/2 -translate-x-1/2"
+                      style={{
+                        top: textPosition === 'above' ? '28%' : '72%',
+                        width: '80%',
+                      }}
+                    >
+                      <div className="bg-black/60 backdrop-blur-sm px-4 py-2 rounded">
+                        <p 
+                          className="text-white font-black text-center"
+                          style={{
+                            fontSize: fontSize === 'small' ? '1rem' : fontSize === 'large' ? '1.75rem' : '1.25rem',
+                            textShadow: '2px 2px 6px rgba(0,0,0,0.9)',
+                            direction: /[\u0590-\u05FF]/.test(overlayText) ? 'rtl' : 'ltr',
+                            letterSpacing: '0.05em'
+                          }}
+                        >
+                          {overlayText}
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
               ) : (
                 <>
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.05),transparent_70%)]" />
