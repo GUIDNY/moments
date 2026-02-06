@@ -50,8 +50,8 @@
 import CustomDesign from './pages/CustomDesign';
 import Home from './pages/Home';
 import Inventory from './pages/Inventory';
-import Shop from './pages/Shop';
 import OrderManagement from './pages/OrderManagement';
+import Shop from './pages/Shop';
 import __Layout from './Layout.jsx';
 
 
@@ -59,8 +59,8 @@ export const PAGES = {
     "CustomDesign": CustomDesign,
     "Home": Home,
     "Inventory": Inventory,
-    "Shop": Shop,
     "OrderManagement": OrderManagement,
+    "Shop": Shop,
 }
 
 export const pagesConfig = {

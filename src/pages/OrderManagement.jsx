@@ -124,18 +124,11 @@ export default function OrderManagement() {
 
   const handleExportForSupplier = async (order) => {
     try {
-      // 1. Create and download PRINT file with label
-      if (order.design_with_text_url) {
-        await createPrintReadyFile(order.design_with_text_url, order.id);
-        await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms
-      }
-
-      // 2. Download graphic with text for printing (no mockup, clean)
-      if (order.graphic_with_text_url) {
-        await downloadImage(
-          order.graphic_with_text_url, 
-          `order_${order.id}_for_printing.png`
-        );
+      // Use graphic_with_text_url for print file (clean graphic), fallback to design_image_url
+      const printGraphicUrl = order.graphic_with_text_url || order.design_image_url;
+      
+      if (printGraphicUrl) {
+        await createPrintReadyFile(printGraphicUrl, order.id);
         await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms
       }
 
