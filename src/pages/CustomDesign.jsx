@@ -63,7 +63,7 @@ export default function CustomDesign() {
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setDesignImageUrl(file_url);
-      setDesignImage(URL.createObjectURL(file));
+      setDesignImage(file_url);
     } catch (error) {
       console.error('Upload error:', error);
       alert('שגיאה בהעלאת התמונה');
@@ -524,8 +524,8 @@ Create visual design only based on: "${aiPrompt}"`;
                       >
                         {isUploading ? (
                           <Loader2 className="w-12 h-12 text-orange-500 animate-spin" />
-                        ) : designImage ? (
-                          <img src={designImage} alt="עיצוב" className="w-full h-full object-contain p-4" />
+                        ) : designImageUrl ? (
+                          <img src={designImageUrl} alt="עיצוב" className="w-full h-full object-contain p-4" />
                         ) : (
                           <>
                             <Upload className="w-12 h-12 text-zinc-500 mb-2" />
@@ -855,7 +855,7 @@ Create visual design only based on: "${aiPrompt}"`;
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,107,0,0.1),transparent_70%)]" />
                   
                   <div className="relative text-center z-10">
-                    {designImage ? (
+                    {designImageUrl ? (
                       <>
                         <motion.div
                           initial={{ scale: 0.8, opacity: 0 }}
@@ -864,7 +864,7 @@ Create visual design only based on: "${aiPrompt}"`;
                         >
                           <div className="w-32 h-32 mx-auto mb-4 bg-zinc-800/50 backdrop-blur-sm rounded-lg border-2 border-dashed border-orange-500/30 p-4 flex items-center justify-center">
                             <img
-                              src={designImage}
+                              src={designImageUrl}
                               alt="עיצוב"
                               className="w-full h-full object-contain"
                               style={{
