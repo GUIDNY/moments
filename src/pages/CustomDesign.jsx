@@ -23,6 +23,7 @@ export default function CustomDesign() {
   const [overlayText, setOverlayText] = useState('');
   const [textPosition, setTextPosition] = useState('below'); // 'above' or 'below'
   const [fontSize, setFontSize] = useState('medium'); // 'small', 'medium', 'large'
+  const [textColor, setTextColor] = useState('white'); // 'white', 'black', 'orange', etc
   const [shirtColor, setShirtColor] = useState('white');
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const queryClient = useQueryClient();
@@ -398,6 +399,37 @@ Create visual design only based on: "${aiPrompt}"`;
                       </Select>
                     </div>
                   </div>
+
+                  <div className="mb-3">
+                    <label className="block text-xs text-zinc-500 mb-2">צבע הטקסט</label>
+                    <div className="flex gap-2 flex-wrap">
+                      {[
+                        { color: 'white', hex: '#FFFFFF', name: 'לבן' },
+                        { color: 'black', hex: '#000000', name: 'שחור' },
+                        { color: 'orange', hex: '#FF6B00', name: 'כתום' },
+                        { color: 'red', hex: '#EF4444', name: 'אדום' },
+                        { color: 'blue', hex: '#3B82F6', name: 'כחול' },
+                        { color: 'yellow', hex: '#FBBF24', name: 'צהוב' },
+                        { color: 'green', hex: '#10B981', name: 'ירוק' }
+                      ].map(({ color, hex, name }) => (
+                        <button
+                          key={color}
+                          onClick={() => setTextColor(color)}
+                          className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-xs transition-all ${
+                            textColor === color
+                              ? 'bg-orange-500/20 ring-2 ring-orange-500'
+                              : 'bg-zinc-800 hover:bg-zinc-700'
+                          }`}
+                        >
+                          <div
+                            className="w-4 h-4 rounded-full border border-zinc-600"
+                            style={{ backgroundColor: hex }}
+                          />
+                          <span className="text-white">{name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   
                   <p className="text-xs text-zinc-500">הטקסט יופיע על המוקאפ בלבד (לא על המוצר הסופי)</p>
                 </div>
@@ -548,22 +580,31 @@ Create visual design only based on: "${aiPrompt}"`;
                       className="absolute left-1/2 -translate-x-1/2"
                       style={{
                         top: textPosition === 'above' ? '28%' : '72%',
-                        width: '80%',
+                        width: '85%',
                       }}
                     >
-                      <div className="bg-black/60 backdrop-blur-sm px-4 py-2 rounded">
-                        <p 
-                          className="text-white font-black text-center"
-                          style={{
-                            fontSize: fontSize === 'small' ? '1rem' : fontSize === 'large' ? '1.75rem' : '1.25rem',
-                            textShadow: '2px 2px 6px rgba(0,0,0,0.9)',
-                            direction: /[\u0590-\u05FF]/.test(overlayText) ? 'rtl' : 'ltr',
-                            letterSpacing: '0.05em'
-                          }}
-                        >
-                          {overlayText}
-                        </p>
-                      </div>
+                      <p 
+                        className="font-black text-center"
+                        style={{
+                          fontSize: fontSize === 'small' ? '1.25rem' : fontSize === 'large' ? '2.25rem' : '1.75rem',
+                          color: textColor === 'white' ? '#FFFFFF' : 
+                                 textColor === 'black' ? '#000000' :
+                                 textColor === 'orange' ? '#FF6B00' :
+                                 textColor === 'red' ? '#EF4444' :
+                                 textColor === 'blue' ? '#3B82F6' :
+                                 textColor === 'yellow' ? '#FBBF24' :
+                                 textColor === 'green' ? '#10B981' : '#FFFFFF',
+                          textShadow: textColor === 'white' || textColor === 'yellow' 
+                            ? '3px 3px 8px rgba(0,0,0,0.8), -1px -1px 2px rgba(0,0,0,0.5)' 
+                            : '3px 3px 8px rgba(0,0,0,0.4), -1px -1px 2px rgba(255,255,255,0.3)',
+                          direction: /[\u0590-\u05FF]/.test(overlayText) ? 'rtl' : 'ltr',
+                          letterSpacing: '0.05em',
+                          WebkitTextStroke: '1px rgba(0,0,0,0.2)',
+                          fontWeight: '900'
+                        }}
+                      >
+                        {overlayText}
+                      </p>
                     </motion.div>
                   )}
                 </div>
