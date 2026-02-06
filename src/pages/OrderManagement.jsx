@@ -197,7 +197,7 @@ ${order.notes ? `\nהערות: ${order.notes}` : ''}
                   {/* Image */}
                   <div className="w-full md:w-48 h-48 bg-zinc-900 rounded overflow-hidden flex-shrink-0">
                     <img
-                      src={order.mockup_image_url || order.design_image_url}
+                      src={order.design_with_text_url || order.mockup_image_url || order.design_image_url}
                       alt="עיצוב"
                       className="w-full h-full object-contain"
                     />

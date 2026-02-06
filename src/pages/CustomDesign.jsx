@@ -198,17 +198,7 @@ Create visual design only based on: "${aiPrompt}"`;
 
     setIsGeneratingMockup(true);
     try {
-      // If there's text, create design with text first, then generate mockup from it
-      let finalImageUrl = designImageUrl;
-      
-      if (overlayText.trim()) {
-        const designWithTextUrl = await createDesignWithText();
-        if (designWithTextUrl) {
-          finalImageUrl = designWithTextUrl;
-        }
-      }
-      
-      await generateMockupFromUrl(finalImageUrl);
+      await generateMockupFromUrl(designImageUrl);
     } catch (error) {
       alert(error.message || 'שגיאה ביצירת המוקאפ');
       setMockupUrl('');
@@ -217,48 +207,47 @@ Create visual design only based on: "${aiPrompt}"`;
     }
   };
 
-  const createDesignWithText = async () => {
-    if (!overlayText.trim() || !designImageUrl) return null;
+  const captureMockupWithText = async () => {
+    if (!mockupUrl || !overlayText.trim()) return null;
 
     try {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      // Load design image (not mockup!)
-      const img = new Image();
+      // Create a temporary container
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.left = '-9999px';
+      container.style.width = '800px';
+      container.style.height = '800px';
+      document.body.appendChild(container);
+
+      // Create mockup image
+      const img = document.createElement('img');
       img.crossOrigin = 'anonymous';
-      await new Promise((resolve, reject) => {
+      img.src = mockupUrl;
+      img.style.width = '100%';
+      img.style.height = '100%';
+      img.style.objectFit = 'cover';
+      container.appendChild(img);
+
+      // Wait for image to load
+      await new Promise((resolve) => {
         img.onload = resolve;
-        img.onerror = reject;
-        img.src = designImageUrl;
       });
 
-      // Create canvas with design size + space for text
-      canvas.width = img.width;
-      canvas.height = img.height + 200; // Add space for text
+      // Create text overlay
+      const textDiv = document.createElement('div');
+      textDiv.style.position = 'absolute';
+      textDiv.style.top = `${textPositionY}%`;
+      textDiv.style.left = '50%';
+      textDiv.style.transform = 'translateX(-50%)';
+      textDiv.style.width = '85%';
+      textDiv.style.textAlign = 'center';
+      textDiv.style.fontWeight = '900';
+      textDiv.style.fontSize = fontSize === 'small' ? '30px' : fontSize === 'large' ? '54px' : '42px';
+      textDiv.style.fontFamily = fontFamily === 'heebo' ? 'Heebo, sans-serif' :
+                                  fontFamily === 'rubik' ? 'Rubik, sans-serif' :
+                                  fontFamily === 'assistant' ? 'Assistant, sans-serif' :
+                                  fontFamily === 'impact' ? 'Impact, sans-serif' : 'Heebo, sans-serif';
       
-      // White background
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Draw design image at top
-      ctx.drawImage(img, 0, 0);
-      
-      // Draw text below design
-      const textFontSize = canvas.width * (fontSize === 'small' ? 0.08 : fontSize === 'large' ? 0.15 : 0.12);
-      ctx.font = `900 ${textFontSize}px ${fontFamily === 'heebo' ? 'Heebo' : fontFamily === 'rubik' ? 'Rubik' : fontFamily === 'assistant' ? 'Assistant' : fontFamily === 'impact' ? 'Impact' : 'Arial Black'}, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      
-      const textY = img.height + 100; // Center text in the extra space
-      
-      // Text shadow
-      ctx.shadowColor = 'rgba(0,0,0,0.3)';
-      ctx.shadowBlur = 4;
-      ctx.shadowOffsetX = 2;
-      ctx.shadowOffsetY = 2;
-      
-      // Text color
       const colors = {
         white: '#F5F5F5',
         black: '#1A1A1A',
@@ -268,18 +257,31 @@ Create visual design only based on: "${aiPrompt}"`;
         yellow: '#F59E0B',
         green: '#059669'
       };
-      ctx.fillStyle = colors[textColor] || '#1A1A1A';
-      
-      ctx.fillText(overlayText, canvas.width / 2, textY);
-      
+      textDiv.style.color = colors[textColor] || '#F5F5F5';
+      textDiv.style.textShadow = '2px 2px 4px rgba(0,0,0,0.5)';
+      textDiv.textContent = overlayText;
+      container.appendChild(textDiv);
+
+      // Capture with html2canvas
+      const canvas = await html2canvas(container, {
+        width: 800,
+        height: 800,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: null
+      });
+
+      // Clean up
+      document.body.removeChild(container);
+
       // Convert to blob and upload
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.95));
-      const file = new File([blob], 'design-with-text.jpg', { type: 'image/jpeg' });
+      const file = new File([blob], 'mockup-with-text.jpg', { type: 'image/jpeg' });
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       
       return file_url;
     } catch (error) {
-      console.error('Error creating design with text:', error);
+      console.error('Error capturing mockup with text:', error);
       return null;
     }
   };
@@ -296,10 +298,10 @@ Create visual design only based on: "${aiPrompt}"`;
     try {
       const user = await base44.auth.me();
       
-      // Create design with text if overlay text exists
+      // Capture mockup with text if overlay text exists
       let designWithTextUrl = null;
-      if (overlayText.trim()) {
-        designWithTextUrl = await createDesignWithText();
+      if (overlayText.trim() && mockupUrl) {
+        designWithTextUrl = await captureMockupWithText();
       }
       
       // Create order for supplier
@@ -468,11 +470,11 @@ Create visual design only based on: "${aiPrompt}"`;
               )}
 
               {/* Text Overlay Option - Always Available */}
-              {designImageUrl && (
+              {mockupUrl && (
                 <div className="mb-6 p-4 bg-zinc-900 rounded-sm border border-zinc-700">
                   <label className="block text-sm text-zinc-400 mb-3">
                     <Type className="w-4 h-4 inline ml-1" />
-                    הוסף טקסט על המוצר (אופציונלי)
+                    הוסף טקסט על המוקאפ (אופציונלי)
                   </label>
                   <Input
                     value={overlayText}
@@ -566,7 +568,7 @@ Create visual design only based on: "${aiPrompt}"`;
                     </div>
                   </div>
                   
-                  <p className="text-xs text-zinc-500">הטקסט יופיע על המוצר עצמו בתמונה הסופית</p>
+                  <p className="text-xs text-zinc-500">הטקסט יופיע על תצוגת המוקאפ</p>
                 </div>
               )}
 
@@ -708,6 +710,41 @@ Create visual design only based on: "${aiPrompt}"`;
                     alt="AI Generated Mockup"
                     className="w-full h-full object-cover"
                   />
+                  
+                  {overlayText.trim() && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="absolute left-1/2 -translate-x-1/2"
+                      style={{
+                        top: `${textPositionY}%`,
+                        width: '85%'
+                      }}
+                    >
+                      <p 
+                        className="font-black text-center"
+                        style={{
+                          fontSize: fontSize === 'small' ? '1.25rem' : fontSize === 'large' ? '2.25rem' : '1.75rem',
+                          color: textColor === 'white' ? '#F5F5F5' : 
+                                 textColor === 'black' ? '#1A1A1A' :
+                                 textColor === 'orange' ? '#FF6B00' :
+                                 textColor === 'red' ? '#DC2626' :
+                                 textColor === 'blue' ? '#2563EB' :
+                                 textColor === 'yellow' ? '#F59E0B' :
+                                 textColor === 'green' ? '#059669' : '#F5F5F5',
+                          textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
+                          fontWeight: '900',
+                          fontFamily: fontFamily === 'heebo' ? 'Heebo, sans-serif' :
+                                      fontFamily === 'rubik' ? 'Rubik, sans-serif' :
+                                      fontFamily === 'assistant' ? 'Assistant, sans-serif' :
+                                      fontFamily === 'impact' ? 'Impact, Arial Black, sans-serif' :
+                                      fontFamily === 'arial' ? 'Arial Black, Arial, sans-serif' : 'Heebo, sans-serif'
+                        }}
+                      >
+                        {overlayText}
+                      </p>
+                    </motion.div>
+                  )}
                 </div>
               ) : (
                 <div className="relative w-full h-full flex items-center justify-center">
