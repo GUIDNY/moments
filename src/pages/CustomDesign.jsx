@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Sparkles, ShoppingCart, Loader2, Type, Wand2, ChevronUp, ChevronDown } from 'lucide-react';
+import { Upload, Sparkles, ShoppingCart, Loader2, Type, Wand2, ChevronUp, ChevronDown, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
