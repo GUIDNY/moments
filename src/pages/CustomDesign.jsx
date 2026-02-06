@@ -208,38 +208,43 @@ Create visual design only based on: "${aiPrompt}"`;
   };
 
   const createDesignWithText = async () => {
-    if (!overlayText.trim() || !mockupUrl) return null;
+    if (!overlayText.trim() || !designImageUrl) return null;
 
     try {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       
-      // Load mockup image
+      // Load design image (not mockup!)
       const img = new Image();
       img.crossOrigin = 'anonymous';
       await new Promise((resolve, reject) => {
         img.onload = resolve;
         img.onerror = reject;
-        img.src = mockupUrl;
+        img.src = designImageUrl;
       });
 
+      // Create canvas with design size + space for text
       canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.height = img.height + 200; // Add space for text
       
-      // Draw mockup
+      // White background
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw design image at top
       ctx.drawImage(img, 0, 0);
       
-      // Draw text overlay
-      const fontSize = fontSize === 'small' ? img.height * 0.05 : fontSize === 'large' ? img.height * 0.09 : img.height * 0.07;
-      ctx.font = `900 ${fontSize}px ${fontFamily === 'heebo' ? 'Heebo' : fontFamily === 'rubik' ? 'Rubik' : fontFamily === 'assistant' ? 'Assistant' : fontFamily === 'impact' ? 'Impact' : 'Arial Black'}, sans-serif`;
+      // Draw text below design
+      const textFontSize = canvas.width * (fontSize === 'small' ? 0.08 : fontSize === 'large' ? 0.15 : 0.12);
+      ctx.font = `900 ${textFontSize}px ${fontFamily === 'heebo' ? 'Heebo' : fontFamily === 'rubik' ? 'Rubik' : fontFamily === 'assistant' ? 'Assistant' : fontFamily === 'impact' ? 'Impact' : 'Arial Black'}, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       
-      const textY = (textPositionY / 100) * img.height;
+      const textY = img.height + 100; // Center text in the extra space
       
       // Text shadow
-      ctx.shadowColor = 'rgba(0,0,0,0.5)';
-      ctx.shadowBlur = 8;
+      ctx.shadowColor = 'rgba(0,0,0,0.3)';
+      ctx.shadowBlur = 4;
       ctx.shadowOffsetX = 2;
       ctx.shadowOffsetY = 2;
       
@@ -253,9 +258,9 @@ Create visual design only based on: "${aiPrompt}"`;
         yellow: '#F59E0B',
         green: '#059669'
       };
-      ctx.fillStyle = colors[textColor] || '#F5F5F5';
+      ctx.fillStyle = colors[textColor] || '#1A1A1A';
       
-      ctx.fillText(overlayText, img.width / 2, textY);
+      ctx.fillText(overlayText, canvas.width / 2, textY);
       
       // Convert to blob and upload
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.95));
@@ -283,7 +288,7 @@ Create visual design only based on: "${aiPrompt}"`;
       
       // Create design with text if overlay text exists
       let designWithTextUrl = null;
-      if (overlayText.trim() && mockupUrl) {
+      if (overlayText.trim()) {
         designWithTextUrl = await createDesignWithText();
       }
       
