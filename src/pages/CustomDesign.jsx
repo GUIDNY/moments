@@ -644,83 +644,44 @@ Create visual design only based on: "${aiPrompt}"`;
                   )}
                 </div>
               ) : (
-                <>
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.05),transparent_70%)]" />
+                <div className="relative w-full h-full flex items-center justify-center">
+                  <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900" />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,107,0,0.1),transparent_70%)]" />
                   
-                  <img
-                    src={getProductImage()}
-                    alt={productType}
-                    className="w-full h-full object-cover"
-                  />
-                  
-                  {designImage && (
-                    <>
-                      <motion.div
-                        initial={{ scale: 0, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                        className="absolute"
-                        style={{
-                          top: '35%',
-                          left: '50%',
-                          transform: 'translateX(-50%)',
-                          width: productType === 'cap' ? '35%' : '40%',
-                          height: productType === 'cap' ? '30%' : '40%',
-                        }}
-                      >
-                        <div className="relative w-full h-full">
-                          <div className="absolute inset-0 bg-black/5 blur-md transform translate-y-1" />
-                          <img
-                            src={designImage}
-                            alt="עיצוב"
-                            className="relative w-full h-full object-contain"
-                            style={{
-                              filter: 'brightness(0.92) contrast(1.08) saturate(1.1)',
-                              mixBlendMode: 'multiply',
-                            }}
-                          />
-                        </div>
-                      </motion.div>
-                      
-                      {overlayText.trim() && (
+                  <div className="relative text-center z-10">
+                    {designImage ? (
+                      <>
                         <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.3 }}
-                          className="absolute"
-                          style={{
-                            top: productType === 'cap' ? '68%' : '78%',
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            width: '80%',
-                          }}
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          className="mb-6"
                         >
-                          <div className="bg-black/70 backdrop-blur-sm px-4 py-2 rounded text-center">
-                            <p 
-                              className="text-white font-bold text-lg"
+                          <div className="w-32 h-32 mx-auto mb-4 bg-zinc-800/50 backdrop-blur-sm rounded-lg border-2 border-dashed border-orange-500/30 p-4 flex items-center justify-center">
+                            <img
+                              src={designImage}
+                              alt="עיצוב"
+                              className="w-full h-full object-contain"
                               style={{
-                                textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
-                                direction: /[\u0590-\u05FF]/.test(overlayText) ? 'rtl' : 'ltr'
+                                filter: 'drop-shadow(0 4px 12px rgba(255,107,0,0.3))',
                               }}
-                            >
-                              {overlayText}
-                            </p>
+                            />
                           </div>
                         </motion.div>
-                      )}
-                    </>
-                  )}
-                  
-                  {!designImage && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-                      <div className="text-center">
+                        <Sparkles className="w-12 h-12 text-orange-500 mx-auto mb-3" />
+                        <p className="text-white text-lg font-bold mb-2">העיצוב מוכן! 🎨</p>
+                        <p className="text-zinc-400 text-sm max-w-xs mx-auto">
+                          לחץ על "צור מוקאפ מציאותי עם AI" למטה כדי לראות איך זה ייראה על המוצר
+                        </p>
+                      </>
+                    ) : (
+                      <>
                         <Sparkles className="w-16 h-16 text-zinc-600 mx-auto mb-3" />
-                        <p className="text-zinc-400 text-sm font-medium">העלה תמונה לתצוגה מקדימה</p>
-                        <p className="text-zinc-600 text-xs mt-1">התמונה תוצג על המוצר</p>
-                      </div>
-                    </div>
-                  )}
-                </>
+                        <p className="text-zinc-400 text-sm font-medium">העלה תמונה או צור עיצוב עם AI</p>
+                        <p className="text-zinc-600 text-xs mt-1">המוקאפ יוצג כאן</p>
+                      </>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
 
