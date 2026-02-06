@@ -66,47 +66,44 @@ export default function CustomDesign() {
     }
   };
 
-  const handleGenerateDesignFromText = async () => {
-    if (!textDesign.trim()) {
-      alert('אנא כתוב תיאור לעיצוב בעברית או באנגלית');
+  const handleGenerateAIDesign = async () => {
+    if (!aiPrompt.trim()) {
+      alert('אנא תאר את העיצוב שתרצה');
       return;
     }
 
     setIsProcessingAI(true);
     setMockupUrl('');
     try {
-      // יצירת העיצוב עם תמיכה מלאה בעברית
-      const prompt = `Create a clean, professional graphic design for a t-shirt print.
-The text or concept is: "${textDesign}"
+      const prompt = `Create a clean, professional graphic design/illustration for apparel printing.
+      
+Description: "${aiPrompt}"
 
 CRITICAL INSTRUCTIONS:
-- If the text is in Hebrew (עברית), display it EXACTLY as written, character by character, in Hebrew letters
-- Preserve the exact Hebrew text direction (right-to-left)
-- Use a bold, modern, readable Hebrew font
+- Create an artistic design, illustration, or graphic element (NO TEXT)
 - Style: modern, bold, suitable for printing on apparel
 - Background: transparent PNG
 - High resolution, professional design
-- Make the text/design prominent and clear
+- Focus on visual elements, icons, patterns, or illustrations
+- DO NOT include any text in the design
 
-Text to print: "${textDesign}"`;
+Create visual design only based on: "${aiPrompt}"`;
 
       const { url: generatedDesignUrl } = await base44.integrations.Core.GenerateImage({
         prompt: prompt
       });
 
       if (!generatedDesignUrl) {
-        throw new Error('ה-AI לא הצליח ליצור תמונת עיצוב. נסה שוב או שנה את התיאור.');
+        throw new Error('ה-AI לא הצליח ליצור עיצוב. נסה שוב.');
       }
 
       setDesignImageUrl(generatedDesignUrl);
       setDesignImage(generatedDesignUrl);
-
-      // יצירה אוטומטית של מוקאפ
       await generateMockupFromUrl(generatedDesignUrl);
 
     } catch (error) {
-      console.error('Error during AI design or mockup generation:', error);
-      alert(error.message || 'שגיאה ביצירת העיצוב או המוקאפ. נסה שוב.');
+      console.error('Error during AI design generation:', error);
+      alert(error.message || 'שגיאה ביצירת העיצוב. נסה שוב.');
       setDesignImageUrl('');
       setDesignImage(null);
       setMockupUrl('');
