@@ -21,7 +21,7 @@ export default function CustomDesign() {
   const [designMode, setDesignMode] = useState('upload'); // 'upload' or 'text'
   const [textDesign, setTextDesign] = useState('');
   const [textColor, setTextColor] = useState('#000000');
-  const [isGeneratingDesign, setIsGeneratingDesign] = useState(false);
+  const [isProcessingAI, setIsProcessingAI] = useState(false);
   const queryClient = useQueryClient();
 
   const addToCartMutation = useMutation({
@@ -67,46 +67,65 @@ export default function CustomDesign() {
 
   const handleGenerateDesignFromText = async () => {
     if (!textDesign.trim()) {
-      alert('אנא כתוב תיאור לעיצוב');
+      alert('אנא כתוב תיאור לעיצוב בעברית או באנגלית');
       return;
     }
 
-    setIsGeneratingDesign(true);
+    setIsProcessingAI(true);
+    setMockupUrl('');
     try {
       const colorNames = {
-        '#000000': 'black',
-        '#FFFFFF': 'white',
-        '#FF0000': 'red',
-        '#0000FF': 'blue',
-        '#FFFF00': 'yellow',
-        '#00FF00': 'green',
-        '#FF6B00': 'orange',
-        '#800080': 'purple'
+        '#000000': 'שחור / black',
+        '#FFFFFF': 'לבן / white',
+        '#FF0000': 'אדום / red',
+        '#0000FF': 'כחול / blue',
+        '#FFFF00': 'צהוב / yellow',
+        '#00FF00': 'ירוק / green',
+        '#FF6B00': 'כתום / orange',
+        '#800080': 'סגול / purple'
       };
 
-      const colorName = colorNames[textColor] || 'black';
+      const colorName = colorNames[textColor] || 'שחור / black';
       
-      const prompt = `Create a clean, high-quality graphic design with the text or concept: "${textDesign}". Style: modern, bold, suitable for printing on apparel. Main color: ${colorName}. Background: transparent. High resolution, vector-style, professional design.`;
+      const prompt = `צור עיצוב גרפי נקי ואיכותי עם הטקסט או הקונספט הבא: "${textDesign}". 
+      סגנון: מודרני, בולט, מתאים להדפסה על בגדים. 
+      צבע ראשי: ${colorName}. 
+      רקע: שקוף. 
+      רזולוציה גבוהה, סגנון וקטורי, עיצוב מקצועי.
+      אם הטקסט בעברית - הצג אותו בעברית. אם באנגלית - באנגלית.
+      Create a clean, high-quality graphic design with the Hebrew or English text/concept: "${textDesign}". 
+      Style: modern, bold, suitable for printing on apparel. 
+      Main color: ${colorName}. 
+      Background: transparent. 
+      High resolution, vector-style, professional design.
+      Support Hebrew RTL text if needed.`;
 
-      const { url } = await base44.integrations.Core.GenerateImage({
+      const { url: generatedDesignUrl } = await base44.integrations.Core.GenerateImage({
         prompt: prompt
       });
 
-      setDesignImageUrl(url);
-      setDesignImage(url);
-      setMockupUrl('');
+      if (!generatedDesignUrl) {
+        throw new Error('ה-AI לא הצליח ליצור תמונת עיצוב. נסה שוב או שנה את התיאור.');
+      }
+
+      setDesignImageUrl(generatedDesignUrl);
+      setDesignImage(generatedDesignUrl);
+
+      // יצירה אוטומטית של מוקאפ
+      await generateMockupFromUrl(generatedDesignUrl);
+
     } catch (error) {
-      console.error('Error generating design:', error);
-      alert('שגיאה ביצירת העיצוב');
+      console.error('Error during AI design or mockup generation:', error);
+      alert(error.message || 'שגיאה ביצירת העיצוב או המוקאפ. נסה שוב.');
+      setDesignImageUrl('');
+      setDesignImage(null);
+      setMockupUrl('');
     } finally {
-      setIsGeneratingDesign(false);
+      setIsProcessingAI(false);
     }
   };
 
-  const handleGenerateMockup = async () => {
-    if (!designImageUrl) return;
-
-    setIsGeneratingMockup(true);
+  const generateMockupFromUrl = async (imageUrl) => {
     try {
       const productPrompts = {
         tshirt: 'professional product photography of a white t-shirt on a person, front view, centered, clean background, studio lighting, the t-shirt has a custom printed design in the center of the chest area',
@@ -116,13 +135,25 @@ export default function CustomDesign() {
 
       const { url } = await base44.integrations.Core.GenerateImage({
         prompt: productPrompts[productType],
-        existing_image_urls: [designImageUrl]
+        existing_image_urls: [imageUrl]
       });
 
       setMockupUrl(url);
     } catch (error) {
       console.error('Error generating mockup:', error);
-      alert('שגיאה ביצירת המוקאפ');
+      throw new Error('שגיאה ביצירת המוקאפ');
+    }
+  };
+
+  const handleGenerateMockup = async () => {
+    if (!designImageUrl) return;
+
+    setIsGeneratingMockup(true);
+    try {
+      await generateMockupFromUrl(designImageUrl);
+    } catch (error) {
+      alert(error.message || 'שגיאה ביצירת המוקאפ');
+      setMockupUrl('');
     } finally {
       setIsGeneratingMockup(false);
     }
@@ -216,33 +247,73 @@ export default function CustomDesign() {
               </div>
 
               {designMode === 'upload' ? (
-                <div className="mb-6">
-                  <label className="block text-sm text-zinc-400 mb-3">בחר תמונה להדפסה</label>
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                      id="design-upload"
-                    />
-                    <label
-                      htmlFor="design-upload"
-                      className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-zinc-600 rounded-sm cursor-pointer hover:border-orange-500 transition-colors bg-zinc-900"
-                    >
-                      {isUploading ? (
-                        <Loader2 className="w-12 h-12 text-orange-500 animate-spin" />
-                      ) : designImage ? (
-                        <img src={designImage} alt="עיצוב" className="w-full h-full object-contain p-4" />
-                      ) : (
-                        <>
-                          <Upload className="w-12 h-12 text-zinc-500 mb-2" />
-                          <span className="text-zinc-400 text-sm">לחץ להעלאת תמונה</span>
-                          <span className="text-zinc-600 text-xs mt-1">JPG, PNG עד 10MB</span>
-                        </>
-                      )}
-                    </label>
+                <div className="mb-6 space-y-4">
+                  <div>
+                    <label className="block text-sm text-zinc-400 mb-3">בחר תמונה להדפסה</label>
+                    <div className="relative">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                        id="design-upload"
+                      />
+                      <label
+                        htmlFor="design-upload"
+                        className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-zinc-600 rounded-sm cursor-pointer hover:border-orange-500 transition-colors bg-zinc-900"
+                      >
+                        {isUploading ? (
+                          <Loader2 className="w-12 h-12 text-orange-500 animate-spin" />
+                        ) : designImage ? (
+                          <img src={designImage} alt="עיצוב" className="w-full h-full object-contain p-4" />
+                        ) : (
+                          <>
+                            <Upload className="w-12 h-12 text-zinc-500 mb-2" />
+                            <span className="text-zinc-400 text-sm">לחץ להעלאת תמונה</span>
+                            <span className="text-zinc-600 text-xs mt-1">JPG, PNG עד 10MB</span>
+                          </>
+                        )}
+                      </label>
+                    </div>
                   </div>
+                  
+                  {/* בחירת צבע גם בהעלאת תמונה */}
+                  {designImage && (
+                    <div>
+                      <label className="block text-sm text-zinc-400 mb-3">תוכל להוסיף אפקט צבע (אופציונלי)</label>
+                      <div className="flex gap-2 flex-wrap">
+                        {[
+                          { color: 'none', name: 'ללא אפקט' },
+                          { color: '#000000', name: 'שחור' },
+                          { color: '#FFFFFF', name: 'לבן' },
+                          { color: '#FF0000', name: 'אדום' },
+                          { color: '#0000FF', name: 'כחול' },
+                          { color: '#FFFF00', name: 'צהוב' },
+                          { color: '#00FF00', name: 'ירוק' },
+                          { color: '#FF6B00', name: 'כתום' },
+                          { color: '#800080', name: 'סגול' }
+                        ].map(({ color, name }) => (
+                          <button
+                            key={color}
+                            onClick={() => setTextColor(color)}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-sm border-2 transition-all ${
+                              textColor === color
+                                ? 'border-orange-500 bg-orange-500/10'
+                                : 'border-zinc-700 hover:border-zinc-500'
+                            }`}
+                          >
+                            {color !== 'none' && (
+                              <div
+                                className="w-6 h-6 rounded-full border-2 border-zinc-600"
+                                style={{ backgroundColor: color }}
+                              />
+                            )}
+                            <span className="text-white text-sm">{name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="mb-6 space-y-4">
@@ -290,13 +361,13 @@ export default function CustomDesign() {
 
                   <Button
                     onClick={handleGenerateDesignFromText}
-                    disabled={isGeneratingDesign || !textDesign.trim()}
+                    disabled={isProcessingAI || !textDesign.trim()}
                     className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold py-6"
                   >
-                    {isGeneratingDesign ? (
+                    {isProcessingAI ? (
                       <>
                         <Loader2 className="w-5 h-5 ml-2 animate-spin" />
-                        יוצר עיצוב...
+                        יוצר עיצוב ומוקאפ...
                       </>
                     ) : (
                       <>
@@ -346,7 +417,7 @@ export default function CustomDesign() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleGenerateMockup}
-                  disabled={isGeneratingMockup}
+                  disabled={isGeneratingMockup || isProcessingAI}
                   className="w-full mb-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-zinc-700 disabled:to-zinc-700 text-white rounded-sm font-bold flex items-center justify-center gap-2 transition-all"
                 >
                   {isGeneratingMockup ? (
