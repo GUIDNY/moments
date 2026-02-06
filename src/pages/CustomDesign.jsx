@@ -354,6 +354,68 @@ Create visual design only based on: "${aiPrompt}"`;
     }
   };
 
+  const downloadFile = async (url, filename) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(blobUrl);
+      a.remove();
+    } catch (error) {
+      console.error('Error downloading:', error);
+      alert('שגיאה בהורדה');
+    }
+  };
+
+  const handleExportGraphic = async () => {
+    if (!designImageUrl) {
+      alert('יש להעלות תמונת עיצוב תחילה');
+      return;
+    }
+
+    try {
+      let fileToDownload = designImageUrl;
+      
+      // If there's text, create graphic with text
+      if (overlayText.trim()) {
+        fileToDownload = await createGraphicWithText();
+      }
+      
+      await downloadFile(fileToDownload, `graphic_design_${Date.now()}.png`);
+      alert('הגרפיקה הורדה בהצלחה! ✅');
+    } catch (error) {
+      console.error('Error exporting graphic:', error);
+      alert('שגיאה בייצוא הגרפיקה');
+    }
+  };
+
+  const handleExportMockup = async () => {
+    if (!mockupUrl) {
+      alert('יש ליצור מוקאפ תחילה');
+      return;
+    }
+
+    try {
+      let fileToDownload = mockupUrl;
+      
+      // If there's text, capture mockup with text
+      if (overlayText.trim()) {
+        fileToDownload = await captureMockupWithText();
+      }
+      
+      await downloadFile(fileToDownload, `mockup_design_${Date.now()}.jpg`);
+      alert('עיצוב החולצה הורד בהצלחה! ✅');
+    } catch (error) {
+      console.error('Error exporting mockup:', error);
+      alert('שגיאה בייצוא העיצוב');
+    }
+  };
+
   const handleAddToCart = async () => {
     if (!designImageUrl) {
       alert('יש להעלות תמונת עיצוב תחילה');
@@ -735,23 +797,46 @@ Create visual design only based on: "${aiPrompt}"`;
                 </motion.button>
               )}
 
-              <Button
-                onClick={handleAddToCart}
-                disabled={!designImageUrl || addToCartMutation.isPending}
-                className="w-full bg-orange-500 hover:bg-orange-400 text-zinc-900 font-bold py-6 text-lg"
-              >
-                {addToCartMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-5 h-5 ml-2 animate-spin" />
-                    מוסיף לעגלה...
-                  </>
-                ) : (
-                  <>
-                    <ShoppingCart className="w-5 h-5 ml-2" />
-                    הוסף לעגלה
-                  </>
-                )}
-              </Button>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    onClick={handleExportGraphic}
+                    disabled={!designImageUrl}
+                    variant="outline"
+                    className="bg-purple-500/10 border-purple-500/30 text-purple-400 hover:bg-purple-500/20 font-bold"
+                  >
+                    <Download className="w-4 h-4 ml-2" />
+                    ייצא גרפיקה
+                  </Button>
+                  <Button
+                    onClick={handleExportMockup}
+                    disabled={!mockupUrl}
+                    variant="outline"
+                    className="bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20 font-bold"
+                  >
+                    <Download className="w-4 h-4 ml-2" />
+                    ייצא מוקאפ
+                  </Button>
+                </div>
+
+                <Button
+                  onClick={handleAddToCart}
+                  disabled={!designImageUrl || addToCartMutation.isPending}
+                  className="w-full bg-orange-500 hover:bg-orange-400 text-zinc-900 font-bold py-6 text-lg"
+                >
+                  {addToCartMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                      מוסיף לעגלה...
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-5 h-5 ml-2" />
+                      הוסף לעגלה
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
 
             {/* Info */}
