@@ -128,9 +128,41 @@ Text to print: "${textDesign}"`;
       };
 
       const productPrompts = {
-        tshirt: `professional product photography of a ${shirtColorNames[shirtColor]} t-shirt on a person, front view, centered, clean background, studio lighting, photorealistic, the t-shirt has a custom printed design in the center of the chest area`,
-        hoodie: `professional product photography of a ${shirtColorNames[shirtColor]} hoodie on a person, front view, centered, clean background, studio lighting, photorealistic, the hoodie has a custom printed design in the center of the chest area`,
-        cap: `professional product photography of a ${shirtColorNames[shirtColor]} baseball cap on a person, front view, centered, clean background, studio lighting, photorealistic, the cap has a custom printed design on the front panel`
+        tshirt: `CRITICAL INSTRUCTIONS: Create a photorealistic product mockup of a ${shirtColorNames[shirtColor]} t-shirt worn by a person.
+        
+        YOU MUST:
+        1. Place the EXACT image provided as a print/design on the center of the t-shirt chest
+        2. Keep the image EXACTLY as it appears - DO NOT modify, recreate, or interpret it
+        3. Make it look like a real photograph of the printed t-shirt
+        4. The image should look printed/pressed onto the fabric
+        5. Professional studio lighting, clean background
+        6. Front view, centered composition
+        
+        The result must show the t-shirt with the exact provided image printed on it.`,
+        
+        hoodie: `CRITICAL INSTRUCTIONS: Create a photorealistic product mockup of a ${shirtColorNames[shirtColor]} hoodie worn by a person.
+        
+        YOU MUST:
+        1. Place the EXACT image provided as a print/design on the center of the hoodie chest
+        2. Keep the image EXACTLY as it appears - DO NOT modify, recreate, or interpret it
+        3. Make it look like a real photograph of the printed hoodie
+        4. The image should look printed/pressed onto the fabric
+        5. Professional studio lighting, clean background
+        6. Front view, centered composition
+        
+        The result must show the hoodie with the exact provided image printed on it.`,
+        
+        cap: `CRITICAL INSTRUCTIONS: Create a photorealistic product mockup of a ${shirtColorNames[shirtColor]} baseball cap worn by a person.
+        
+        YOU MUST:
+        1. Place the EXACT image provided as a print/design on the front panel of the cap
+        2. Keep the image EXACTLY as it appears - DO NOT modify, recreate, or interpret it
+        3. Make it look like a real photograph of the printed cap
+        4. The image should look embroidered or printed onto the cap
+        5. Professional studio lighting, clean background
+        6. Front view, centered composition
+        
+        The result must show the cap with the exact provided image on it.`
       };
 
       const { url } = await base44.integrations.Core.GenerateImage({
