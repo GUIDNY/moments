@@ -160,7 +160,11 @@ Create visual design only based on: "${aiPrompt}"`;
     try {
       await generateMockupFromUrl(designImageUrl);
     } catch (error) {
-      alert(error.message || 'שגיאה ביצירת המוקאפ');
+      if (error.message?.includes('timed out') || error.message?.includes('timeout')) {
+        alert('יצירת המוקאפ לוקחת יותר מדי זמן. נסה תמונה פשוטה יותר או נסה שוב מאוחר יותר.');
+      } else {
+        alert('שגיאה ביצירת המוקאפ. נסה שוב או נסה תמונה אחרת.');
+      }
       setMockupUrl('');
     } finally {
       setIsGeneratingMockup(false);
