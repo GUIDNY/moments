@@ -125,10 +125,6 @@ Create visual design only based on: "${aiPrompt}"`;
         pink: 'pink'
       };
 
-      const textOverlay = overlayText.trim() 
-        ? `IMPORTANT: Add the text "${overlayText}" overlaid on top of the design in a bold, clear font.` 
-        : '';
-
       const productPrompts = {
         tshirt: `CRITICAL INSTRUCTIONS: Create a photorealistic product mockup of a ${shirtColorNames[shirtColor]} t-shirt worn by a person.
         
@@ -139,7 +135,6 @@ Create visual design only based on: "${aiPrompt}"`;
         4. The image should look printed/pressed onto the fabric
         5. Professional studio lighting, clean background
         6. Front view, centered composition
-        ${textOverlay}
         
         The result must show the t-shirt with the exact provided image printed on it.`,
         
@@ -152,7 +147,6 @@ Create visual design only based on: "${aiPrompt}"`;
         4. The image should look printed/pressed onto the fabric
         5. Professional studio lighting, clean background
         6. Front view, centered composition
-        ${textOverlay}
         
         The result must show the hoodie with the exact provided image printed on it.`,
         
@@ -165,7 +159,6 @@ Create visual design only based on: "${aiPrompt}"`;
         4. The image should look embroidered or printed onto the cap
         5. Professional studio lighting, clean background
         6. Front view, centered composition
-        ${textOverlay}
         
         The result must show the cap with the exact provided image on it.`
       };
@@ -351,7 +344,7 @@ Create visual design only based on: "${aiPrompt}"`;
               <div className="mb-6">
                 <label className="block text-sm text-zinc-400 mb-3">
                   <Type className="w-4 h-4 inline ml-1" />
-                  הוסף כתובית על העיצוב (אופציונלי)
+                  הוסף כתובית על המוצר (אופציונלי)
                 </label>
                 <Input
                   value={overlayText}
@@ -360,7 +353,7 @@ Create visual design only based on: "${aiPrompt}"`;
                   className="bg-zinc-900 border-zinc-700 text-white"
                   dir="auto"
                 />
-                <p className="text-xs text-zinc-500 mt-2">הטקסט יופיע על התמונה במוקאפ</p>
+                <p className="text-xs text-zinc-500 mt-2">הטקסט יופיע מתחת לתמונה בתצוגה המקדימה בלבד</p>
               </div>
 
               <div className="mb-6">
@@ -510,32 +503,61 @@ Create visual design only based on: "${aiPrompt}"`;
                   />
                   
                   {designImage && (
-                    <motion.div
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                      className="absolute"
-                      style={{
-                        top: '35%',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        width: productType === 'cap' ? '35%' : '40%',
-                        height: productType === 'cap' ? '30%' : '40%',
-                      }}
-                    >
-                      <div className="relative w-full h-full">
-                        <div className="absolute inset-0 bg-black/5 blur-md transform translate-y-1" />
-                        <img
-                          src={designImage}
-                          alt="עיצוב"
-                          className="relative w-full h-full object-contain"
+                    <>
+                      <motion.div
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                        className="absolute"
+                        style={{
+                          top: '35%',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          width: productType === 'cap' ? '35%' : '40%',
+                          height: productType === 'cap' ? '30%' : '40%',
+                        }}
+                      >
+                        <div className="relative w-full h-full">
+                          <div className="absolute inset-0 bg-black/5 blur-md transform translate-y-1" />
+                          <img
+                            src={designImage}
+                            alt="עיצוב"
+                            className="relative w-full h-full object-contain"
+                            style={{
+                              filter: 'brightness(0.92) contrast(1.08) saturate(1.1)',
+                              mixBlendMode: 'multiply',
+                            }}
+                          />
+                        </div>
+                      </motion.div>
+                      
+                      {overlayText.trim() && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.3 }}
+                          className="absolute"
                           style={{
-                            filter: 'brightness(0.92) contrast(1.08) saturate(1.1)',
-                            mixBlendMode: 'multiply',
+                            top: productType === 'cap' ? '68%' : '78%',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            width: '80%',
                           }}
-                        />
-                      </div>
-                    </motion.div>
+                        >
+                          <div className="bg-black/70 backdrop-blur-sm px-4 py-2 rounded text-center">
+                            <p 
+                              className="text-white font-bold text-lg"
+                              style={{
+                                textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
+                                direction: /[\u0590-\u05FF]/.test(overlayText) ? 'rtl' : 'ltr'
+                              }}
+                            >
+                              {overlayText}
+                            </p>
+                          </div>
+                        </motion.div>
+                      )}
+                    </>
                   )}
                   
                   {!designImage && (
