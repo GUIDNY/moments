@@ -1,0 +1,38 @@
+{
+  "name": "CartItem",
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "description": "\u05de\u05d6\u05d4\u05d4 \u05d4\u05de\u05d5\u05e6\u05e8"
+    },
+    "product_name": {
+      "type": "string",
+      "description": "\u05e9\u05dd \u05d4\u05de\u05d5\u05e6\u05e8"
+    },
+    "size": {
+      "type": "string",
+      "description": "\u05de\u05d9\u05d3\u05d4 \u05e0\u05d1\u05d7\u05e8\u05ea"
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1,
+      "description": "\u05db\u05de\u05d5\u05ea"
+    },
+    "price": {
+      "type": "number",
+      "description": "\u05de\u05d7\u05d9\u05e8 \u05dc\u05d9\u05d7\u05d9\u05d3\u05d4"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "\u05ea\u05de\u05d5\u05e0\u05ea \u05d4\u05de\u05d5\u05e6\u05e8"
+    }
+  },
+  "required": [
+    "product_id",
+    "product_name",
+    "size",
+    "quantity",
+    "price"
+  ]
+}
