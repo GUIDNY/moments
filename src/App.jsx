@@ -9,7 +9,7 @@ import Modal from './ui/Modal';
 import Toasts from './ui/Toasts';
 import CityHud from './world/CityHud';
 import Directory from './world/Directory';
-import WorldMap from './world/WorldMap';
+import World3D from './world3d/World3D';
 
 const SCREENS = {
   bank: BankScreen,
@@ -61,7 +61,7 @@ export default function App() {
   } else {
     content = (
       <>
-        <WorldMap onEnter={(building) => open(building.target)} onOpenDirectory={() => setDirectoryOpen(true)} />
+        <World3D onEnter={(building) => open(building.target)} onOpenDirectory={() => setDirectoryOpen(true)} />
         <CityHud onOpenProfile={() => open('profile')} />
         <Directory open={directoryOpen} onClose={() => setDirectoryOpen(false)} onEnter={open} />
       </>

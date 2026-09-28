@@ -10,7 +10,6 @@
 
 export const MAP_W = 34;
 export const MAP_H = 24;
-export const TILE = 40;
 
 export const TERRAIN = {
   GRASS: 0,
@@ -119,8 +118,6 @@ export const PROPS = [
   { x: 31, y: 21, emoji: '🌲', blocked: true },
 ];
 
-const PROP_BY_KEY = Object.fromEntries(PROPS.map((p) => [`${p.x},${p.y}`, p]));
-
 function buildTerrain() {
   const grid = Array.from({ length: MAP_H }, () => new Array(MAP_W).fill(TERRAIN.GRASS));
 
@@ -166,49 +163,4 @@ export function isWalkable(x, y) {
   return TERRAIN_GRID[y][x] !== TERRAIN.BLOCKED && TERRAIN_GRID[y][x] !== TERRAIN.WATER;
 }
 
-export const propAt = (x, y) => PROP_BY_KEY[`${x},${y}`] ?? null;
-
 export const SPAWN = { x: 16, y: 14 };
-
-/** Breadth-first path between two tiles. Returns the steps after `from`. */
-export function findPath(from, to) {
-  if (!isWalkable(to.x, to.y)) return null;
-  if (from.x === to.x && from.y === to.y) return [];
-
-  const key = (x, y) => y * MAP_W + x;
-  const prev = new Map();
-  const seen = new Uint8Array(MAP_W * MAP_H);
-  const queue = [from];
-  seen[key(from.x, from.y)] = 1;
-
-  const DIRS = [
-    [0, -1],
-    [0, 1],
-    [-1, 0],
-    [1, 0],
-  ];
-
-  for (let head = 0; head < queue.length; head++) {
-    const node = queue[head];
-    if (node.x === to.x && node.y === to.y) {
-      const path = [];
-      let cur = node;
-      while (cur.x !== from.x || cur.y !== from.y) {
-        path.push(cur);
-        cur = prev.get(key(cur.x, cur.y));
-      }
-      return path.reverse();
-    }
-    for (const [dx, dy] of DIRS) {
-      const nx = node.x + dx;
-      const ny = node.y + dy;
-      if (!isWalkable(nx, ny) || seen[key(nx, ny)]) continue;
-      // never path *through* a doorway — you only ever arrive at one
-      if (BUILDING_BY_DOOR[`${nx},${ny}`] && !(nx === to.x && ny === to.y)) continue;
-      seen[key(nx, ny)] = 1;
-      prev.set(key(nx, ny), node);
-      queue.push({ x: nx, y: ny });
-    }
-  }
-  return null;
-}
