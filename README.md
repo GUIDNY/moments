@@ -1,39 +1,67 @@
-**Welcome to your Base44 project** 
+# 🏙️ עיר הנרות — Candle City
 
-**About**
+עולם וירטואלי של משחקוני בורסה. מסתובבים בעיר, נכנסים לבניינים, משחקים — ואוספים מטבעות.
 
-View and Edit  your app on [Base44.com](http://Base44.com) 
+הרעיון נולד מתוך משחק הגרפים [`GUIDNY/stockgame`](https://github.com/GUIDNY/stockgame): במקום מסך
+אחד עם כמה מצבי משחק, כאן יש עיר שלמה שאפשר להסתובב בה, ובכל בניין מחכה משחקון אחר שמשלם
+במטבעות לארנק משותף.
 
-This project contains everything you need to run your app locally.
+## מה יש בעיר
 
-**Edit the code in your local development environment**
+| רובע | מקום | מה עושים | תשלום |
+| --- | --- | --- | --- |
+| רובע הלימוד | 📈 מגדל הגרפים | 8 גרפים — זהה תבנית ונחש לאן המחיר הולך | עד 180 + בונוס רצף |
+| רובע הלימוד | 🔍 מכון התבניות | תן שם לתבנית מתוך 4 אפשרויות | עד 190 |
+| רובע הלימוד | 🃏 בית הזיכרון | זוגות של אותה תבנית — מצוירת ממחירים שונים | עד 300 |
+| רובע הלימוד | 🧮 אולם האחוזים | חשבון אחוזים מהיר, 12 שניות לשאלה | עד 200 |
+| רובע המהירות | ⚡ מסלול המהירות | כמה קריאות נכונות ב-45 שניות | 26 לכל פגיעה |
+| רובע המהירות | 🎯 מכון הרפלקס | זמן תגובה לאות קנייה/מכירה | עד 320 |
+| רובע המהירות | 💀 מגדל ההישרדות | טעות אחת והריצה נגמרת | 30 לכל שלב ברצף |
+| רובע המהירות | 🐂 זירת השור והדוב | תפוס שוורים, התחמק מדובים | 22 לכל נקודה |
+| הרובע הפיננסי | 🏛️ חדר המסחר | סשן מסחר חי — ₪1,000 ו-45 נרות | 60 + 22 לכל אחוז רווח |
+| פארק השעשועים | 🎡 גלגל המזל | עצור את הסמן על הפרוסה היקרה | עד 1,800 |
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
+ולצידם: 🏦 **הבנק** (בונוס יומי ודוח הכנסות), 🛍️ **החנות** (דמויות וחפצי מזל שמגדילים את
+התשלום), 🏠 **הבית** (רמה, שליטה בתבניות, 13 הישגים).
 
-**Prerequisites:** 
+## איך משחקים
 
-1. Clone the repository using the project's Git URL 
-2. Navigate to the project directory
-3. Install dependencies: `npm install`
-4. Create an `.env.local` file and set the right environment variables
+- 🚶 חיצים / `WASD` / לחיצה על המפה מזיזים את הדמות
+- 🚪 כניסה דרך הדלת המהבהבת של כל בניין
+- 🗺️ "מדריך העיר" מסביר מה יש בכל מקום ונותן כניסה מהירה
+- 🎁 בונוס יומי בבנק — כל יום ברצף שווה יותר
+
+## הרצה
+
+```bash
+npm install
+npm run dev      # http://localhost:5173
+npm run build    # בנייה לפרודקשן
+npm run preview  # תצוגה מקדימה של הבנייה
+npm run lint
+```
+
+## איך זה בנוי
 
 ```
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=your_backend_url
-
-e.g.
-VITE_BASE44_APP_ID=cbef744a8545c389ef439ea6
-VITE_BASE44_APP_BASE_URL=https://my-to-do-list-81bfaad7.base44.app
+src/
+├── engine/     # RNG עם seed, יצירת נרות, כלכלה (מטבעות/XP/רמות), שמירה, הקשר React
+├── data/       # 17 תבניות נרות, פריטי חנות, הישגים
+├── world/      # רשת העיר, מציאת מסלול (BFS), רנדור המפה, HUD, מדריך
+├── games/      # 10 המשחקונים + רג׳יסטרי
+├── screens/    # בנק, חנות, בית
+└── ui/         # גרף נרות ב-SVG, כפתורים, מודאל, מסך תוצאות
 ```
 
-Run the app: `npm run dev`
+נקודות שכדאי להכיר:
 
-**Publish your changes**
+- **אין שרת ואין חשבון.** הכול רץ בדפדפן, וההתקדמות נשמרת ב-`localStorage` תחת `candle_city_v1`.
+- **התבניות נבנות מ-seed.** כל תבנית יודעת לצייר את עצמה מחדש עם מחירים, תנודתיות ואורך מגמה
+  אחרים — כך שלומדים את הצורה ולא את התמונה.
+- **גרף הנרות נכתב ב-SVG** בלי ספריית גרפים, כולל אנימציית חשיפה של הנרות שאחרי התבנית.
+- **כל משחקון מחזיר תשלום דרך אותה נוסחה** (`payout` ב-`engine/economy.js`), כך שהכלכלה נשארת
+  מאוזנת וחפץ המזל המצויד מכפיל בסוף.
 
-Open [Base44.com](http://Base44.com) and click on Publish.
-
-**Docs & Support**
-
-Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.base44.com/Integrations/Using-GitHub)
-
-Support: [https://app.base44.com/support](https://app.base44.com/support)
+להוספת משחקון חדש: כתוב קומפוננטה שמקבלת `{ meta, onExit }` וקוראת ל-`finishGame`, רשום אותה
+ב-`src/games/registry.js`, הוסף בניין ב-`src/world/map-data.js` עם `target` זהה למזהה המשחקון,
+ועדכן את `TOTAL_GAMES` ב-`src/engine/constants.js`.
