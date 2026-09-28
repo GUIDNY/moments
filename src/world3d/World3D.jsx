@@ -8,6 +8,7 @@ import Player from './Player';
 import { Ground, PlazaScreen, Props, River, Shops } from './Scenery';
 import { SPAWN, isWalkable } from '../world/map-data';
 import { useGame } from '../engine/GameContext';
+import { useI18n } from '../i18n/I18nContext';
 import { formatCoins } from '../engine/economy';
 
 const REACTIONS = ['👍', '🔥', '😂', '🤑', '👋'];
@@ -15,6 +16,7 @@ const REACTIONS = ['👍', '🔥', '😂', '🤑', '👋'];
 /** The city, in three dimensions. DOM chrome sits on top of the canvas. */
 export default function World3D({ onEnter, onOpenDirectory }) {
   const { state, rememberSpawn } = useGame();
+  const { t, loc } = useI18n();
   const [near, setNear] = useState(null);
   const [reaction, setReaction] = useState(null);
 
@@ -64,7 +66,7 @@ export default function World3D({ onEnter, onOpenDirectory }) {
           <River />
           <Shops />
           <Props />
-          <PlazaScreen coins={formatCoins(state.coins)} />
+          <PlazaScreen title={t('app.name')} tagline={t('app.tagline')} coins={`${formatCoins(state.coins)} ${t('common.coins')}`} />
           <Npcs />
           <Player
             avatarSkin={skinFor(state.avatar)}
@@ -84,9 +86,9 @@ export default function World3D({ onEnter, onOpenDirectory }) {
           <div className="bg-surface-container/95 border rounded-2xl px-5 py-3 animate-pop-in shadow-xl text-center"
                style={{ borderColor: `${near.color}88` }}>
             <div className="text-sm font-bold text-text">
-              {near.emoji} {near.name}
+              {near.emoji} {loc(near.name)}
             </div>
-            <div className="text-xs text-text-2 mt-0.5">היכנס דרך הדלת המוארת</div>
+            <div className="text-xs text-text-2 mt-0.5">{t('hud.doorHint')}</div>
           </div>
         </div>
       )}
@@ -116,12 +118,12 @@ export default function World3D({ onEnter, onOpenDirectory }) {
           onClick={onOpenDirectory}
           className="bg-surface-container/95 border border-border rounded-2xl px-4 py-3 font-bold text-text text-sm shadow-xl"
         >
-          🗺️ מדריך העיר
+          {t('directory.title')}
         </button>
       </div>
 
       <p className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[11px] text-text-3 pointer-events-none hidden md:block">
-        חיצים / WASD להליכה · או גרור את הג׳ויסטיק
+        {t('hud.hint')}
       </p>
     </div>
   );

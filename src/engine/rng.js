@@ -1,5 +1,5 @@
-// Seeded linear-congruential generator — same family the chart game used, so a
-// given seed always rebuilds the exact same candles.
+// Seeded linear-congruential generator: a given seed always rebuilds the exact
+// same board, deck or question set.
 export function lcg(seed) {
   let s = (seed ^ 0xdeadbeef) >>> 0 || 1;
   return () => {

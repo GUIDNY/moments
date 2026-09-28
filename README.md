@@ -1,72 +1,70 @@
-# 🏙️ עיר הנרות — Candle City
+# 🎮 Playtown
 
-עולם וירטואלי תלת-ממדי של משחקוני בורסה. מסתובבים בעיר עם הדמות, נכנסים לבניינים,
-משחקים — ואוספים מטבעות.
+A small 3D town made of mini-games. Walk your character down the street, step into a
+lit doorway, play — and every game pays coins into one shared wallet.
 
-הרעיון נולד מתוך משחק הגרפים [`GUIDNY/stockgame`](https://github.com/GUIDNY/stockgame): במקום מסך
-אחד עם כמה מצבי משחק, כאן יש עיר שלמה שאפשר להסתובב בה, ובכל בניין מחכה משחקון אחר שמשלם
-במטבעות לארנק משותף.
+No account, no backend, no install. It runs in a browser tab and saves to `localStorage`.
 
-## מה יש בעיר
+**English and Hebrew**, switchable in-game (the page direction flips with it).
 
-| רובע | מקום | מה עושים | תשלום |
+## The ten games
+
+| District | Game | What you do | Pays |
 | --- | --- | --- | --- |
-| רובע הלימוד | 📈 מגדל הגרפים | 8 גרפים — זהה תבנית ונחש לאן המחיר הולך | עד 180 + בונוס רצף |
-| רובע הלימוד | 🔍 מכון התבניות | תן שם לתבנית מתוך 4 אפשרויות | עד 190 |
-| רובע הלימוד | 🃏 בית הזיכרון | זוגות של אותה תבנית — מצוירת ממחירים שונים | עד 300 |
-| רובע הלימוד | 🧮 אולם האחוזים | חשבון אחוזים מהיר, 12 שניות לשאלה | עד 200 |
-| רובע המהירות | ⚡ מסלול המהירות | כמה קריאות נכונות ב-45 שניות | 26 לכל פגיעה |
-| רובע המהירות | 🎯 מכון הרפלקס | זמן תגובה לאות קנייה/מכירה | עד 320 |
-| רובע המהירות | 💀 מגדל ההישרדות | טעות אחת והריצה נגמרת | 30 לכל שלב ברצף |
-| רובע המהירות | 🐂 זירת השור והדוב | תפוס שוורים, התחמק מדובים | 22 לכל נקודה |
-| הרובע הפיננסי | 🏛️ חדר המסחר | סשן מסחר חי — ₪1,000 ו-45 נרות | 60 + 22 לכל אחוז רווח |
-| פארק השעשועים | 🎡 גלגל המזל | עצור את הסמן על הפרוסה היקרה | עד 1,800 |
+| Puzzle Park | 🃏 Pair Up | Match every pair in as few moves as you can | up to 300 |
+| Puzzle Park | 🎵 Echo | Repeat the sequence — it grows every round | 45 per step |
+| Puzzle Park | 👁️ Odd One Out | Find the tile that is a shade off | 34 per round |
+| Puzzle Park | 🧮 Quick Maths | Eight sums, ten seconds each | up to 220 |
+| Speed Alley | ⚡ Reaction | Wait for green, then tap | up to 340 |
+| Speed Alley | 🔢 Number Rush | Tap 1 to 16 in order against the clock | up to 320 |
+| Speed Alley | 🧺 Catch | Slide the basket, catch fruit, dodge bombs | 20 per point |
+| Speed Alley | 🐹 Mole Mayhem | Tap the critters, spare the bombs | 22 per point |
+| Town Square | 🎯 Bullseye | Stop the pulsing ring exactly on the outline | up to 360 |
+| Funfair | 🎡 Lucky Stop | Stop the marker on the narrow, rich slice | up to 1,800 |
 
-ולצידם: 🏦 **הבנק** (בונוס יומי ודוח הכנסות), 🛍️ **החנות** (דמויות וחפצי מזל שמגדילים את
-התשלום), 🏠 **הבית** (רמה, שליטה בתבניות, 13 הישגים).
+Plus 🏦 **the Bank** (daily streak bonus, earnings report), 🛍️ **the Shop** (characters and
+lucky charms that raise every payout) and 🏠 **Your Place** (level, achievements, language).
 
-## איך משחקים
+## Controls
 
-- 🕹️ ג׳ויסטיק על המסך (גרירה) או חיצים / `WASD` מזיזים את הדמות
-- 🚪 כניסה דרך הדלת המוארת של כל בניין — הדמות מתיישרת לפתח לבד
-- 🗺️ "מדריך העיר" מסביר מה יש בכל מקום ונותן כניסה מהירה
-- 🎁 בונוס יומי בבנק — כל יום ברצף שווה יותר
+- 🕹️ Drag the on-screen joystick, or use the arrow keys / `WASD`
+- 🚪 Walk into a lit doorway to go inside — the character lines itself up with the opening
+- 🗺️ The town guide lists every game and lets you jump straight in
 
-## הרצה
+## Running it
 
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm run build    # בנייה לפרודקשן
-npm run preview  # תצוגה מקדימה של הבנייה
+npm run build
+npm run preview  # http://localhost:4173
 npm run lint
 ```
 
-## איך זה בנוי
+## How it is built
 
 ```
 src/
-├── engine/     # RNG עם seed, יצירת נרות, כלכלה (מטבעות/XP/רמות), שמירה, הקשר React
-├── data/       # 17 תבניות נרות, פריטי חנות, הישגים
-├── world/      # נתוני העיר: רשת המשבצות, בניינים, דלתות, אביזרים
-├── world3d/    # הרנדור התלת-ממדי: סצנה, דמויות וקסליות, מצלמה, ג׳ויסטיק
-├── games/      # 10 המשחקונים + רג׳יסטרי
-├── screens/    # בנק, חנות, בית
-└── ui/         # גרף נרות ב-SVG, כפתורים, מודאל, מסך תוצאות
+├── engine/     # seeded RNG, coins/XP/levels, localStorage, the store, shared hooks
+├── i18n/       # the string table and the language provider
+├── data/       # shop items, achievements
+├── world/      # town data: tile grid, buildings, doorways, props — plus HUD and guide
+├── world3d/    # the 3D layer: scene, voxel characters, camera, joystick, canvas textures
+├── games/      # one file per mini-game, plus the registry
+├── screens/    # bank, shop, profile
+└── ui/         # buttons, modal, toasts, game shell, result screen
 ```
 
-נקודות שכדאי להכיר:
+Worth knowing:
 
-- **אין שרת ואין חשבון.** הכול רץ בדפדפן, וההתקדמות נשמרת ב-`localStorage` תחת `candle_city_v1`.
-- **התבניות נבנות מ-seed.** כל תבנית יודעת לצייר את עצמה מחדש עם מחירים, תנודתיות ואורך מגמה
-  אחרים — כך שלומדים את הצורה ולא את התמונה.
-- **גרף הנרות נכתב ב-SVG** בלי ספריית גרפים, כולל אנימציית חשיפה של הנרות שאחרי התבנית.
-- **העיר היא three.js** (דרך react-three-fiber): הרצפה היא טקסטורה אחת שמצוירת מרשת
-  המשבצות, הבניינים הם קוביות, והדמויות בנויות מקוביות עם מחזור הליכה. התנועה והסיבוב
-  קורים בלולאת הרנדור ולא ב-state, כך שהליכה לא מרנדרת את React מחדש.
-- **כל משחקון מחזיר תשלום דרך אותה נוסחה** (`payout` ב-`engine/economy.js`), כך שהכלכלה נשארת
-  מאוזנת וחפץ המזל המצויד מכפיל בסוף.
+- **The town is three.js** (through react-three-fiber). The ground is a single texture painted
+  from the tile grid, buildings are boxes, and characters are built from boxes with a walk cycle.
+- **Nothing that moves every frame touches React state.** Position, facing, the walk cycle and the
+  camera all run through refs inside the render loop, so walking never re-renders the app.
+- **Every game pays through one formula** (`payout` in `engine/economy.js`), so the economy stays
+  balanced and the worn charm multiplies at the end.
+- **Every label in the 3D scene is a canvas texture**, which keeps Hebrew crisp without a font loader.
 
-להוספת משחקון חדש: כתוב קומפוננטה שמקבלת `{ meta, onExit }` וקוראת ל-`finishGame`, רשום אותה
-ב-`src/games/registry.js`, הוסף בניין ב-`src/world/map-data.js` עם `target` זהה למזהה המשחקון,
-ועדכן את `TOTAL_GAMES` ב-`src/engine/constants.js`.
+To add a game: write a component taking `{ meta, onExit }` that calls `finishGame`, register it in
+`src/games/registry.js`, add a building in `src/world/map-data.js` whose `target` is the game id,
+and bump `TOTAL_GAMES` in `src/engine/constants.js`.

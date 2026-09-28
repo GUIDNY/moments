@@ -1,33 +1,40 @@
-# עיר הנרות (Candle City) — Claude Code notes
+# Playtown — Claude Code notes
 
 ## What this is
-A Hebrew, RTL, dark-mode 3D virtual world of stock-market mini-games. The player walks a voxel
-avatar around a city, steps into a lit doorway, plays a mini-game and earns coins into one shared
-wallet. It grew out of the chart-pattern game in `GUIDNY/stockgame`; the look follows the
-third-person voxel style of the owner's own 3D mall.
+A dark-mode 3D town of mini-games. The player walks a voxel character around the streets, steps
+into a lit doorway, plays a mini-game and earns coins into one shared wallet. English by default
+with a Hebrew toggle; the look is third-person voxel.
+
+The theme is deliberately neutral — no finance, no niche — because the target is web game portals
+and a broad audience.
 
 ## Stack
 Vite 6 + React 18 (JSX, no TypeScript) + Tailwind 3, with three.js through react-three-fiber for
-the city. No backend, no router, no chart library and no drei — state lives in `localStorage`,
-views are switched in `src/App.jsx`, the candlestick chart is hand-rolled SVG in
-`src/ui/CandleChart.jsx`, and every label in the 3D scene is a canvas texture.
+the town. No backend, no router and no drei — state lives in `localStorage`, views are switched in
+`src/App.jsx`, and every label in the 3D scene is a canvas texture.
 
 ## Layout
-- `src/engine/` — seeded RNG (`rng.js`), candle generation (`market.js`), coins/XP/levels
+- `src/engine/` — seeded RNG (`rng.js`), coins/XP/levels
   (`economy.js`), persistence (`storage.js`), the store (`GameContext.jsx`), shared hooks.
-- `src/data/` — `patterns.js` (17 seed-built candlestick patterns), `items.js`, `achievements.js`.
+- `src/i18n/` — `strings.js` (flat en/he dictionary) and `I18nContext.jsx` (`t`, `loc`, `setLang`).
+- `src/data/` — `items.js`, `achievements.js`.
 - `src/world/` — `map-data.js` (the tile grid, buildings, doors, props), `CityHud.jsx`,
   `Directory.jsx`.
 - `src/world3d/` — `World3D.jsx` (canvas, lights, DOM chrome), `Scenery.jsx`, `VoxelPerson.jsx`,
   `Player.jsx`, `Npcs.jsx`, `Joystick.jsx`, `controls.js`, `textures.js`.
 - `src/games/` — one file per mini-game plus `registry.js`.
 - `src/screens/` — bank, shop, profile.
-- `src/ui/` — chart, button, panel, modal, toasts, `GameShell`, `ResultScreen`.
+- `src/ui/` — button, panel, modal, toasts, `GameShell`, `ResultScreen`.
 
 ## Rules of the road
 - Every mini-game is `({ meta, onExit }) => JSX`, wraps itself in `<GameShell>`, ends on
   `<ResultScreen>`, and pays out through `finishGame(meta.id, { score, base, accuracy, … })` so the
   economy stays on one scale. Never add coins directly from a game.
+- User-facing text goes through `t('key')` from the dictionary, or `loc(entry)` for `{ en, he }`
+  content that lives beside its data (game names, item names, achievements, level titles). No bare
+  strings in components — a Hebrew literal in a component is a bug.
+- `t()` localises object parameters too, so `t('achv.unlocked', { name: a.name })` works with a
+  bilingual name straight from the data file.
 - A building's `target` in `map-data.js` must match a game id in `registry.js` or a key in
   `SCREENS` in `App.jsx`. Adding a game means bumping `TOTAL_GAMES` in `engine/constants.js`
   (the "played everything" achievement counts against it).
@@ -57,4 +64,4 @@ npm run lint
 
 ## Design system
 Primary `#44e092`, gold `#f5c542`, secondary `#ffb4aa`, tertiary `#c1c1ff`, surface `#0f131c`,
-font Be Vietnam Pro — carried over from the original chart game.
+font Be Vietnam Pro.

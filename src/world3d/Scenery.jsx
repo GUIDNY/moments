@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { BUILDINGS, MAP_H, MAP_W, PROPS, TERRAIN, TERRAIN_GRID } from '../world/map-data';
+import { useI18n } from '../i18n/I18nContext';
 import { emojiTexture, groundTexture, signTexture, billboardTexture } from './textures';
 
 /** tile (x, y) -> the centre of that tile in world space */
@@ -170,7 +171,9 @@ const WALL_COLOR = '#49516b';
 
 function Shop({ building }) {
   const { x, y, w, h, door, emoji, name, color } = building;
-  const sign = useMemo(() => signTexture(emoji, name, color), [emoji, name, color]);
+  const { loc, dir: textDir } = useI18n();
+  const label = loc(name);
+  const sign = useMemo(() => signTexture(emoji, label, color, textDir), [emoji, label, color, textDir]);
   const doorOnTopRow = door.y === y;
   // sign and doorway face the street the door opens onto
   const faceZ = doorOnTopRow ? y : y + h;
@@ -238,10 +241,11 @@ export function Shops() {
 }
 
 /** The plaza screen, the way the reference world puts a promo wall in the atrium. */
-export function PlazaScreen({ coins }) {
+export function PlazaScreen({ title, tagline, coins }) {
+  const { dir } = useI18n();
   const tex = useMemo(
-    () => billboardTexture(['עיר הנרות', 'עשרה משחקונים · ארנק אחד', `בארנק: ${coins} מטבעות`]),
-    [coins]
+    () => billboardTexture([title, tagline, coins], dir),
+    [title, tagline, coins, dir]
   );
   return (
     <group position={[16.99, 0, 9.4]}>

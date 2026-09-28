@@ -1,8 +1,8 @@
-const KEY = 'candle_city_v1';
+const KEY = 'playtown_v1';
 
 export const INITIAL_STATE = {
   version: 1,
-  name: 'שחקן',
+  name: 'Player',
   coins: 50,
   xp: 0,
   avatar: 'trader',

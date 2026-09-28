@@ -1,10 +1,12 @@
 import { avatarEmoji } from '../data/items';
 import { formatCoins, levelTitle } from '../engine/economy';
 import { useGame } from '../engine/GameContext';
+import { useI18n } from '../i18n/I18nContext';
 
 /** The permanent bar over the city: who you are, what you're worth. */
 export default function CityHud({ onOpenProfile }) {
   const { state, levelInfo, dailyBonus } = useGame();
+  const { t, loc } = useI18n();
 
   return (
     <header className="absolute top-0 inset-x-0 z-30 p-3 pointer-events-none">
@@ -18,7 +20,7 @@ export default function CityHud({ onOpenProfile }) {
           <span className="text-right">
             <span className="block text-xs font-bold text-text leading-tight">{state.name}</span>
             <span className="block text-[10px] text-primary leading-tight">
-              רמה {levelInfo.level} · {levelTitle(levelInfo.level)}
+              {t('common.level')} {levelInfo.level} · {loc(levelTitle(levelInfo.level))}
             </span>
             <span className="block w-20 h-1 bg-surface-bright rounded-full mt-1 overflow-hidden">
               <span className="block h-full bg-primary" style={{ width: `${levelInfo.pct}%` }} />
@@ -30,7 +32,7 @@ export default function CityHud({ onOpenProfile }) {
 
         {dailyBonus.available && (
           <span className="pointer-events-none bg-gold/20 border border-gold/50 text-gold rounded-2xl px-3 py-2 text-xs font-bold animate-bob">
-            🎁 בונוס בבנק
+            {t('hud.bonusWaiting')}
           </span>
         )}
 

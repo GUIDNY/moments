@@ -23,10 +23,26 @@ function finish(c, { repeat } = {}) {
   return tex;
 }
 
-/** A shop sign: emoji, name, and a coloured bar underneath. */
-export function signTexture(emoji, name, color) {
+/** Shrink the font until the text fits the width we have. */
+function fitFont(ctx, text, maxWidth, startPx, weight = 'bold') {
+  let size = startPx;
+  ctx.font = `${weight} ${size}px ${FONT}`;
+  while (size > 18 && ctx.measureText(text).width > maxWidth) {
+    size -= 2;
+    ctx.font = `${weight} ${size}px ${FONT}`;
+  }
+  return size;
+}
+
+/**
+ * A shop sign: emoji, name, and a coloured bar top and bottom.
+ * `dir` matters — canvas lays punctuation out by direction, and in RTL the icon
+ * belongs on the other side of the name.
+ */
+export function signTexture(emoji, name, color, dir = 'ltr') {
   const c = canvas(512, 160);
   const ctx = c.getContext('2d');
+  const rtl = dir === 'rtl';
 
   ctx.fillStyle = '#0e1219';
   ctx.fillRect(0, 0, 512, 160);
@@ -39,13 +55,14 @@ export function signTexture(emoji, name, color) {
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
+  ctx.direction = 'ltr'; // the emoji is a glyph, not a sentence
   ctx.font = `72px ${FONT}`;
-  ctx.fillText(emoji, 66, 82);
+  ctx.fillText(emoji, rtl ? 446 : 66, 82);
 
   ctx.fillStyle = '#ffffff';
-  ctx.font = `bold 58px ${FONT}`;
-  ctx.direction = 'rtl';
-  ctx.fillText(name, 290, 80);
+  ctx.direction = dir;
+  fitFont(ctx, name, 380, 58);
+  ctx.fillText(name, rtl ? 226 : 290, 80);
 
   return finish(c);
 }
@@ -84,7 +101,7 @@ export function emojiTexture(emoji, size = 128) {
 }
 
 /** The big screen in the plaza. */
-export function billboardTexture(lines) {
+export function billboardTexture(lines, dir = 'ltr') {
   const c = canvas(640, 360);
   const ctx = c.getContext('2d');
   const grad = ctx.createLinearGradient(0, 0, 640, 360);
@@ -98,7 +115,7 @@ export function billboardTexture(lines) {
   ctx.strokeRect(5, 5, 630, 350);
 
   ctx.textAlign = 'center';
-  ctx.direction = 'rtl';
+  ctx.direction = dir;
   ctx.fillStyle = '#44e092';
   ctx.font = `bold 72px ${FONT}`;
   ctx.fillText(lines[0], 320, 130);
@@ -122,7 +139,6 @@ export function labelTexture(text) {
   ctx.fill();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.direction = 'rtl';
   ctx.fillStyle = '#dfe2ef';
   ctx.font = `bold 30px ${FONT}`;
   ctx.fillText(text, 128, 33);

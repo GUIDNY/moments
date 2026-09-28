@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGame } from '../engine/GameContext';
 import { useCountdown } from '../engine/hooks';
+import { useI18n } from '../i18n/I18nContext';
 import GameShell from '../ui/GameShell';
 import ResultScreen from '../ui/ResultScreen';
 
@@ -9,9 +10,9 @@ const CELLS = 9;
 const LIVES = 3;
 
 const KINDS = [
-  { kind: 'bull', emoji: '🐂', points: 1, weight: 58, label: 'שור' },
-  { kind: 'bear', emoji: '🐻', points: 0, weight: 30, label: 'דוב' },
-  { kind: 'gem', emoji: '💎', points: 3, weight: 12, label: 'יהלום' },
+  { kind: 'mole', emoji: '🐹', points: 1, weight: 58 },
+  { kind: 'bomb', emoji: '💣', points: 0, weight: 30 },
+  { kind: 'gem', emoji: '💎', points: 3, weight: 12 },
 ];
 
 function rollKind() {
@@ -24,10 +25,12 @@ function rollKind() {
   return KINDS[0];
 }
 
-/** Reflex arcade: tap the bulls, spare the bears. */
-export default function BullVsBearGame({ onExit, meta }) {
+/** Tap the critters, spare the bombs. */
+export default function MoleGame({ onExit, meta }) {
   const { finishGame, multiplier } = useGame();
-  const [active, setActive] = useState(null); // { cell, kind, emoji, points, id }
+  const { t, loc } = useI18n();
+
+  const [active, setActive] = useState(null);
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(LIVES);
   const [hits, setHits] = useState(0);
@@ -48,8 +51,6 @@ export default function BullVsBearGame({ onExit, meta }) {
   }, [finishGame, meta.id]);
 
   const { left, reset } = useCountdown(SECONDS, { running, onEnd: end });
-
-  /* Spawn loop: one creature at a time, appearing faster as the clock runs down. */
   const leftRef = useRef(SECONDS);
   leftRef.current = left;
 
@@ -62,9 +63,8 @@ export default function BullVsBearGame({ onExit, meta }) {
       const elapsed = SECONDS - leftRef.current;
       const lifetime = Math.max(520, 1000 - elapsed * 14);
       const gap = Math.max(160, 480 - elapsed * 10);
-      const k = rollKind();
       idRef.current += 1;
-      const spawned = { cell: Math.floor(Math.random() * CELLS), ...k, id: idRef.current };
+      const spawned = { cell: Math.floor(Math.random() * CELLS), ...rollKind(), id: idRef.current };
       setActive(spawned);
       hideRef.current = setTimeout(() => {
         setActive((cur) => (cur && cur.id === spawned.id ? null : cur));
@@ -82,11 +82,11 @@ export default function BullVsBearGame({ onExit, meta }) {
 
   const tap = (cell) => {
     if (!running || !active || active.cell !== cell) return;
-    if (active.kind === 'bear') {
-      const next = lives - 1;
-      setLives(next);
-      if (next <= 0) end();
+    if (active.kind === 'bomb') {
+      const remaining = lives - 1;
+      setLives(remaining);
       setBump({ cell, text: '−1 ❤️', bad: true });
+      if (remaining <= 0) end();
     } else {
       scoreRef.current += active.points;
       hitsRef.current += 1;
@@ -99,8 +99,8 @@ export default function BullVsBearGame({ onExit, meta }) {
 
   useEffect(() => {
     if (!bump) return undefined;
-    const t = setTimeout(() => setBump(null), 500);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setBump(null), 500);
+    return () => clearTimeout(timer);
   }, [bump]);
 
   const replay = () => {
@@ -117,14 +117,14 @@ export default function BullVsBearGame({ onExit, meta }) {
 
   if (!running && reward) {
     return (
-      <GameShell title={meta.name} emoji={meta.emoji} onExit={onExit}>
+      <GameShell title={loc(meta.name)} emoji={meta.emoji} onExit={onExit}>
         <ResultScreen
-          emoji={score >= 25 ? '🏆' : lives <= 0 ? '🐻' : '🐂'}
-          title={lives <= 0 ? 'הדובים ניצחו' : score >= 25 ? 'שור אמיתי!' : 'סיבוב יפה'}
+          emoji={score >= 25 ? '🏆' : lives <= 0 ? '💣' : '🐹'}
+          title={t('common.finished')}
           lines={[
-            { label: 'נקודות', value: score, color: '#44e092' },
-            { label: 'פגיעות', value: hits },
-            { label: 'לבבות שנשארו', value: '❤️'.repeat(Math.max(0, lives)) || '—' },
+            { label: t('common.points'), value: score, color: '#44e092' },
+            { label: t('common.correct'), value: hits },
+            { label: '❤️', value: '❤️'.repeat(Math.max(0, lives)) || '—' },
           ]}
           coins={reward.coins}
           xp={reward.xp}
@@ -138,29 +138,22 @@ export default function BullVsBearGame({ onExit, meta }) {
 
   return (
     <GameShell
-      title={meta.name}
+      title={loc(meta.name)}
       emoji={meta.emoji}
       onExit={onExit}
       hud={
-        <span className="text-sm font-bold text-text-2 tabular-nums ml-3">
+        <span className="text-sm font-bold text-text-2 tabular-nums mx-3">
           {score} · {'❤️'.repeat(lives)}
         </span>
       }
-      footer={
-        <div className="px-4 py-3 text-center text-sm text-text-2">
-          🐂 שור = נקודה · 💎 יהלום = 3 · 🐻 דוב = מינוס לב
-        </div>
-      }
+      footer={<div className="px-4 py-3 text-center text-sm text-text-2">🐹 +1 · 💎 +3 · 💣 −❤️</div>}
     >
       <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-4 p-4">
-        <div className="text-center">
-          <div className="text-xs text-text-3">נותרו</div>
-          <div
-            className="text-3xl font-bold tabular-nums"
-            style={{ color: left > 10 ? '#44e092' : '#ffb4aa' }}
-          >
-            {left}s
-          </div>
+        <div
+          className="text-3xl font-bold tabular-nums"
+          style={{ color: left > 10 ? '#44e092' : '#ffb4aa' }}
+        >
+          {left}s
         </div>
 
         <div className="grid grid-cols-3 gap-3 w-full max-w-sm aspect-square">
@@ -170,11 +163,9 @@ export default function BullVsBearGame({ onExit, meta }) {
               type="button"
               onClick={() => tap(cell)}
               className="relative rounded-2xl bg-surface-container border border-border/60 flex items-center justify-center active:scale-95 transition-transform"
-              aria-label={`משבצת ${cell + 1}`}
+              aria-label={`hole ${cell + 1}`}
             >
-              {active?.cell === cell && (
-                <span className="text-5xl animate-pop-in">{active.emoji}</span>
-              )}
+              {active?.cell === cell && <span className="text-5xl animate-pop-in">{active.emoji}</span>}
               {bump?.cell === cell && (
                 <span
                   className={`absolute text-lg font-bold animate-coin-fly ${

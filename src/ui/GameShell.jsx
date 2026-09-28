@@ -1,9 +1,11 @@
 import { formatCoins } from '../engine/economy';
 import { useGame } from '../engine/GameContext';
+import { useI18n } from '../i18n/I18nContext';
 
 /** Common chrome around every mini-game: exit, title, live score, wallet. */
 export default function GameShell({ title, emoji, onExit, hud = null, children, footer = null }) {
   const { state } = useGame();
+  const { t } = useI18n();
   return (
     <div className="fixed inset-0 bg-surface flex flex-col z-40">
       <header className="flex items-center gap-3 px-3 h-14 bg-surface-container border-b border-border/60 shrink-0">
@@ -12,7 +14,7 @@ export default function GameShell({ title, emoji, onExit, hud = null, children, 
           onClick={onExit}
           className="px-3 py-1.5 rounded-lg bg-surface-bright text-text-2 hover:text-text font-bold text-sm"
         >
-          ← יציאה
+          {t('common.exit')}
         </button>
         <h1 className="font-bold text-text flex items-center gap-2 truncate">
           <span className="text-xl">{emoji}</span>

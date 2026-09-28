@@ -38,10 +38,10 @@ const V_ROADS = [
 ];
 
 export const DISTRICTS = [
-  { id: 'study', name: 'רובע הלימוד', at: { x: 10, y: 3 }, color: '#44e092' },
-  { id: 'speed', name: 'רובע המהירות', at: { x: 23, y: 3 }, color: '#f5c542' },
-  { id: 'finance', name: 'הרובע הפיננסי', at: { x: 10, y: 20 }, color: '#c1c1ff' },
-  { id: 'fun', name: 'פארק השעשועים', at: { x: 23, y: 20 }, color: '#ffb4aa' },
+  { id: 'mind', at: { x: 10, y: 3 }, color: '#44e092' },
+  { id: 'speed', at: { x: 23, y: 3 }, color: '#f5c542' },
+  { id: 'square', at: { x: 10, y: 20 }, color: '#c1c1ff' },
+  { id: 'fun', at: { x: 23, y: 20 }, color: '#ffb4aa' },
 ];
 
 /**
@@ -49,39 +49,52 @@ export const DISTRICTS = [
  * either a mini-game id from the registry or one of the city screens.
  */
 export const BUILDINGS = [
-  // ── רובע הלימוד ────────────────────────────────────────────────────────
-  { id: 'b-chart', target: 'chart-reading', kind: 'game', district: 'study',
-    x: 6, y: 6, w: 3, h: 2, door: { x: 7, y: 6 }, emoji: '📈', name: 'מגדל הגרפים', color: '#44e092' },
-  { id: 'b-quiz', target: 'pattern-quiz', kind: 'game', district: 'study',
-    x: 11, y: 6, w: 3, h: 2, door: { x: 12, y: 6 }, emoji: '🔍', name: 'מכון התבניות', color: '#44e092' },
-  { id: 'b-memory', target: 'memory', kind: 'game', district: 'study',
-    x: 6, y: 9, w: 3, h: 2, door: { x: 7, y: 10 }, emoji: '🃏', name: 'בית הזיכרון', color: '#44e092' },
-  { id: 'b-percent', target: 'percent', kind: 'game', district: 'study',
-    x: 11, y: 9, w: 3, h: 2, door: { x: 12, y: 10 }, emoji: '🧮', name: 'אולם האחוזים', color: '#44e092' },
+  // ── Puzzle Park ────────────────────────────────────────────────────────
+  { id: 'b-pair', target: 'pair-up', kind: 'game', district: 'mind',
+    x: 6, y: 6, w: 3, h: 2, door: { x: 7, y: 6 }, emoji: '🃏',
+    name: { en: 'Pair Up', he: 'זוגות' }, color: '#44e092' },
+  { id: 'b-echo', target: 'echo', kind: 'game', district: 'mind',
+    x: 11, y: 6, w: 3, h: 2, door: { x: 12, y: 6 }, emoji: '🎵',
+    name: { en: 'Echo', he: 'הד' }, color: '#44e092' },
+  { id: 'b-odd', target: 'odd-one', kind: 'game', district: 'mind',
+    x: 6, y: 9, w: 3, h: 2, door: { x: 7, y: 10 }, emoji: '👁️',
+    name: { en: 'Odd One Out', he: 'השונה' }, color: '#44e092' },
+  { id: 'b-maths', target: 'quick-maths', kind: 'game', district: 'mind',
+    x: 11, y: 9, w: 3, h: 2, door: { x: 12, y: 10 }, emoji: '🧮',
+    name: { en: 'Quick Maths', he: 'חשבון מהיר' }, color: '#44e092' },
 
-  // ── רובע המהירות ───────────────────────────────────────────────────────
-  { id: 'b-speed', target: 'speed-run', kind: 'game', district: 'speed',
-    x: 19, y: 6, w: 3, h: 2, door: { x: 20, y: 6 }, emoji: '⚡', name: 'מסלול המהירות', color: '#f5c542' },
-  { id: 'b-reflex', target: 'reflex', kind: 'game', district: 'speed',
-    x: 24, y: 6, w: 3, h: 2, door: { x: 25, y: 6 }, emoji: '🎯', name: 'מכון הרפלקס', color: '#f5c542' },
-  { id: 'b-survival', target: 'survival', kind: 'game', district: 'speed',
-    x: 19, y: 9, w: 3, h: 2, door: { x: 20, y: 10 }, emoji: '💀', name: 'מגדל ההישרדות', color: '#f5c542' },
-  { id: 'b-bullbear', target: 'bull-vs-bear', kind: 'game', district: 'speed',
-    x: 24, y: 9, w: 3, h: 2, door: { x: 25, y: 10 }, emoji: '🐂', name: 'זירת השור והדוב', color: '#f5c542' },
+  // ── Speed Alley ────────────────────────────────────────────────────────
+  { id: 'b-reaction', target: 'reaction', kind: 'game', district: 'speed',
+    x: 19, y: 6, w: 3, h: 2, door: { x: 20, y: 6 }, emoji: '⚡',
+    name: { en: 'Reaction', he: 'רפלקס' }, color: '#f5c542' },
+  { id: 'b-numbers', target: 'number-rush', kind: 'game', district: 'speed',
+    x: 24, y: 6, w: 3, h: 2, door: { x: 25, y: 6 }, emoji: '🔢',
+    name: { en: 'Number Rush', he: 'מרוץ המספרים' }, color: '#f5c542' },
+  { id: 'b-catch', target: 'catch', kind: 'game', district: 'speed',
+    x: 19, y: 9, w: 3, h: 2, door: { x: 20, y: 10 }, emoji: '🧺',
+    name: { en: 'Catch', he: 'תופס' }, color: '#f5c542' },
+  { id: 'b-moles', target: 'moles', kind: 'game', district: 'speed',
+    x: 24, y: 9, w: 3, h: 2, door: { x: 25, y: 10 }, emoji: '🐹',
+    name: { en: 'Mole Mayhem', he: 'חפרפרות' }, color: '#f5c542' },
 
-  // ── הרובע הפיננסי ──────────────────────────────────────────────────────
-  { id: 'b-floor', target: 'trading-floor', kind: 'game', district: 'finance',
-    x: 6, y: 13, w: 3, h: 2, door: { x: 7, y: 13 }, emoji: '🏛️', name: 'חדר המסחר', color: '#c1c1ff' },
-  { id: 'b-bank', target: 'bank', kind: 'screen', district: 'finance',
-    x: 11, y: 13, w: 3, h: 2, door: { x: 12, y: 13 }, emoji: '🏦', name: 'הבנק', color: '#c1c1ff' },
-  { id: 'b-home', target: 'profile', kind: 'screen', district: 'finance',
-    x: 6, y: 16, w: 3, h: 2, door: { x: 7, y: 17 }, emoji: '🏠', name: 'הבית שלך', color: '#c1c1ff' },
-  { id: 'b-shop', target: 'shop', kind: 'screen', district: 'finance',
-    x: 11, y: 16, w: 3, h: 2, door: { x: 12, y: 17 }, emoji: '🛍️', name: 'החנות', color: '#c1c1ff' },
+  // ── Town Square ────────────────────────────────────────────────────────
+  { id: 'b-bullseye', target: 'bullseye', kind: 'game', district: 'square',
+    x: 6, y: 13, w: 3, h: 2, door: { x: 7, y: 13 }, emoji: '🎯',
+    name: { en: 'Bullseye', he: 'בול פגיעה' }, color: '#c1c1ff' },
+  { id: 'b-bank', target: 'bank', kind: 'screen', district: 'square',
+    x: 11, y: 13, w: 3, h: 2, door: { x: 12, y: 13 }, emoji: '🏦',
+    name: { en: 'Bank', he: 'הבנק' }, color: '#c1c1ff' },
+  { id: 'b-home', target: 'profile', kind: 'screen', district: 'square',
+    x: 6, y: 16, w: 3, h: 2, door: { x: 7, y: 17 }, emoji: '🏠',
+    name: { en: 'Your Place', he: 'הבית שלך' }, color: '#c1c1ff' },
+  { id: 'b-shop', target: 'shop', kind: 'screen', district: 'square',
+    x: 11, y: 16, w: 3, h: 2, door: { x: 12, y: 17 }, emoji: '🛍️',
+    name: { en: 'Shop', he: 'החנות' }, color: '#c1c1ff' },
 
-  // ── פארק השעשועים ──────────────────────────────────────────────────────
-  { id: 'b-wheel', target: 'wheel', kind: 'game', district: 'fun',
-    x: 19, y: 13, w: 3, h: 2, door: { x: 20, y: 13 }, emoji: '🎡', name: 'גלגל המזל', color: '#ffb4aa' },
+  // ── Funfair ────────────────────────────────────────────────────────────
+  { id: 'b-wheel', target: 'lucky-stop', kind: 'game', district: 'fun',
+    x: 19, y: 13, w: 3, h: 2, door: { x: 20, y: 13 }, emoji: '🎡',
+    name: { en: 'Lucky Stop', he: 'עצור בזמן' }, color: '#ffb4aa' },
 ];
 
 export const BUILDING_BY_DOOR = Object.fromEntries(

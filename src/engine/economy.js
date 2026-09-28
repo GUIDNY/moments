@@ -28,13 +28,13 @@ export function levelProgress(xp) {
 }
 
 export const LEVEL_TITLES = [
-  [1, 'סקרן'],
-  [3, 'מתלמד'],
-  [5, 'סוחר יום'],
-  [8, 'אנליסט'],
-  [12, 'מנהל תיקים'],
-  [16, 'זאב מהבורסה'],
-  [22, 'אגדה של העיר'],
+  [1, { en: 'Newcomer', he: 'חדש בעיר' }],
+  [3, { en: 'Regular', he: 'מבקר קבוע' }],
+  [5, { en: 'Local', he: 'תושב' }],
+  [8, { en: 'Champion', he: 'אלוף' }],
+  [12, { en: 'Veteran', he: 'ותיק' }],
+  [16, { en: 'Legend', he: 'אגדה' }],
+  [22, { en: 'Mayor', he: 'ראש העיר' }],
 ];
 
 export function levelTitle(level) {
@@ -45,8 +45,8 @@ export function levelTitle(level) {
 
 /**
  * Turn a raw mini-game result into a payout.
- * `accuracy` (0..1) scales the reward, a streak adds a bonus, and any owned
- * multiplier perk applies last.
+ * `accuracy` (0..1) scales the reward, a streak adds a bonus, and any worn
+ * charm applies last — so every game pays on the same scale.
  */
 export function payout({ base, accuracy = 1, streakBonus = 0, multiplier = 1 }) {
   const raw = base * accuracy + streakBonus;
@@ -58,4 +58,4 @@ export function xpFor(coins) {
   return Math.max(1, Math.round(coins * 0.6));
 }
 
-export const formatCoins = (n) => new Intl.NumberFormat('he-IL').format(Math.round(n));
+export const formatCoins = (n) => new Intl.NumberFormat().format(Math.round(n));

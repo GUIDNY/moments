@@ -1,5 +1,6 @@
 import Button from './Button';
 import { formatCoins } from '../engine/economy';
+import { useI18n } from '../i18n/I18nContext';
 
 /** The payout screen every mini-game ends on. */
 export default function ResultScreen({
@@ -11,8 +12,9 @@ export default function ResultScreen({
   multiplier = 1,
   onReplay,
   onExit,
-  replayLabel = 'עוד סיבוב',
+  replayLabel,
 }) {
+  const { t } = useI18n();
   return (
     <div className="flex-1 flex items-center justify-center p-6 overflow-y-auto">
       <div className="text-center max-w-sm w-full animate-pop-in">
@@ -36,16 +38,21 @@ export default function ResultScreen({
           <div className="text-4xl font-bold text-gold tabular-nums">🪙 +{formatCoins(coins)}</div>
           <div className="text-sm text-text-2 mt-1">
             +{xp} XP
-            {multiplier > 1 && <span className="text-primary"> · בונוס פריט ×{multiplier}</span>}
+            {multiplier > 1 && (
+              <span className="text-primary">
+                {' '}
+                · {t('result.perkBonus')} ×{multiplier}
+              </span>
+            )}
           </div>
         </div>
 
         <div className="flex gap-3">
           <Button onClick={onReplay} className="flex-1">
-            {replayLabel}
+            {replayLabel ?? t('common.again')}
           </Button>
           <Button variant="ghost" onClick={onExit} className="flex-1">
-            חזרה לעיר
+            {t('common.back')}
           </Button>
         </div>
       </div>

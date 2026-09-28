@@ -62,7 +62,13 @@ export function GameProvider({ children }) {
       unlockedAchievements: [...s.unlockedAchievements, ...newly.map((a) => a.id)],
     }));
     newly.forEach((a) =>
-      pushToast({ emoji: a.emoji, title: `הישג נפתח: ${a.name}`, sub: `+${a.reward} מטבעות` })
+      pushToast({
+        emoji: a.emoji,
+        titleKey: 'achv.unlocked',
+        titleParams: { name: a.name },
+        subKey: 'achv.reward',
+        subParams: { n: a.reward },
+      })
     );
   }, [state, pushToast]);
 
@@ -192,7 +198,12 @@ export function GameProvider({ children }) {
       dailyStreak: nextStreak,
       lastDailyBonus: todayKey(),
     }));
-    pushToast({ emoji: '🎁', title: 'בונוס יומי', sub: `+${amount} מטבעות · רצף ${nextStreak} ימים` });
+    pushToast({
+      emoji: '🎁',
+      titleKey: 'bank.daily',
+      subKey: 'achv.reward',
+      subParams: { n: amount },
+    });
     return amount;
   }, [dailyBonus, pushToast]);
 
@@ -207,7 +218,7 @@ export function GameProvider({ children }) {
   const hardReset = useCallback(() => {
     resetState();
     setState({ ...INITIAL_STATE });
-    pushToast({ emoji: '🧹', title: 'התחלנו מחדש', sub: 'הארנק והקדמה אופסו' });
+    pushToast({ emoji: '🧹', titleKey: 'profile.resetDone', subKey: 'profile.resetDoneSub' });
   }, [pushToast]);
 
   const value = useMemo(

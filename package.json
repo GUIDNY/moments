@@ -1,9 +1,9 @@
 {
-  "name": "candle-city",
+  "name": "playtown",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "עיר הנרות — עולם וירטואלי של משחקוני בורסה שבהם אוספים מטבעות",
+  "description": "Playtown — a small 3D town of mini-games where every game pays coins into one wallet",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

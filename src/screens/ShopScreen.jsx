@@ -1,10 +1,12 @@
 import { AVATARS, PERKS } from '../data/items';
 import { formatCoins } from '../engine/economy';
 import { useGame } from '../engine/GameContext';
+import { useI18n } from '../i18n/I18nContext';
 import Button from '../ui/Button';
 import GameShell from '../ui/GameShell';
 
 function ItemCard({ item, owned, equipped, coins, onBuy, onEquip }) {
+  const { t, loc } = useI18n();
   const affordable = coins >= item.price;
   return (
     <div
@@ -14,15 +16,20 @@ function ItemCard({ item, owned, equipped, coins, onBuy, onEquip }) {
     >
       <span className="text-4xl">{item.emoji}</span>
       <div className="flex-1 min-w-0">
-        <h3 className="font-bold text-text">{item.name}</h3>
-        <p className="text-xs text-text-2">{item.desc}</p>
+        <h3 className="font-bold text-text">{loc(item.name)}</h3>
+        <p className="text-xs text-text-2">{loc(item.desc)}</p>
       </div>
       {owned ? (
         <Button size="sm" variant={equipped ? 'outline' : 'ghost'} onClick={() => onEquip(item.id)}>
-          {equipped ? 'מצויד ✓' : 'צייד'}
+          {equipped ? t('shop.equipped') : t('shop.equip')}
         </Button>
       ) : (
-        <Button size="sm" variant={affordable ? 'gold' : 'outline'} disabled={!affordable} onClick={() => onBuy(item.id)}>
+        <Button
+          size="sm"
+          variant={affordable ? 'gold' : 'outline'}
+          disabled={!affordable}
+          onClick={() => onBuy(item.id)}
+        >
           🪙 {formatCoins(item.price)}
         </Button>
       )}
@@ -32,22 +39,23 @@ function ItemCard({ item, owned, equipped, coins, onBuy, onEquip }) {
 
 export default function ShopScreen({ onExit }) {
   const { state, buyItem, equipItem, pushToast } = useGame();
+  const { t } = useI18n();
 
   const buy = (id) => {
     const res = buyItem(id);
     if (!res.ok && res.reason === 'coins') {
-      pushToast({ emoji: '🪙', title: 'אין מספיק מטבעות', sub: 'שחק עוד סיבוב ותחזור' });
+      pushToast({ emoji: '🪙', titleKey: 'shop.noCoins', subKey: 'shop.noCoinsSub' });
     } else if (res.ok) {
-      pushToast({ emoji: '🛍️', title: 'הפריט שלך!', sub: 'הוא כבר מצויד' });
+      pushToast({ emoji: '🛍️', titleKey: 'shop.bought', subKey: 'shop.boughtSub' });
     }
   };
 
   return (
-    <GameShell title="החנות" emoji="🛍️" onExit={onExit}>
+    <GameShell title={t('shop.title')} emoji="🛍️" onExit={onExit}>
       <div className="flex-1 overflow-y-auto p-4">
         <div className="max-w-xl mx-auto space-y-6">
           <section>
-            <h2 className="text-sm font-bold text-text-3 mb-2">דמויות</h2>
+            <h2 className="text-sm font-bold text-text-3 mb-2">{t('shop.characters')}</h2>
             <div className="space-y-2">
               {AVATARS.map((item) => (
                 <ItemCard
@@ -64,9 +72,7 @@ export default function ShopScreen({ onExit }) {
           </section>
 
           <section>
-            <h2 className="text-sm font-bold text-text-3 mb-2">
-              חפצי מזל — מגדילים את התשלום בכל משחקון
-            </h2>
+            <h2 className="text-sm font-bold text-text-3 mb-2">{t('shop.charms')}</h2>
             <div className="space-y-2">
               {PERKS.map((item) => (
                 <ItemCard
@@ -80,7 +86,7 @@ export default function ShopScreen({ onExit }) {
                 />
               ))}
             </div>
-            <p className="text-xs text-text-3 mt-2">אפשר לצייד חפץ מזל אחד בכל פעם.</p>
+            <p className="text-xs text-text-3 mt-2">{t('shop.oneCharm')}</p>
           </section>
         </div>
       </div>

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGame } from '../engine/GameContext';
-import Button from '../ui/Button';
+import { useI18n } from '../i18n/I18nContext';
 import GameShell from '../ui/GameShell';
 import ResultScreen from '../ui/ResultScreen';
 
 const SPINS = 3;
 
-/** Narrow slices pay more — pure timing, no luck to hide behind. */
+/** Narrow slices pay more — timing, not luck. */
 const SEGMENTS = [
   { value: 10, weight: 3, color: '#3c4a40' },
   { value: 60, weight: 2, color: '#44e092' },
@@ -29,8 +29,10 @@ const BOUNDS = (() => {
 
 const segmentAt = (t) => BOUNDS.find((s) => t >= s.from && t < s.to) ?? BOUNDS[BOUNDS.length - 1];
 
-export default function WheelGame({ onExit, meta }) {
+export default function LuckyStopGame({ onExit, meta }) {
   const { finishGame, multiplier } = useGame();
+  const { t, loc } = useI18n();
+
   const [spin, setSpin] = useState(0);
   const [marker, setMarker] = useState(0);
   const [running, setRunning] = useState(true);
@@ -41,17 +43,17 @@ export default function WheelGame({ onExit, meta }) {
   const rafRef = useRef(0);
   const posRef = useRef(0);
   const dirRef = useRef(1);
-  const lastTsRef = useRef(0);
+  const lastTs = useRef(0);
 
-  const speed = 0.55 + spin * 0.22; // fraction of the track per second
+  const speed = 0.55 + spin * 0.22;
 
   useEffect(() => {
     if (!running) return undefined;
     const step = (ts) => {
-      if (!lastTsRef.current) lastTsRef.current = ts;
-      const dt = Math.min(0.05, (ts - lastTsRef.current) / 1000);
-      lastTsRef.current = ts;
-      let next = posRef.current + dirRef.current * speed * dt;
+      if (!lastTs.current) lastTs.current = ts;
+      const delta = Math.min(0.05, (ts - lastTs.current) / 1000);
+      lastTs.current = ts;
+      let next = posRef.current + dirRef.current * speed * delta;
       if (next >= 1) {
         next = 1;
         dirRef.current = -1;
@@ -66,7 +68,7 @@ export default function WheelGame({ onExit, meta }) {
     rafRef.current = requestAnimationFrame(step);
     return () => {
       cancelAnimationFrame(rafRef.current);
-      lastTsRef.current = 0;
+      lastTs.current = 0;
     };
   }, [running, speed]);
 
@@ -106,20 +108,19 @@ export default function WheelGame({ onExit, meta }) {
   if (!running && reward) {
     const total = results.reduce((s, v) => s + v, 0);
     return (
-      <GameShell title={meta.name} emoji={meta.emoji} onExit={onExit}>
+      <GameShell title={loc(meta.name)} emoji={meta.emoji} onExit={onExit}>
         <ResultScreen
           emoji={total >= 900 ? '🎉' : total >= 300 ? '🎡' : '🙂'}
-          title={total >= 900 ? 'עצירה מושלמת!' : 'סיימת שלוש עצירות'}
+          title={t('common.finished')}
           lines={[
-            { label: 'עצירות', value: results.join(' · ') },
-            { label: 'סך הכול', value: total, color: '#f5c542' },
+            { label: t('common.round'), value: results.join(' · ') },
+            { label: t('common.score'), value: total, color: '#f5c542' },
           ]}
           coins={reward.coins}
           xp={reward.xp}
           multiplier={multiplier}
           onReplay={replay}
           onExit={onExit}
-          replayLabel="עוד שלוש"
         />
       </GameShell>
     );
@@ -127,29 +128,33 @@ export default function WheelGame({ onExit, meta }) {
 
   return (
     <GameShell
-      title={meta.name}
+      title={loc(meta.name)}
       emoji={meta.emoji}
       onExit={onExit}
-      hud={<span className="text-sm font-bold text-text-2 tabular-nums ml-3">עצירה {spin + 1}/{SPINS}</span>}
+      hud={
+        <span className="text-sm font-bold text-text-2 tabular-nums mx-3">
+          {spin + 1}/{SPINS}
+        </span>
+      }
       footer={
         <div className="px-4 py-4">
-          <Button size="lg" variant="gold" className="w-full" onClick={stop}>
-            עצור! 🛑
-          </Button>
+          <button
+            type="button"
+            onClick={stop}
+            className="w-full py-4 rounded-xl bg-gold text-surface font-bold text-lg active:scale-[0.99] transition-transform"
+          >
+            STOP
+          </button>
         </div>
       }
     >
       <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-8 p-6">
-        <p className="text-text-2 text-center max-w-sm">
-          הפס רץ הלוך ושוב ומאיץ בכל עצירה. הפרוסה הצרה באמצע שווה הכי הרבה.
-        </p>
-
         <div className="w-full max-w-lg">
-          <div className="relative h-20 rounded-2xl overflow-hidden border border-border/60 flex">
+          <div className="relative h-24 rounded-2xl overflow-hidden border border-border/60 flex" dir="ltr">
             {BOUNDS.map((s, i) => (
               <div
                 key={i}
-                className="flex items-center justify-center font-bold text-surface text-sm"
+                className="flex items-center justify-center font-bold text-surface"
                 style={{ flexGrow: s.weight, background: s.color }}
               >
                 {s.value}
@@ -161,7 +166,7 @@ export default function WheelGame({ onExit, meta }) {
             />
           </div>
 
-          <div className="flex justify-center gap-2 mt-4">
+          <div className="flex justify-center gap-2 mt-5" dir="ltr">
             {Array.from({ length: SPINS }, (_, i) => (
               <span
                 key={i}
