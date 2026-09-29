@@ -48,9 +48,11 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   avatar crawl on a slow device, and no clamp at all tunnels through walls.
 - ESLint's `react/no-unknown-property` is off for `src/world3d/**`: those JSX elements are three.js
   objects, not DOM nodes.
-- The page is `dir="rtl"`. An absolutely positioned box with `auto` insets lands on the *right* in
-  RTL, so anything positioned by `left:` (the world container, tiles, the avatar) needs an explicit
-  `left`/`top`.
+- The page direction is not fixed: `ltr` by default, `rtl` while Hebrew is on, flipped by
+  `I18nProvider`. So never assume either one. In RTL an absolutely positioned box with `auto`
+  insets lands on the *right*, which silently pushes anything positioned by `left:` off screen —
+  give such elements an explicit `left`/`top`. Prefer `start`/`end` utilities over `left`/`right`
+  for chrome that should mirror with the language.
 - Tailwind config keys with a hyphen must be quoted — an unquoted `pulse-ring:` is a syntax error
   that surfaces as a confusing PostCSS failure.
 
