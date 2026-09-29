@@ -11,6 +11,8 @@
 
   body {
     margin: 0;
+    /* the world fills the viewport; iOS toolbars must not clip the chrome */
+    min-height: 100dvh;
     background-color: #0f131c;
     color: #dfe2ef;
     font-family: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -20,6 +22,12 @@
 
   button {
     font-family: inherit;
+  }
+
+  /* chrome floating over the game should never be text-selectable on a drag */
+  .ui-layer {
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   ::-webkit-scrollbar {

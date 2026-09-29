@@ -5,7 +5,7 @@ import BankScreen from './screens/BankScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import ShopScreen from './screens/ShopScreen';
 import Button from './ui/Button';
-import Modal from './ui/Modal';
+import Sheet from './ui/Sheet';
 import Toasts from './ui/Toasts';
 import CityHud from './world/CityHud';
 import Directory from './world/Directory';
@@ -73,23 +73,30 @@ export default function App() {
       {content}
       <Toasts />
 
-      <Modal open={welcome} onClose={closeWelcome}>
-        <div className="p-6 text-center">
-          <div className="text-5xl mb-3">🏙️</div>
-          <h2 className="text-2xl font-bold text-text mb-2">{t('welcome.title')}</h2>
-          <p className="text-sm text-text-2 mb-5 leading-relaxed">{t('welcome.body')}</p>
-          <div className="text-start text-sm text-text-2 bg-surface rounded-xl p-4 space-y-2 mb-5">
-            <p>{t('welcome.move')}</p>
-            <p>{t('welcome.door')}</p>
-            <p>{t('welcome.guide')}</p>
-            <p>{t('welcome.bonus')}</p>
+      <Sheet open={welcome} onClose={closeWelcome} tone="paper" labelledBy="welcome-title">
+        <div className="px-5 pb-5 pt-1 md:pt-6 text-center">
+          <div className="mx-auto w-16 h-16 rounded-3xl bg-brand/10 grid place-items-center text-4xl mb-3">
+            🏙️
           </div>
-          <Button className="w-full" onClick={closeWelcome}>
+          <h2 id="welcome-title" className="text-xl font-black text-ink-900 mb-1.5">
+            {t('welcome.title')}
+          </h2>
+          <p className="text-[13px] text-paper-muted leading-relaxed mb-4">{t('welcome.body')}</p>
+
+          <ul className="text-start bg-paper-50 rounded-2xl p-3.5 space-y-2 mb-4">
+            {['welcome.move', 'welcome.door', 'welcome.guide', 'welcome.bonus'].map((key) => (
+              <li key={key} className="text-[13px] text-ink-900/80 leading-snug">
+                {t(key)}
+              </li>
+            ))}
+          </ul>
+
+          <Button variant="brand" className="w-full py-3.5" onClick={closeWelcome}>
             {t('welcome.cta')}
           </Button>
-          <p className="text-[11px] text-text-3 mt-3">{t('welcome.saved')}</p>
+          <p className="text-[11px] text-paper-muted mt-2.5">{t('welcome.saved')}</p>
         </div>
-      </Modal>
+      </Sheet>
     </div>
   );
 }

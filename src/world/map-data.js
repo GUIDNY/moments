@@ -177,3 +177,23 @@ export function isWalkable(x, y) {
 }
 
 export const SPAWN = { x: 16, y: 14 };
+
+/**
+ * Which district a point in the town belongs to — the nearest venue wins.
+ * Used for the "you are here" chip in the header; it reads position, it never
+ * changes it.
+ */
+export function districtAt(x, y) {
+  let best = null;
+  let bestDist = Infinity;
+  for (const b of BUILDINGS) {
+    const dx = x - (b.x + b.w / 2);
+    const dy = y - (b.y + b.h / 2);
+    const dist = dx * dx + dy * dy;
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = b;
+    }
+  }
+  return best?.district ?? DISTRICTS[0].id;
+}

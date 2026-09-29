@@ -8,7 +8,10 @@ export default function GameShell({ title, emoji, onExit, hud = null, children, 
   const { t } = useI18n();
   return (
     <div className="fixed inset-0 bg-surface flex flex-col z-40">
-      <header className="flex items-center gap-3 px-3 h-14 bg-surface-container border-b border-border/60 shrink-0">
+      <header
+        className="flex items-center gap-3 px-3 h-14 bg-surface-container border-b border-border/60 shrink-0"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)', height: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}
+      >
         <button
           type="button"
           onClick={onExit}
@@ -30,7 +33,12 @@ export default function GameShell({ title, emoji, onExit, hud = null, children, 
       <main className="relative flex-1 min-h-0 flex flex-col">{children}</main>
 
       {footer && (
-        <footer className="shrink-0 bg-surface-container border-t border-border/60">{footer}</footer>
+        <footer
+          className="shrink-0 bg-surface-container border-t border-border/60"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        >
+          {footer}
+        </footer>
       )}
     </div>
   );

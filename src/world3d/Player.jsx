@@ -4,6 +4,7 @@ import { BUILDINGS, MAP_H, MAP_W, isWalkable } from '../world/map-data';
 import VoxelPerson from './VoxelPerson';
 import { labelTexture } from './textures';
 import { input } from './controls';
+import { setPlayerPos } from './playerPos';
 
 const SPEED = 4.4; // tiles per second
 const RADIUS = 0.3;
@@ -118,7 +119,8 @@ export default function Player({ avatarSkin, label, startTile, onEnterDoor, onNe
     camera.lookAt(pos.current.x, 0.9, pos.current.z - 1.2);
     camReady.current = true;
 
-    // debug handle, handy when tuning the map from the console
+    // published for the minimap and the district label, and handy from the console
+    setPlayerPos(pos.current.x, pos.current.z);
     if (typeof window !== 'undefined') window.__pos = { ...pos.current };
 
     const afterDist = door ? Math.hypot(pos.current.x - door.cx, pos.current.z - door.cz) : Infinity;

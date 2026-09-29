@@ -1,6 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import { BUILDINGS, MAP_H, MAP_W, PROPS, TERRAIN, TERRAIN_GRID } from '../world/map-data';
 import { useI18n } from '../i18n/I18nContext';
+import { playerPos } from './playerPos';
 import { emojiTexture, groundTexture, signTexture, billboardTexture } from './textures';
 
 /** tile (x, y) -> the centre of that tile in world space */
@@ -169,7 +171,7 @@ export function Props() {
 const BUILDING_HEIGHT = 2.4;
 const WALL_COLOR = '#49516b';
 
-function Shop({ building }) {
+function Shop({ building, compact }) {
   const { x, y, w, h, door, emoji, name, color } = building;
   const { loc, dir: textDir } = useI18n();
   const label = loc(name);
@@ -178,6 +180,21 @@ function Shop({ building }) {
   // sign and doorway face the street the door opens onto
   const faceZ = doorOnTopRow ? y : y + h;
   const dir = doorOnTopRow ? -1 : 1;
+
+  // distance fade: full strength close by, gone once the venue is well behind you
+  const signMat = useRef(null);
+  const centre = [x + w / 2, y + h / 2];
+  useFrame(() => {
+    const mat = signMat.current;
+    if (!mat) return;
+    const dist = Math.hypot(playerPos.x - centre[0], playerPos.z - centre[1]);
+    const near = compact ? 9 : 13;
+    const far = compact ? 17 : 24;
+    const target = dist <= near ? 1 : dist >= far ? 0 : 1 - (dist - near) / (far - near);
+    // ease towards the target so signs never pop
+    mat.opacity += (target - mat.opacity) * 0.12;
+    mat.visible = mat.opacity > 0.02;
+  });
 
   const blocks = [];
   for (let by = y; by < y + h; by++) {
@@ -214,41 +231,42 @@ function Shop({ building }) {
         position={[door.x + 0.5, 0.05, door.y + 0.5 + dir * 0.35]}
       >
         <circleGeometry args={[0.55, 20]} />
-        <meshBasicMaterial color={color} transparent opacity={0.55} />
+        <meshBasicMaterial color={color} transparent opacity={0.7} />
       </mesh>
-      <pointLight position={[door.x + 0.5, 1.6, door.y + 0.5]} color={color} intensity={6} distance={4} />
+      <pointLight position={[door.x + 0.5, 1.6, door.y + 0.5]} color={color} intensity={7} distance={4.6} />
 
       {/* shop sign above the entrance */}
       <mesh
-        position={[x + w / 2, 1.85, faceZ + dir * 0.06]}
+        position={[x + w / 2, compact ? 1.95 : 1.85, faceZ + dir * 0.06]}
         rotation={[0, doorOnTopRow ? Math.PI : 0, 0]}
+        scale={compact ? 0.78 : 1}
       >
         <planeGeometry args={[Math.min(w, 2.9), 0.9]} />
-        <meshBasicMaterial map={sign} toneMapped={false} />
+        <meshBasicMaterial ref={signMat} map={sign} toneMapped={false} transparent />
       </mesh>
     </group>
   );
 }
 
-export function Shops() {
+export function Shops({ compact = false }) {
   return (
     <group>
       {BUILDINGS.map((b) => (
-        <Shop key={b.id} building={b} />
+        <Shop key={b.id} building={b} compact={compact} />
       ))}
     </group>
   );
 }
 
 /** The plaza screen, the way the reference world puts a promo wall in the atrium. */
-export function PlazaScreen({ title, tagline, coins }) {
+export function PlazaScreen({ title, tagline, coins, compact = false }) {
   const { dir } = useI18n();
   const tex = useMemo(
     () => billboardTexture([title, tagline, coins], dir),
     [title, tagline, coins, dir]
   );
   return (
-    <group position={[16.99, 0, 9.4]}>
+    <group position={[16.99, 0, 9.4]} scale={compact ? 0.86 : 1}>
       <mesh position={[0, 1.2, 0]} castShadow>
         <boxGeometry args={[0.35, 2.4, 0.35]} />
         <meshLambertMaterial color="#2b3140" />

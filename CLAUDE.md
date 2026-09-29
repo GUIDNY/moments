@@ -24,7 +24,8 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   `Player.jsx`, `Npcs.jsx`, `Joystick.jsx`, `controls.js`, `textures.js`.
 - `src/games/` — one file per mini-game plus `registry.js`.
 - `src/screens/` — bank, shop, profile.
-- `src/ui/` — button, panel, modal, toasts, `GameShell`, `ResultScreen`.
+- `src/ui/` — button, panel, modal, `Sheet` (bottom sheet on phones, dialog from md up),
+  toasts, `GameShell`, `ResultScreen`.
 
 ## Rules of the road
 - Every mini-game is `({ meta, onExit }) => JSX`, wraps itself in `<GameShell>`, ends on
@@ -53,6 +54,17 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   insets lands on the *right*, which silently pushes anything positioned by `left:` off screen —
   give such elements an explicit `left`/`top`. Prefer `start`/`end` utilities over `left`/`right`
   for chrome that should mirror with the language.
+- The chrome over the game has its own small palette — `brand` (orange), `ink` (dark blue-greys)
+  and `paper` (white/greys). The world keeps its district colours for wayfinding; do not mix the
+  two sets.
+- Floating controls share one recipe: same size, same radius, same `bg-ink-800/85` + blur + border
+  + `shadow-chip`. The orange FAB is the only exception, because it is the one call to action.
+- `world3d/playerPos.js` publishes the player position outside React, the way `controls.js` does
+  for input. The minimap reads it in its own animation frame and the header samples it every
+  400ms — neither re-renders while you walk.
+- The venue sheet sets `--dock` to its own measured height; the joystick and the rail lift by that
+  amount so an open sheet never buries the controls. Never hard-code that offset.
+- Chrome that must mirror with the language uses `start-*`/`end-*`, never `left-*`/`right-*`.
 - Tailwind config keys with a hyphen must be quoted — an unquoted `pulse-ring:` is a syntax error
   that surfaces as a confusing PostCSS failure.
 

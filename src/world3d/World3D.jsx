@@ -1,8 +1,9 @@
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { skinFor } from './skins';
 import { attachKeyboard } from './controls';
 import Joystick from './Joystick';
+import MiniMap from './MiniMap';
 import Npcs from './Npcs';
 import Player from './Player';
 import { Ground, PlazaScreen, Props, River, Shops } from './Scenery';
@@ -10,15 +11,41 @@ import { SPAWN, isWalkable } from '../world/map-data';
 import { useGame } from '../engine/GameContext';
 import { useI18n } from '../i18n/I18nContext';
 import { formatCoins } from '../engine/economy';
+import { GAMES_BY_ID } from '../games/registry';
 
 const REACTIONS = ['👍', '🔥', '😂', '🤑', '👋'];
 
-/** The city, in three dimensions. DOM chrome sits on top of the canvas. */
+/** One size, one radius, one surface for every floating control. */
+const RAIL_BUTTON =
+  'ui-layer w-11 h-11 rounded-full grid place-items-center text-lg ' +
+  'bg-ink-800/85 backdrop-blur-md border border-ink-line shadow-chip ' +
+  'active:scale-90 transition-transform';
+
+/** Phones get smaller in-world signage and a bottom sheet instead of a panel. */
+function useIsCompact() {
+  const [compact, setCompact] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const onChange = (e) => setCompact(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return compact;
+}
+
+/** The town, in three dimensions. DOM chrome floats over the canvas. */
 export default function World3D({ onEnter, onOpenDirectory }) {
   const { state, rememberSpawn } = useGame();
   const { t, loc } = useI18n();
+  const compact = useIsCompact();
   const [near, setNear] = useState(null);
   const [reaction, setReaction] = useState(null);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+
+  const rootRef = useRef(null);
+  const cardRef = useRef(null);
 
   const startTile = useMemo(() => {
     const saved = state.spawn;
@@ -31,27 +58,57 @@ export default function World3D({ onEnter, onOpenDirectory }) {
 
   useEffect(() => {
     if (!reaction) return undefined;
-    const t = setTimeout(() => setReaction(null), 1600);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setReaction(null), 1600);
+    return () => clearTimeout(timer);
   }, [reaction]);
+
+  /**
+   * Publish the venue sheet's height as `--dock` so the joystick and the rail
+   * lift by exactly as much as the sheet takes — no guessed offsets.
+   */
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) return undefined;
+    const card = cardRef.current;
+    if (!card) {
+      root.style.setProperty('--dock', '0px');
+      return undefined;
+    }
+    const measure = () => root.style.setProperty('--dock', `${card.offsetHeight}px`);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(measure);
+    ro.observe(card);
+    return () => ro.disconnect();
+  }, [near]);
 
   const handleEnter = useCallback((building) => onEnter(building), [onEnter]);
 
+  const nearGame = near ? GAMES_BY_ID[near.target] : null;
+  const dockOffset = {
+    bottom: near
+      ? 'calc(var(--dock, 0px) + 1rem + env(safe-area-inset-bottom, 0px))'
+      : 'calc(1.25rem + env(safe-area-inset-bottom, 0px))',
+  };
+
   return (
-    <div className="absolute inset-0 bg-[#0a0d14] overflow-hidden touch-none">
+    <div ref={rootRef} className="absolute inset-0 bg-[#0a0d14] overflow-hidden touch-none">
       <Canvas
         shadows
         dpr={[1, 1.75]}
         camera={{ fov: 42, near: 0.1, far: 140, position: [16.5, 11.5, 26] }}
         gl={{ antialias: true }}
       >
-        <color attach="background" args={['#0d1522']} />
-        <fog attach="fog" args={['#0d1522', 34, 58]} />
+        <color attach="background" args={['#101a2b']} />
+        <fog attach="fog" args={['#101a2b', 34, 58]} />
 
-        <hemisphereLight args={['#dceaff', '#2c4738', 1.55]} />
+        {/* warmer key light, cool bounce — the town reads lit rather than grey */}
+        <ambientLight intensity={0.22} color="#ffd9b0" />
+        <hemisphereLight args={['#ffeede', '#31424f', 1.25]} />
         <directionalLight
           position={[18, 22, 14]}
-          intensity={1.35}
+          intensity={1.5}
+          color="#fff2e2"
           castShadow
           shadow-mapSize={[2048, 2048]}
           shadow-camera-left={-24}
@@ -64,9 +121,14 @@ export default function World3D({ onEnter, onOpenDirectory }) {
         <Suspense fallback={null}>
           <Ground />
           <River />
-          <Shops />
+          <Shops compact={compact} />
           <Props />
-          <PlazaScreen title={t('app.name')} tagline={t('app.tagline')} coins={`${formatCoins(state.coins)} ${t('common.coins')}`} />
+          <PlazaScreen
+            title={t('app.name')}
+            tagline={t('app.tagline')}
+            coins={`${formatCoins(state.coins)} ${t('common.coins')}`}
+            compact={compact}
+          />
           <Npcs />
           <Player
             avatarSkin={skinFor(state.avatar)}
@@ -79,50 +141,119 @@ export default function World3D({ onEnter, onOpenDirectory }) {
         </Suspense>
       </Canvas>
 
-      <Joystick />
+      {/* minimap, tucked under the header on the reading side */}
+      <div className="absolute z-20 start-3 top-[calc(3.75rem+env(safe-area-inset-top,0px))] md:start-4 md:top-[5.25rem]">
+        <MiniMap onOpen={onOpenDirectory} className="w-[62px] h-[62px] md:w-20 md:h-20" />
+      </div>
 
-      {near && (
-        <div className="absolute bottom-32 inset-x-0 flex justify-center pointer-events-none px-4">
-          <div className="bg-surface-container/95 border rounded-2xl px-5 py-3 animate-pop-in shadow-xl text-center"
-               style={{ borderColor: `${near.color}88` }}>
-            <div className="text-sm font-bold text-text">
-              {near.emoji} {loc(near.name)}
-            </div>
-            <div className="text-xs text-text-2 mt-0.5">{t('hud.doorHint')}</div>
-          </div>
-        </div>
-      )}
+      <Joystick raised={Boolean(near)} />
 
+      {/* reactions float up from the middle of the screen */}
       {reaction && (
         <div className="absolute inset-x-0 top-1/2 flex justify-center pointer-events-none">
           <span className="text-6xl animate-coin-fly">{reaction}</span>
         </div>
       )}
 
-      <div className="absolute bottom-8 right-5 flex flex-col items-end gap-2 z-20">
-        <div className="flex gap-1.5">
-          {REACTIONS.map((r) => (
-            <button
-              key={r}
-              type="button"
-              onClick={() => setReaction(r)}
-              className="w-10 h-10 rounded-full bg-surface-container/90 border border-border/60 text-lg active:scale-90 transition-transform"
-              aria-label={`תגובה ${r}`}
-            >
-              {r}
-            </button>
-          ))}
-        </div>
+      {/* one rail: reactions, then the primary call to action */}
+      <div
+        className="absolute z-20 end-3 md:end-5 flex flex-col items-end gap-2 transition-[bottom] duration-300 ease-out"
+        style={dockOffset}
+      >
+        {emojiOpen && (
+          <div className="flex flex-col gap-1.5 animate-pop-in">
+            {REACTIONS.map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => {
+                  setReaction(r);
+                  setEmojiOpen(false);
+                }}
+                className={RAIL_BUTTON}
+                aria-label={r}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setEmojiOpen((v) => !v)}
+          className={`${RAIL_BUTTON} ${emojiOpen ? 'ring-2 ring-brand/70' : ''}`}
+          aria-label="Reactions"
+          aria-expanded={emojiOpen}
+        >
+          {emojiOpen ? '✕' : '😀'}
+        </button>
+
         <button
           type="button"
           onClick={onOpenDirectory}
-          className="bg-surface-container/95 border border-border rounded-2xl px-4 py-3 font-bold text-text text-sm shadow-xl"
+          aria-label={t('directory.title')}
+          className="ui-layer h-12 ps-3.5 pe-4 rounded-full flex items-center gap-2
+            bg-brand text-white font-bold text-sm shadow-fab
+            active:scale-95 transition-transform"
         >
-          {t('directory.title')}
+          <span className="text-lg leading-none">🗺️</span>
+          <span className="hidden xs:inline">{t('hud.guide')}</span>
         </button>
       </div>
 
-      <p className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[11px] text-text-3 pointer-events-none hidden md:block">
+      {/* the venue you are standing at — a sheet on phones, a card on desktop */}
+      {near && (
+        <div
+          ref={cardRef}
+          className="ui-layer absolute z-30 inset-x-0 bottom-0 md:inset-x-auto md:bottom-6 md:start-1/2 md:-translate-x-1/2 md:w-[420px]
+            bg-paper text-ink-900 rounded-t-[26px] md:rounded-3xl shadow-sheet
+            px-4 pt-2 pb-[calc(0.875rem+env(safe-area-inset-bottom,0px))] md:pb-4
+            animate-sheet-up md:animate-pop-in"
+        >
+          <div className="md:hidden flex justify-center pb-2">
+            <span className="h-1.5 w-10 rounded-full bg-paper-200" />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span
+              className="w-11 h-11 shrink-0 rounded-2xl grid place-items-center text-2xl"
+              style={{ background: `${near.color}22` }}
+            >
+              {near.emoji}
+            </span>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="w-1.5 h-1.5 rounded-full shrink-0"
+                  style={{ background: near.color }}
+                />
+                <h2 className="text-[15px] font-black truncate">{loc(near.name)}</h2>
+              </div>
+              <p className="text-[12px] text-paper-muted truncate">
+                {nearGame ? loc(nearGame.tagline) : t('hud.doorHint')}
+              </p>
+              {nearGame && (
+                <p className="text-[13px] font-bold text-brand-deep mt-0.5">
+                  🪙 {loc(nearGame.payout)}
+                </p>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleEnter(near)}
+              className="shrink-0 h-11 px-5 rounded-2xl bg-brand text-white font-bold text-sm
+                shadow-fab active:scale-95 transition-transform"
+            >
+              {t('common.enter')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <p className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[11px] text-white/30 pointer-events-none hidden md:block">
         {t('hud.hint')}
       </p>
     </div>

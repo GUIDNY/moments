@@ -5,6 +5,9 @@ const VARIANTS = {
   up: 'bg-primary text-surface hover:bg-primary/85 active:scale-[0.98]',
   down: 'bg-secondary text-surface hover:bg-secondary/85 active:scale-[0.98]',
   gold: 'bg-gold text-surface hover:bg-gold/85 active:scale-[0.98]',
+  // for content on a white sheet
+  brand: 'bg-brand text-white hover:bg-brand-soft active:scale-[0.98] shadow-fab',
+  paper: 'bg-paper-100 text-ink-900 hover:bg-paper-200 active:scale-[0.98]',
 };
 
 const SIZES = {

@@ -50,6 +50,7 @@ export const STRINGS = {
     'hud.hint': 'Arrows / WASD to walk · or drag the joystick',
     'hud.bonusWaiting': '🎁 Bonus at the bank',
     'hud.doorHint': 'Step into the lit doorway',
+    'hud.guide': 'Guide',
 
     'directory.title': '🗺️ Town guide',
     'directory.sub': 'Every place pays coins. Walk there — or go straight in.',
@@ -152,6 +153,7 @@ export const STRINGS = {
     'hud.hint': 'חיצים / WASD להליכה · או גרור את הג׳ויסטיק',
     'hud.bonusWaiting': '🎁 בונוס בבנק',
     'hud.doorHint': 'היכנס דרך הדלת המוארת',
+    'hud.guide': 'מדריך',
 
     'directory.title': '🗺️ מדריך העיר',
     'directory.sub': 'כל מקום משלם מטבעות. אפשר להגיע ברגל — או להיכנס ישר מכאן.',
