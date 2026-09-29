@@ -8,11 +8,13 @@ with a Hebrew toggle; the look is third-person voxel.
 The theme is deliberately neutral — no finance, no niche — because the target is web game portals
 and a broad audience.
 
-## Four pages
+## Five pages
 Vite is an MPA (`build.rollupOptions.input`); the pages share the build and the Tailwind tokens and
 nothing else.
 - `index.html` — the game.
 - `apartment.html` — a hand-built first-person walkthrough of one ski studio, modelled from photos.
+- `landing.html` — the front door of the agent product: it takes the photographs and hands off to
+  the builder.
 - `studio.html` / `tour.html` — the estate-agent product. Both load `src/tour/entry.jsx`, which
   shows the **builder** when the URL has no `?p=`, and the **client tour** when it does. That is
   why the link an agent generates is just this same page again, and works under any host.
@@ -40,6 +42,11 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   renders it, `TourApp`/`StudioApp` are the two faces, `share.js` packs the property into the URL,
   and `engine/` holds the first-person camera, joystick and adaptive field of view shared with the
   apartment page.
+- `src/landing/` — `LandingApp.jsx`, the marketing page that owns the first upload.
+- `src/upload/PhotoUploader.jsx` — the one place a photograph enters the product, shared by the
+  landing page and the builder.
+- `src/lib/` — `supabase.js` (a ~60-line REST client for Storage) and `images.js` (canvas
+  downscaling).
 - `src/ui/` — button, panel, modal, `Sheet` (bottom sheet on phones, dialog from md up),
   toasts, `GameShell`, `ResultScreen`.
 
@@ -97,6 +104,23 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   `side={THREE.DoubleSide}`, or it silently vanishes.
 - Tailwind config keys with a hyphen must be quoted — an unquoted `pulse-ring:` is a syntax error
   that surfaces as a confusing PostCSS failure.
+- `PhotoUploader` keeps its list in a ref and lets React state follow, and `publish()` advances
+  **both**. Picking a file starts its upload in the same tick, and the first progress callback
+  patches that item before React has re-rendered — against a ref refreshed only during render, that
+  patch rebuilds the list from *before* the file existed and silently drops it. Never reintroduce
+  the `ref.current = state` -in-render form here.
+- Photographs go through `lib/images.js` before the network: 1600px, JPEG, q0.82. That is not only
+  for weight — an iPhone hands over `image/heic`, which no browser renders in an `<img>` but every
+  browser decodes into a canvas, so the round trip is also what makes HEIC work at all.
+- Supabase holds nothing but a public bucket, and the browser only ever has the publishable key.
+  The bucket itself enforces the rules (images only, 8 MB, insert-only for `anon`) — the client is
+  not a security boundary and must not be treated as one.
+- `lib/supabase.js` uses XHR, not fetch, because only XHR reports upload progress; an agent on a
+  phone uploading eight photographs needs a bar that moves.
+- The landing page hands photographs to the builder through `tour/draft.js` in localStorage, not
+  the query string: eight public URLs make a link some chat apps truncate.
+- Missing Supabase env vars are a *build-time* fact — `storageReady` is false and the UI says so
+  once, rather than failing one file at a time.
 
 ## Commands
 ```bash

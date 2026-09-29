@@ -50,3 +50,15 @@ export function whatsappLink(phone, text) {
   const intl = digits.startsWith('972') ? digits : digits.replace(/^0/, '972');
   return `https://wa.me/${intl}?text=${encodeURIComponent(text)}`;
 }
+
+/**
+ * Another page of this same app, wherever it happens to be served from.
+ * Vercel's `cleanUrls` drops the extension, the dev server and a plain static
+ * host keep it, and the build uses relative paths — so follow whatever form
+ * the page we are on is already using rather than guessing.
+ */
+export function siblingPage(name, base = window.location.pathname) {
+  const ext = /\.html$/.test(base) ? '.html' : '';
+  const dir = base.replace(/[^/]*$/, '');
+  return `${dir}${name}${ext}`;
+}

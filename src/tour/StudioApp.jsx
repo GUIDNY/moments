@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import PhotoUploader from '../upload/PhotoUploader';
 import TourScene from './TourScene';
+import { readDraft, saveDraft } from './draft';
 import { DEFAULT_SPEC, generatePlan, normaliseSpec } from './generate';
 import { tourUrl, whatsappLink } from './share';
 import { LANGS, pickLang } from './strings';
@@ -62,6 +64,9 @@ export default function StudioApp() {
   const lang = pickLang();
   const T = LANGS[lang];
   const [spec, setSpec] = useState(START);
+  // photographs uploaded on the landing page are waiting here; anything added
+  // below joins them
+  const [photos, setPhotos] = useState(() => readDraft().photos || []);
   const [link, setLink] = useState('');
   const [copied, setCopied] = useState(false);
 
@@ -78,14 +83,14 @@ export default function StudioApp() {
   const shapeKey = `${spec.bedrooms}-${spec.bathrooms}-${spec.size}-${spec.openKitchen}-${spec.balcony}`;
   const plan = useMemo(() => generatePlan(spec), [shapeKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const photos = useMemo(
-    () => String(spec.photoText || '').split('\n').map((s) => s.trim()).filter(Boolean),
-    [spec.photoText]
-  );
+  // keep the draft in step, so a reload or a trip back to the landing page
+  // does not lose an upload the agent already waited for
+  useEffect(() => {
+    saveDraft({ photos });
+  }, [photos]);
 
   const build = () => {
     const clean = normaliseSpec({ ...spec, photos });
-    delete clean.photoText;
     const url = tourUrl(clean);
     setLink(url);
     setCopied(false);
@@ -180,15 +185,13 @@ export default function StudioApp() {
                 onChange={(e) => setAgent({ phone: e.target.value })}
               />
             </Field>
-            <Field label={T.photoUrls}>
-              <textarea
-                rows={3}
-                dir="ltr"
-                className={`${inputClass} h-auto py-2 leading-snug`}
-                value={spec.photoText || ''}
-                onChange={(e) => set({ photoText: e.target.value })}
-              />
-            </Field>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-[11px] font-black uppercase tracking-wide text-paper-muted">
+              {T.photosLabel}
+            </h2>
+            <PhotoUploader value={photos} onChange={setPhotos} T={T} max={8} compact />
           </section>
 
           <button
