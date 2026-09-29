@@ -8,6 +8,11 @@ with a Hebrew toggle; the look is third-person voxel.
 The theme is deliberately neutral — no finance, no niche — because the target is web game portals
 and a broad audience.
 
+## Two pages
+`index.html` is the game. `apartment.html` is a separate first-person walkthrough of a ski studio,
+built from photographs — it shares the build and the Tailwind tokens and nothing else. Vite is an
+MPA (`build.rollupOptions.input`), so the two never import each other.
+
 ## Stack
 Vite 6 + React 18 (JSX, no TypeScript) + Tailwind 3, with three.js through react-three-fiber for
 the town. No backend, no router and no drei — state lives in `localStorage`, views are switched in
@@ -24,6 +29,9 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   `Player.jsx`, `Npcs.jsx`, `Joystick.jsx`, `controls.js`, `textures.js`.
 - `src/games/` — one file per mini-game plus `registry.js`.
 - `src/screens/` — bank, shop, profile.
+- `src/apartment/` — the walkthrough: `plan.js` (metres, walls, solids, viewpoints and the
+  collision test), `materials.js` (every surface painted on a canvas), `Apartment.jsx` (geometry),
+  `Viewer.jsx` (camera), `controls.js`, `Stick.jsx`.
 - `src/ui/` — button, panel, modal, `Sheet` (bottom sheet on phones, dialog from md up),
   toasts, `GameShell`, `ResultScreen`.
 
@@ -65,6 +73,12 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
 - The venue sheet sets `--dock` to its own measured height; the joystick and the rail lift by that
   amount so an open sheet never buries the controls. Never hard-code that offset.
 - Chrome that must mirror with the language uses `start-*`/`end-*`, never `left-*`/`right-*`.
+- In the apartment, `plan.js` is the single source of truth: the geometry you see and the collision
+  you feel are both built from it, so a wall can never be drawn where you can walk. After changing
+  the plan, flood-fill from the front door and check every viewpoint is still reachable — two choke
+  points were narrower than the walker before that check caught them.
+- A `planeGeometry` faces +Z. Anything you look at from the other side needs a rotation or
+  `side={THREE.DoubleSide}`, or it silently vanishes.
 - Tailwind config keys with a hyphen must be quoted — an unquoted `pulse-ring:` is a syntax error
   that surfaces as a confusing PostCSS failure.
 
