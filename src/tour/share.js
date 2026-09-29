@@ -37,7 +37,10 @@ export function specFromLocation() {
  * single published URL with no file name at all.
  */
 export function tourUrl(spec, base = window.location.origin + window.location.pathname) {
-  return `${base}?p=${encodeSpec(spec)}`;
+  // when the builder is served at /studio, hand out the prettier /tour address;
+  // anywhere else (a bare published URL) the same page serves both, so leave it
+  const path = base.replace(/\/studio(\.html)?$/, '/tour');
+  return `${path}?p=${encodeSpec(spec)}`;
 }
 
 /** Israeli numbers come in as 05x…; WhatsApp wants 9725x…. */
