@@ -35,7 +35,7 @@ export default [
   {
     // react-three-fiber turns three.js objects into JSX elements, so the DOM
     // property list the react plugin checks against does not apply here
-    files: ['src/world3d/**/*.jsx', 'src/apartment/**/*.jsx'],
+    files: ['src/world3d/**/*.jsx', 'src/apartment/**/*.jsx', 'src/tour/**/*.jsx'],
     rules: { 'react/no-unknown-property': 'off' },
   },
 ];

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { setMove } from './controls';
 
 /** Drag ring for walking. Self-contained — it shares nothing with the game. */
-export default function Stick() {
+export default function Stick({ bottom = 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }) {
   const baseRef = useRef(null);
   const pointerRef = useRef(null);
   const [knob, setKnob] = useState({ x: 0, y: 0 });
@@ -65,8 +65,8 @@ export default function Stick() {
       aria-label="Walk"
       className="ui-layer absolute z-30 w-[112px] h-[112px] md:w-32 md:h-32 rounded-full
         bg-white/[0.08] border border-white/25 backdrop-blur-sm touch-none select-none
-        start-[calc(1rem+env(safe-area-inset-left,0px))]
-        bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:bottom-8"
+        start-[calc(1rem+env(safe-area-inset-left,0px))]"
+      style={{ bottom }}
       onMouseDown={(e) => {
         e.stopPropagation();
         pointerRef.current = 'mouse';

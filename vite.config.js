@@ -13,6 +13,9 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
         // the apartment walkthrough — a separate page that shares nothing with it
         apartment: resolve(__dirname, 'apartment.html'),
+        // the agent product: a builder that emits a shareable client tour
+        studio: resolve(__dirname, 'studio.html'),
+        tour: resolve(__dirname, 'tour.html'),
       },
     },
   },

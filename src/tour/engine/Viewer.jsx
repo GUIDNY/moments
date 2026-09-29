@@ -1,6 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useRef } from 'react';
-import { canStand } from './plan';
 import { jump, look, move, pose } from './controls';
 
 const SPEED = 1.55; // metres per second, an unhurried walk
@@ -9,7 +8,7 @@ const RADIUS = 0.26;
 const MAX_STEP = 0.02; // seconds per collision sub-step
 
 /** Moves the camera through the flat and keeps it out of the walls. */
-export default function Viewer({ start }) {
+export default function Viewer({ start, canStand }) {
   const { camera } = useThree();
   const ready = useRef(false);
   const bob = useRef(0);

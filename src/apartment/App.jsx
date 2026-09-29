@@ -1,10 +1,11 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import Apartment from './Apartment';
-import Stick from './Stick';
-import Viewer from './Viewer';
-import { ZONES, SPAWN } from './plan';
-import { addLook, attachKeyboard, goTo } from './controls';
+import AdaptiveFov from '../tour/engine/AdaptiveFov';
+import Stick from '../tour/engine/Stick';
+import Viewer from '../tour/engine/Viewer';
+import { ZONES, SPAWN, canStand } from './plan';
+import { addLook, attachKeyboard, goTo } from '../tour/engine/controls';
 
 const LANG = (() => {
   try {
@@ -104,6 +105,7 @@ export default function App() {
           camera={{ fov: 66, near: 0.05, far: 60, position: [SPAWN.x, 1.62, SPAWN.z] }}
           gl={{ antialias: true }}
         >
+          <AdaptiveFov />
           <color attach="background" args={['#9fc4e2']} />
 
           {/* daylight pours in through the balcony window */}
@@ -124,7 +126,7 @@ export default function App() {
 
           <Suspense fallback={null}>
             <Apartment />
-            <Viewer start={SPAWN} />
+            <Viewer start={SPAWN} canStand={canStand} />
           </Suspense>
         </Canvas>
       </div>

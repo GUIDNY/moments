@@ -8,10 +8,14 @@ with a Hebrew toggle; the look is third-person voxel.
 The theme is deliberately neutral — no finance, no niche — because the target is web game portals
 and a broad audience.
 
-## Two pages
-`index.html` is the game. `apartment.html` is a separate first-person walkthrough of a ski studio,
-built from photographs — it shares the build and the Tailwind tokens and nothing else. Vite is an
-MPA (`build.rollupOptions.input`), so the two never import each other.
+## Four pages
+Vite is an MPA (`build.rollupOptions.input`); the pages share the build and the Tailwind tokens and
+nothing else.
+- `index.html` — the game.
+- `apartment.html` — a hand-built first-person walkthrough of one ski studio, modelled from photos.
+- `studio.html` / `tour.html` — the estate-agent product. Both load `src/tour/entry.jsx`, which
+  shows the **builder** when the URL has no `?p=`, and the **client tour** when it does. That is
+  why the link an agent generates is just this same page again, and works under any host.
 
 ## Stack
 Vite 6 + React 18 (JSX, no TypeScript) + Tailwind 3, with three.js through react-three-fiber for
@@ -32,6 +36,10 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
 - `src/apartment/` — the walkthrough: `plan.js` (metres, walls, solids, viewpoints and the
   collision test), `materials.js` (every surface painted on a canvas), `Apartment.jsx` (geometry),
   `Viewer.jsx` (camera), `controls.js`, `Stick.jsx`.
+- `src/tour/` — the agent product. `generate.js` turns a property spec into a plan, `Home.jsx`
+  renders it, `TourApp`/`StudioApp` are the two faces, `share.js` packs the property into the URL,
+  and `engine/` holds the first-person camera, joystick and adaptive field of view shared with the
+  apartment page.
 - `src/ui/` — button, panel, modal, `Sheet` (bottom sheet on phones, dialog from md up),
   toasts, `GameShell`, `ResultScreen`.
 
@@ -73,6 +81,14 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
 - The venue sheet sets `--dock` to its own measured height; the joystick and the rail lift by that
   amount so an open sheet never buries the controls. Never hard-code that offset.
 - Chrome that must mirror with the language uses `start-*`/`end-*`, never `left-*`/`right-*`.
+- `src/tour/generate.js` places furniture and then *verifies* it: each piece is added only if every
+  room is still reachable from the front door by flood fill. That is why the generator cannot emit a
+  flat with a room you can see but never enter — keep that invariant if you add furniture.
+- Where you stand in a room is found, not written down: `standIn` picks the reachable cell nearest a
+  hint. Hard-coded viewpoints end up inside the dining table.
+- A phone held upright has a very narrow horizontal view. `engine/AdaptiveFov` widens the vertical
+  angle as the viewport gets taller, so the same amount of room stays in frame; without it an
+  interior reads as one square metre of wall.
 - In the apartment, `plan.js` is the single source of truth: the geometry you see and the collision
   you feel are both built from it, so a wall can never be drawn where you can walk. After changing
   the plan, flood-fill from the front door and check every viewpoint is still reachable — two choke
