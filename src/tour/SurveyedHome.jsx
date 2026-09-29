@@ -73,16 +73,27 @@ function Piece({ f }) {
           <Box p={[f.x + 0.08, 0.55, cz]} s={[0.16, 0.7, f.d * 0.8]} color="#eceeec" />
         </group>
       );
-    case 'shower':
+    case 'shower': {
+      // clear glass is almost nothing on screen, and a bathroom drawn without
+      // its shower reads as an empty white box; the frame is what you see
+      const frame = '#8d949b';
+      const t = 0.045;
       return (
         <group>
-          <Box p={[cx, 0.04, cz]} s={[f.w, 0.08, f.d]} color={shade(c, 0.1)} />
+          <Box p={[cx, 0.05, cz]} s={[f.w, 0.1, f.d]} color={shade(c, 0.12)} />
           <mesh position={[cx, 1.05, cz]}>
             <boxGeometry args={[f.w, 2.0, f.d]} />
             <meshPhysicalMaterial color="#dff0f5" transparent opacity={0.16} roughness={0} />
           </mesh>
+          {/* the uprights and the rail across the top */}
+          {[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([sx, sz], i) => (
+            <Box key={i} p={[cx + sx * (f.w / 2 - t), 1.05, cz + sz * (f.d / 2 - t)]} s={[t * 2, 2.0, t * 2]} color={frame} />
+          ))}
+          <Box p={[cx, 2.03, cz]} s={[f.w, t * 2, t * 2]} color={frame} />
+          <Box p={[cx, 1.85, cz + f.d / 2 - t]} s={[f.w * 0.3, 0.06, 0.1]} color={frame} />
         </group>
       );
+    }
     case 'plant':
       return (
         <group>
