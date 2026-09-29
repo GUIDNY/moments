@@ -64,7 +64,10 @@ function Toggle({ label, on, onChange }) {
 export default function StudioApp() {
   const lang = pickLang();
   const T = LANGS[lang];
-  const [spec, setSpec] = useState(START);
+  const [spec, setSpec] = useState(() => {
+    const draft = readDraft();
+    return draft.size ? { ...START, size: draft.size } : START;
+  });
   // photographs uploaded on the landing page are waiting here; anything added
   // below joins them
   const [photos, setPhotos] = useState(() => readDraft().photos || []);
@@ -133,7 +136,14 @@ export default function StudioApp() {
       <div className="relative h-[38vh] md:h-full md:flex-1 shrink-0 bg-[#0d1017]">
         <TourScene key={shapeKey} plan={plan} compact />
         <span className="ui-layer absolute top-3 start-3 z-20 h-8 px-3 rounded-full bg-ink-800/85 backdrop-blur-md border border-ink-line text-[11.5px] font-bold text-white grid place-items-center">
-          {observation ? T.surveyed : T.preview} · {plan.area} {T.sqm}
+          {/* the plan's own area is its outer footprint, corridor included, and
+              showing an agent 114 when they typed 92 reads as a mistake; the
+              rooms they can see the sizes of are what they mean by the size */}
+          {observation ? T.surveyed : T.preview} ·{' '}
+          {observation
+            ? Math.round(plan.rooms.reduce((a, r) => a + r.observed.widthM * r.observed.depthM, 0))
+            : plan.area}{' '}
+          {T.sqm}
         </span>
       </div>
 
@@ -163,20 +173,35 @@ export default function StudioApp() {
                 <input className={inputClass} value={spec.floor} onChange={(e) => set({ floor: e.target.value })} />
               </Field>
             </div>
+            {/* what was actually read off the photographs — an agent should be
+                able to see that their own rooms came back, not a template */}
             {observation && (
               <div className="rounded-xl bg-paper-50 border border-paper-200 p-3">
-                <div className="text-[11px] font-black text-paper-muted mb-1.5">{T.roomsFound}</div>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="text-[11px] font-black text-paper-muted mb-2">{T.whatWasRead}</div>
+                <ul className="space-y-1.5">
                   {plan.rooms.map((r) => (
-                    <span
-                      key={r.id}
-                      className="h-7 px-2.5 rounded-lg bg-paper text-ink-900 border border-paper-200 text-[11.5px] font-bold grid place-items-center"
-                    >
-                      {lang === 'he' ? r.observed.nameHe : r.observed.nameEn} ·{' '}
-                      {Math.round(r.observed.widthM * r.observed.depthM)} {T.sqm}
-                    </span>
+                    <li key={r.id} className="flex items-center gap-2 text-[11.5px]">
+                      <span
+                        className="w-4 h-4 rounded shrink-0 border border-black/10"
+                        style={{ background: r.observed.wallColor }}
+                        title={r.observed.wallColor}
+                      />
+                      <span
+                        className="w-4 h-4 rounded shrink-0 border border-black/10"
+                        style={{ background: r.observed.floor.color }}
+                        title={r.observed.floor.color}
+                      />
+                      <span className="font-bold text-ink-900 truncate">
+                        {lang === 'he' ? r.observed.nameHe : r.observed.nameEn}
+                      </span>
+                      <span className="text-paper-muted whitespace-nowrap">
+                        {Math.round(r.observed.widthM * r.observed.depthM)} {T.sqm} ·{' '}
+                        {T.floorKinds[r.observed.floor.kind] || r.observed.floor.kind}
+                        {r.observed.windows?.length ? ` · ${T.hasWindow}` : ''}
+                      </span>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
             )}
             {/* the shape controls describe a flat; once one has been surveyed

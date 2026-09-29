@@ -74,6 +74,28 @@ export const LANGS = {
     landHonest: 'שקיפות: הסיור הוא הדמיה של תכנית הנכס לפי הפרטים שמילאתם — לא סריקה של הדירה עצמה. התמונות האמיתיות מוצגות בתוכו ובגלריה.',
     landFooter: 'סיורי נכסים תלת־ממדיים למתווכים',
 
+    /* tagging each photo, so the browser can build without a model */
+    tagTitle: 'מה רואים בכל תמונה?',
+    tagSub: 'הקישו על סוג החדר מתחת לכל תמונה. שתי תמונות של אותו חדר — סמנו את שתיהן.',
+    areaLabel: 'שטח הדירה במ״ר',
+    areaHint: 'המספר שמופיע במודעה. לפיו מחולקים גדלי החדרים.',
+    buildFree: 'בנו את הבית',
+    needTags: 'סמנו לפחות תמונה אחת כדי להתחיל.',
+    reading2: 'קורא את התמונות…',
+    readNote: 'הצבעים, הרצפות והחלונות נקראים מהתמונות שלכם. הרהיטים הם סטנדרטיים — בצבעים שנקראו מהחדר.',
+    whatWasRead: 'מה נקרא מהתמונות',
+    floorKinds: {
+      wood: 'פרקט',
+      tile: 'קרמיקה',
+      stone: 'אבן',
+      carpet: 'שטיח',
+      vinyl: 'ויניל',
+      concrete: 'בטון',
+    },
+    hasWindow: 'חלון',
+    unknownPhoto: 'לא סומן',
+    taggedCount: 'סומנו {n} מתוך {total} תמונות',
+
     /* reading the photos into a home */
     buildHouse: 'בנו את הבית מהתמונות',
     reading: 'קורא את התמונות…',
@@ -195,6 +217,28 @@ export const LANGS = {
     landWhy3Body: 'An ordinary browser. Nothing to download and nothing to sign up for.',
     landHonest: 'Straight up: the tour is a model of the layout from the details you enter — not a scan of the flat itself. The real photographs are shown inside it and in the gallery.',
     landFooter: '3D property tours for estate agents',
+
+    /* tagging each photo, so the browser can build without a model */
+    tagTitle: 'What is in each photograph?',
+    tagSub: 'Tap the kind of room under each one. Two photographs of the same room — tag both.',
+    areaLabel: 'Size of the flat in m²',
+    areaHint: 'The figure from the listing. Room sizes are shared out from it.',
+    buildFree: 'Build the home',
+    needTags: 'Tag at least one photograph to start.',
+    reading2: 'Reading the photographs…',
+    readNote: 'The colours, floors and windows are read from your photographs. The furniture is standard, in the colours read from that room.',
+    whatWasRead: 'What was read from the photos',
+    floorKinds: {
+      wood: 'Wood',
+      tile: 'Tile',
+      stone: 'Stone',
+      carpet: 'Carpet',
+      vinyl: 'Vinyl',
+      concrete: 'Concrete',
+    },
+    hasWindow: 'Window',
+    unknownPhoto: 'Not tagged',
+    taggedCount: '{n} of {total} photos tagged',
 
     /* reading the photos into a home */
     buildHouse: 'Build the home from the photos',

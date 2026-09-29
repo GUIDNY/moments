@@ -1,0 +1,114 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>photo reader check</title></head>
+<body><div id="out"></div>
+<script type="module">
+import { readPhoto } from '/src/lib/readPhoto.js';
+
+/* Synthetic room photographs whose true colours we know exactly, so the
+   reader's answer can be checked rather than admired. */
+function paint(draw, cast = null) {
+  const c = document.createElement('canvas');
+  c.width = 640; c.height = 480;
+  const g = c.getContext('2d');
+  draw(g, c.width, c.height);
+  if (cast) {
+    const d = g.getImageData(0, 0, c.width, c.height);
+    for (let i = 0; i < d.data.length; i += 4) {
+      d.data[i] = Math.min(255, d.data[i] * cast[0]);
+      d.data[i+1] = Math.min(255, d.data[i+1] * cast[1]);
+      d.data[i+2] = Math.min(255, d.data[i+2] * cast[2]);
+    }
+    g.putImageData(d, 0, 0);
+  }
+  return c.toDataURL('image/jpeg', 0.92);
+}
+
+const room = ({ wall, floorCol, ceiling, planks, tiles, carpet, windowBox, accent }) => (g, W, H) => {
+  g.fillStyle = ceiling; g.fillRect(0, 0, W, H * 0.18);
+  g.fillStyle = wall;    g.fillRect(0, H * 0.18, W, H * 0.54);
+  g.fillStyle = floorCol; g.fillRect(0, H * 0.72, W, H * 0.28);
+
+  if (planks) {                       // wood: lines across, none along
+    g.strokeStyle = 'rgba(0,0,0,0.30)'; g.lineWidth = 2;
+    for (let y = H * 0.74; y < H; y += 11) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+  }
+  if (tiles) {                        // tile: grout both ways
+    g.strokeStyle = 'rgba(0,0,0,0.30)'; g.lineWidth = 2;
+    for (let y = H * 0.74; y < H; y += 22) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+    for (let x = 0; x < W; x += 22) { g.beginPath(); g.moveTo(x, H * 0.72); g.lineTo(x, H); g.stroke(); }
+  }
+  if (carpet) {                       // carpet: noise, no lines
+    const d = g.getImageData(0, H * 0.72, W, H * 0.28);
+    for (let i = 0; i < d.data.length; i += 4) {
+      const n = (Math.random() - 0.5) * 46;
+      d.data[i] += n; d.data[i+1] += n; d.data[i+2] += n;
+    }
+    g.putImageData(d, 0, H * 0.72);
+  }
+  if (windowBox) {                    // a blown-out hole in the wall
+    const [x, y, w, h] = windowBox;
+    g.fillStyle = '#fdfeff';
+    g.fillRect(W * x, H * y, W * w, H * h);
+  }
+  if (accent) {                       // a sofa or a bed against the wall
+    g.fillStyle = accent;
+    g.fillRect(W * 0.08, H * 0.52, W * 0.34, H * 0.26);
+  }
+};
+
+const CASES = [
+  { name: 'bedroom, oak floor',
+    truth: { wall: '#e8e2d6', floor: '#9c7346', kind: 'wood', accent: '#37475c', window: true },
+    src: paint(room({ wall:'#e8e2d6', floorCol:'#9c7346', ceiling:'#f6f4ef', planks:true,
+                      windowBox:[0.58,0.24,0.3,0.34], accent:'#37475c' })) },
+
+  { name: 'same room, heavy tungsten cast',
+    truth: { wall: '#e8e2d6', floor: '#9c7346', kind: 'wood', accent: '#37475c', window: true },
+    src: paint(room({ wall:'#e8e2d6', floorCol:'#9c7346', ceiling:'#f6f4ef', planks:true,
+                      windowBox:[0.58,0.24,0.3,0.34], accent:'#37475c' }), [1.22, 1.0, 0.70]) },
+
+  { name: 'same room, cold blue cast',
+    truth: { wall: '#e8e2d6', floor: '#9c7346', kind: 'wood', accent: '#37475c', window: true },
+    src: paint(room({ wall:'#e8e2d6', floorCol:'#9c7346', ceiling:'#f6f4ef', planks:true,
+                      windowBox:[0.58,0.24,0.3,0.34], accent:'#37475c' }), [0.78, 0.95, 1.25]) },
+
+  { name: 'bathroom, tiled',
+    truth: { wall: '#eef2f3', floor: '#cfd6d6', kind: 'tile', window: false },
+    src: paint(room({ wall:'#eef2f3', floorCol:'#cfd6d6', ceiling:'#ffffff', tiles:true })) },
+
+  { name: 'study, carpet',
+    truth: { wall: '#ded8cc', floor: '#8b7f6e', kind: 'carpet', window: false },
+    src: paint(room({ wall:'#ded8cc', floorCol:'#8b7f6e', ceiling:'#f2efe8', carpet:true })) },
+
+  { name: 'living room, big window',
+    truth: { wall: '#ece6da', floor: '#8f6a42', kind: 'wood', accent: '#7a3b32', window: true },
+    src: paint(room({ wall:'#ece6da', floorCol:'#8f6a42', ceiling:'#faf7f1', planks:true,
+                      windowBox:[0.3,0.2,0.46,0.4], accent:'#7a3b32' })) },
+
+  { name: 'dark room, no window',
+    truth: { wall: '#4a4f57', floor: '#3a3f45', kind: 'concrete', window: false },
+    src: paint(room({ wall:'#4a4f57', floorCol:'#3a3f45', ceiling:'#5a6069' })) },
+];
+
+const dist = (a, b) => {
+  const p = (s) => [1,3,5].map(i => parseInt(s.slice(i, i+2), 16));
+  const [r1,g1,b1] = p(a), [r2,g2,b2] = p(b);
+  return Math.round(Math.sqrt((r1-r2)**2 + (g1-g2)**2 + (b1-b2)**2));
+};
+
+const results = [];
+for (const c of CASES) {
+  const r = await readPhoto(c.src);
+  results.push({
+    name: c.name,
+    wall: r.wallColor, wallErr: dist(r.wallColor, c.truth.wall),
+    floor: r.floorColor, floorErr: dist(r.floorColor, c.truth.floor),
+    accent: r.accentColor, accentErr: c.truth.accent ? dist(r.accentColor, c.truth.accent) : null,
+    kind: r.floorKind, kindWant: c.truth.kind,
+    window: Boolean(r.window), windowWant: c.truth.window,
+    windowW: r.window ? +r.window.widthFrac.toFixed(2) : null,
+  });
+}
+window.__results = results;
+document.getElementById('out').textContent = JSON.stringify(results, null, 1);
+</script></body></html>

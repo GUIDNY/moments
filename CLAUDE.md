@@ -45,8 +45,13 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   `TourApp`/`StudioApp` are the two faces, `share.js` packs the property into the URL, and
   `engine/` holds the first-person camera, joystick and adaptive field of view shared with the
   apartment page.
-- `api/analyse.js` — the one server-side thing in the repo: a Vercel function that
-  sends the uploaded photographs to Claude and gets back a surveyed home.
+- `src/lib/readPhoto.js` — reads a room off a photograph in a canvas: wall, floor and
+  ceiling colour, what the floor is made of, and whether there is a window. No model,
+  no key, no network.
+- `src/tour/surveyFromPhotos.js` — those readings plus the agent's tags become a survey.
+- `api/analyse.js` — an *optional* upgrade, not the product: a Vercel function that sends
+  the photographs to Claude for a richer survey. Nothing in the UI calls it, because the
+  free path is the product.
 - `src/landing/` — `LandingApp.jsx`, the marketing page that owns the first upload.
 - `src/upload/PhotoUploader.jsx` — the one place a photograph enters the product, shared by the
   landing page and the builder.
@@ -111,10 +116,30 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   that surfaces as a confusing PostCSS failure.
 - **The photographs build the home; they are never hung on its walls.** That was the first shape of
   this product and it was the wrong one: the client walked through a flat generated from a slider,
-  with the agent's photographs framed on its walls as if to prove it was not the same place. Now
-  `api/analyse.js` reads the rooms, their sizes, their wall and floor colours, their windows and
-  their furniture out of the photographs, and `fromPhotos.js` builds that. Do not reintroduce
-  `PhotoFrame`.
+  with the agent's photographs framed on its walls as if to prove it was not the same place. Do not
+  reintroduce `PhotoFrame`.
+- **The survey runs in the browser and costs nothing.** The job splits along the line where both
+  halves are easy: a canvas can measure every surface in a photograph but cannot say what it is
+  looking at, and an agent can say what they are looking at instantly but would never type colour
+  codes. So `readPhoto.js` measures, and the agent taps a room kind per photograph and the flat's
+  m². Keep it that way — a key is an upgrade, never a requirement.
+- Colour constancy is ill-posed: a warm photograph of a white room and a neutral photograph of a
+  cream room are the same pixels. `illuminant()` therefore scales its correction with how strong
+  the estimated cast is — below a ratio of 1.12 it does nothing at all, because a faint tint is far
+  more likely to be the room than the light. Correcting unconditionally painted a cool grey
+  bathroom beige.
+- The floor's material comes from *lines*, not from edge counts. Counting edges cannot separate a
+  noisy carpet from a tiled floor; boards put a seam right across the picture and nothing down it,
+  grout runs both ways, and carpet has texture everywhere and no line anywhere. Colour only breaks
+  ties — plenty of carpet is the same beige as oak.
+- A window is found as the largest *connected* blob of bright pixels, not the bounding box of all
+  of them. Almost every interior photograph has a white ceiling in shot; a box around the ceiling
+  and the window together spans the whole frame and the window is thrown away for being too wide.
+- The brightness cut for that blob is relative to the room's own wall and capped below 255. A fixed
+  margin above a pale wall lands past white, and then nothing is ever bright enough.
+- Furniture is the one part of the free survey that is a guess rather than a measurement — a kit
+  per room kind, in the colours read from that room's own photograph. The UI says so; keep it
+  saying so.
 - `fromPhotos.js` preserves each room's observed **area**, not its width and depth separately. Every
   room is stretched to the corridor's width and given the difference back in depth, which keeps the
   rectangles clean and the small rooms small. A room's width and depth are what the model guessed;
@@ -165,9 +190,8 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   once, rather than failing one file at a time.
 
 ## Commands
-`api/analyse.js` needs `ANTHROPIC_API_KEY` in the environment. Without it the endpoint answers
-503 and the landing page says the survey is not connected, which is a working state — the builder
-still makes tours by hand.
+The whole product runs with no keys and no server. `api/analyse.js` is optional and nothing calls
+it; give it `ANTHROPIC_API_KEY` only if you want to wire up the richer survey later.
 
 ```bash
 npm run dev      # http://localhost:5173

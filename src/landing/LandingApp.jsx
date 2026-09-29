@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { saveDraft } from '../tour/draft';
 import { siblingPage } from '../tour/share';
 import { LANGS, pickLang } from '../tour/strings';
-import { surveyPhotos } from '../tour/survey';
+import { surveyFromPhotos } from '../tour/surveyFromPhotos';
 import PhotoUploader from '../upload/PhotoUploader';
+import RoomTagger from './RoomTagger.jsx';
 
 /**
  * The front door of the agent product.
@@ -41,38 +42,12 @@ function Reason({ title, body }) {
   );
 }
 
-/** What the survey is doing, roughly, while it does it. */
-function Progress({ T }) {
-  const steps = [T.readingStep1, T.readingStep2, T.readingStep3, T.readingStep4];
-  const [at, setAt] = useState(0);
-  useEffect(() => {
-    // the endpoint is one call and cannot report progress, so rather than a
-    // spinner that says nothing, walk the stages it is actually working through
-    const id = setInterval(() => setAt((i) => Math.min(steps.length - 1, i + 1)), 9000);
-    return () => clearInterval(id);
-  }, [steps.length]);
-
-  return (
-    <div className="py-2" aria-live="polite">
-      <div className="flex items-center gap-2.5">
-        <span className="w-5 h-5 rounded-full border-2 border-brand border-t-transparent animate-spin" />
-        <span className="text-[14px] font-black text-ink-900">{steps[at]}</span>
-      </div>
-      <div className="mt-3 h-1.5 rounded-full bg-paper-100 overflow-hidden">
-        <div
-          className="h-full bg-brand transition-[width] duration-1000 ease-out"
-          style={{ width: `${((at + 1) / steps.length) * 100}%` }}
-        />
-      </div>
-      <p className="mt-2 text-[11.5px] text-paper-muted leading-snug">{T.readingWait}</p>
-    </div>
-  );
-}
-
 export default function LandingApp() {
   const lang = pickLang();
   const T = LANGS[lang];
   const [photos, setPhotos] = useState([]);
+  const [tags, setTags] = useState({});
+  const [area, setArea] = useState('78');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const uploadRef = useRef(null);
@@ -83,25 +58,29 @@ export default function LandingApp() {
   }, [lang, T.dir]);
 
   /**
-   * The photographs become the home here. Everything the client will walk
-   * through — rooms, sizes, colours, floors, furniture — is read out of them by
-   * the survey, and only then does the builder open.
+   * The photographs become the home here, in this browser, for nothing.
+   *
+   * Every surface the client will see is measured off the agent's own
+   * photographs — wall colour, floor colour, what the floor is made of, how big
+   * the windows are. The agent's taps say which room each photograph is, and
+   * the one number says how big the flat is. Between them that is a home.
    */
   const buildFromPhotos = async () => {
     setBusy(true);
     setError(null);
     try {
-      const observation = await surveyPhotos(photos);
-      saveDraft({ photos, observation });
+      const tagged = photos.map((url) => ({ url, kind: tags[url] }));
+      const observation = await surveyFromPhotos(tagged, area, lang);
+      saveDraft({ photos, observation, size: Number(area) || 78 });
       window.location.href = siblingPage('studio');
     } catch (err) {
-      setError(err.code || 'failed');
+      setError(err.message === 'no-tagged-photos' ? 'untagged' : 'failed');
       setBusy(false);
     }
   };
 
   const goToBuilder = () => {
-    saveDraft({ photos, observation: null });
+    saveDraft({ photos, observation: null, size: Number(area) || 78 });
     window.location.href = siblingPage('studio');
   };
 
@@ -164,33 +143,48 @@ export default function LandingApp() {
 
           <p className="mt-3 text-[11.5px] text-paper-muted leading-snug">{T.photosNote}</p>
 
-          {busy ? (
-            <Progress T={T} />
-          ) : (
+          {photos.length > 0 && (
+            <div className="mt-5 pt-5 border-t border-paper-200">
+              <RoomTagger
+                photos={photos}
+                tags={tags}
+                onTag={(url, kind) => setTags((t) => ({ ...t, [url]: kind }))}
+                area={area}
+                onArea={setArea}
+                T={T}
+                lang={lang}
+              />
+            </div>
+          )}
+
+          {error && (
+            <div className="mt-4 rounded-xl bg-brand/10 p-3">
+              <p className="text-[12.5px] font-bold text-brand-deep leading-snug">
+                {error === 'untagged' ? T.needTags : T.surveyErrors.failed}
+              </p>
+            </div>
+          )}
+
+          <button
+            type="button"
+            disabled={busy}
+            onClick={photos.length ? buildFromPhotos : goToBuilder}
+            className="mt-5 w-full h-12 rounded-2xl bg-brand text-white font-black text-[15px]
+              shadow-fab active:scale-[0.99] transition-transform disabled:opacity-60"
+          >
+            {busy ? T.reading2 : photos.length ? T.buildFree : T.landSkip}
+          </button>
+
+          {photos.length > 0 && (
             <>
-              {error && (
-                <div className="mt-4 rounded-xl bg-brand/10 p-3">
-                  <p className="text-[12.5px] font-bold text-brand-deep leading-snug">
-                    {T.surveyErrors[error] || T.surveyErrors.failed}
-                  </p>
-                </div>
-              )}
               <button
                 type="button"
-                onClick={photos.length ? buildFromPhotos : goToBuilder}
-                className="mt-5 w-full h-12 rounded-2xl bg-brand text-white font-black text-[15px] shadow-fab active:scale-[0.99] transition-transform"
+                onClick={goToBuilder}
+                className="mt-2 w-full h-11 rounded-2xl bg-paper-100 text-ink-900 font-bold text-[13px] active:scale-[0.99] transition-transform"
               >
-                {photos.length ? (error ? T.tryAgain : T.buildHouse) : T.landSkip}
+                {T.manualBuild}
               </button>
-              {photos.length > 0 && (
-                <button
-                  type="button"
-                  onClick={goToBuilder}
-                  className="mt-2 w-full h-11 rounded-2xl bg-paper-100 text-ink-900 font-bold text-[13px] active:scale-[0.99] transition-transform"
-                >
-                  {T.manualBuild}
-                </button>
-              )}
+              <p className="mt-3 text-[11px] text-paper-muted leading-snug">{T.readNote}</p>
             </>
           )}
         </div>
