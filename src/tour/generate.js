@@ -286,7 +286,7 @@ function candidates(room, box) {
 const RADIUS = 0.25;
 const GRID = 0.1;
 
-function makeWalker(W, D, wallBoxes, solids) {
+export function makeWalker(W, D, wallBoxes, solids) {
   const boxes = [...wallBoxes, ...solids.map((s) => ({ minX: s.x, maxX: s.x + s.w, minZ: s.z, maxZ: s.z + s.d }))];
   return function canStand(px, pz, radius = RADIUS) {
     if (px < radius || pz < radius || px > W - radius || pz > D - radius) return false;
@@ -300,7 +300,7 @@ function makeWalker(W, D, wallBoxes, solids) {
 }
 
 /** Every cell you can walk to from the front door, on a 10cm grid. */
-function reachable(canStand, W, D, from) {
+export function reachable(canStand, W, D, from) {
   const cols = Math.ceil(W / GRID);
   const rows = Math.ceil(D / GRID);
   const seen = new Uint8Array(cols * rows);
@@ -330,7 +330,7 @@ function reachable(canStand, W, D, from) {
 }
 
 /** The reachable cell inside a room that sits closest to where we would like to stand. */
-function standIn(seen, W, room, hint) {
+export function standIn(seen, W, room, hint) {
   const cols = seen.cols;
   let best = null;
   let bestDist = Infinity;

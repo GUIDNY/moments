@@ -18,6 +18,7 @@ export default function Viewer({ start, canStand }) {
       pose.x = start.x;
       pose.z = start.z;
       look.yaw = start.yaw;
+      look.pitch = start.pitch ?? 0;
       ready.current = true;
     }
 
@@ -25,7 +26,9 @@ export default function Viewer({ start, canStand }) {
       pose.x = jump.to.x;
       pose.z = jump.to.z;
       look.yaw = jump.to.yaw;
-      look.pitch = 0;
+      // a viewpoint may ask to look slightly down: a phone held upright has a
+      // tall frame, and level eyes spend half of it on ceiling
+      look.pitch = jump.to.pitch ?? 0;
       jump.to = null;
     }
 

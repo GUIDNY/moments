@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import * as THREE from 'three';
 import { buildMaterials } from '../apartment/materials';
 import { CEIL, WALL_T } from './generate';
@@ -248,45 +248,9 @@ const PIECES = {
 
 /* ── the agent's own photographs, hung in the hall ────────────────────────── */
 
-function PhotoFrame({ url, position, rotation, height = 0.62 }) {
-  const [tex, setTex] = useState(null);
-  useEffect(() => {
-    let alive = true;
-    new THREE.TextureLoader().load(
-      url,
-      (t) => {
-        if (!alive) return;
-        t.colorSpace = THREE.SRGBColorSpace;
-        setTex(t);
-      },
-      undefined,
-      () => {}
-    );
-    return () => {
-      alive = false;
-    };
-  }, [url]);
-
-  const ratio = tex ? tex.image.width / tex.image.height : 1.45;
-  const w = height * Math.max(0.6, Math.min(2.2, ratio));
-  return (
-    <group position={position} rotation={rotation}>
-      <Box p={[0, 0, -0.012]} s={[w + 0.05, height + 0.05, 0.02]} color="#1d2026" />
-      <mesh>
-        <planeGeometry args={[w, height]} />
-        {tex ? (
-          <meshBasicMaterial map={tex} toneMapped={false} />
-        ) : (
-          <meshBasicMaterial color="#39404b" />
-        )}
-      </mesh>
-    </group>
-  );
-}
-
 /* ── the whole home ───────────────────────────────────────────────────────── */
 
-export default function Home({ plan, photos = [] }) {
+export default function Home({ plan }) {
   const m = useMemo(() => buildMaterials(), []);
   const living = plan.rooms.find((r) => r.type === 'living');
 
@@ -361,16 +325,6 @@ export default function Home({ plan, photos = [] }) {
         <planeGeometry args={[40, 22]} />
         <meshBasicMaterial map={m.view} toneMapped={false} side={THREE.DoubleSide} />
       </mesh>
-
-      {/* real photographs of the property, hung along the hall */}
-      {photos.slice(0, 5).map((url, i) => (
-        <PhotoFrame
-          key={url + i}
-          url={url}
-          position={[0.06, 1.5, 1.1 + i * 1.45]}
-          rotation={[0, Math.PI / 2, 0]}
-        />
-      ))}
 
       {/* a ceiling light per room */}
       {plan.rooms.map((room) => (

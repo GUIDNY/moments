@@ -38,10 +38,15 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
 - `src/apartment/` — the walkthrough: `plan.js` (metres, walls, solids, viewpoints and the
   collision test), `materials.js` (every surface painted on a canvas), `Apartment.jsx` (geometry),
   `Viewer.jsx` (camera), `controls.js`, `Stick.jsx`.
-- `src/tour/` — the agent product. `generate.js` turns a property spec into a plan, `Home.jsx`
-  renders it, `TourApp`/`StudioApp` are the two faces, `share.js` packs the property into the URL,
-  and `engine/` holds the first-person camera, joystick and adaptive field of view shared with the
+- `src/tour/` — the agent product. Two ways to get a flat: `fromPhotos.js` builds **the** flat from
+  what `api/analyse.js` read in the photographs, and `generate.js` builds *a* flat from the
+  builder's form for the preview before any photograph exists. `SurveyedHome.jsx` draws the first,
+  `Home.jsx` the second, `surfaces.js` paints every surface from the observed colours,
+  `TourApp`/`StudioApp` are the two faces, `share.js` packs the property into the URL, and
+  `engine/` holds the first-person camera, joystick and adaptive field of view shared with the
   apartment page.
+- `api/analyse.js` — the one server-side thing in the repo: a Vercel function that
+  sends the uploaded photographs to Claude and gets back a surveyed home.
 - `src/landing/` — `LandingApp.jsx`, the marketing page that owns the first upload.
 - `src/upload/PhotoUploader.jsx` — the one place a photograph enters the product, shared by the
   landing page and the builder.
@@ -104,6 +109,43 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   `side={THREE.DoubleSide}`, or it silently vanishes.
 - Tailwind config keys with a hyphen must be quoted — an unquoted `pulse-ring:` is a syntax error
   that surfaces as a confusing PostCSS failure.
+- **The photographs build the home; they are never hung on its walls.** That was the first shape of
+  this product and it was the wrong one: the client walked through a flat generated from a slider,
+  with the agent's photographs framed on its walls as if to prove it was not the same place. Now
+  `api/analyse.js` reads the rooms, their sizes, their wall and floor colours, their windows and
+  their furniture out of the photographs, and `fromPhotos.js` builds that. Do not reintroduce
+  `PhotoFrame`.
+- `fromPhotos.js` preserves each room's observed **area**, not its width and depth separately. Every
+  room is stretched to the corridor's width and given the difference back in depth, which keeps the
+  rectangles clean and the small rooms small. A room's width and depth are what the model guessed;
+  its area is what a person feels.
+- How many rooms hang off the corridor decides the shape of the flat: three or more line both sides
+  (stacked end to end, a seven-room flat is twenty-six metres long), one or two take a single side,
+  and none means there is no corridor at all — a studio is just its room. Getting this wrong gives
+  either a corridor nobody has walked down or a wide, shallow slot.
+- "Left" and "far" only mean something relative to the door you came in by, and the two kinds of
+  room are entered from different directions — a side room along x, the end room along z. `place()`
+  takes a `facing` for exactly this. Measuring a piece's length along the wrong axis is how a
+  two-metre sofa ends up through the wall of a room that is wide enough one way and not the other.
+- A room on the left of the corridor is entered the other way round, so `toWorld` rotates its layout
+  by half a turn. A mirror would be wrong — it swaps left and right inside the room.
+- Furniture is kept only if every room is still reachable from the front door afterwards, exactly as
+  in `generate.js`. A rug is excluded from that test: counting it as a solid walls off the middle of
+  the very room it decorates. A piece that lands across a doorway slides along its wall first.
+- Viewpoints are a photographer's angle, not a doorway's: stand to one side at the near end and look
+  down the room's diagonal, with the eyes a few degrees below level. Straight in from the door you
+  face the room's narrow side — a metre of wall and the end of a bed — and on a phone held upright,
+  level eyes spend half the frame on ceiling.
+- Every room's window is cut into the outer wall of the run it occupies. A bedroom without one reads
+  as a cell, and it is the single biggest difference between a room that looks modelled and one that
+  looks real.
+- The survey is asked for a fixed vocabulary of room kinds, floor kinds, furniture kinds and walls,
+  because anything outside it arrives as a word the renderer cannot build. Add to `api/analyse.js`
+  and `SurveyedHome.jsx` together or not at all.
+- A link now carries the whole survey, which is a few kilobytes of JSON — past where chat apps start
+  mangling links. `share.js` gzips it (`packSpec`/`unpackSpec`) and marks the payload `z` or `j`;
+  anything with neither marker is an old link and is read the old way. Decoding is therefore
+  asynchronous, which is why `TourApp` renders a spinner before it has a spec.
 - `PhotoUploader` keeps its list in a ref and lets React state follow, and `publish()` advances
   **both**. Picking a file starts its upload in the same tick, and the first progress callback
   patches that item before React has re-rendered — against a ref refreshed only during render, that
@@ -123,6 +165,10 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   once, rather than failing one file at a time.
 
 ## Commands
+`api/analyse.js` needs `ANTHROPIC_API_KEY` in the environment. Without it the endpoint answers
+503 and the landing page says the survey is not connected, which is a working state — the builder
+still makes tours by hand.
+
 ```bash
 npm run dev      # http://localhost:5173
 npm run build

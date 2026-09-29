@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import PhotoUploader from '../upload/PhotoUploader';
 import TourScene from './TourScene';
 import { readDraft, saveDraft } from './draft';
+import { planFromObservation } from './fromPhotos';
 import { DEFAULT_SPEC, generatePlan, normaliseSpec } from './generate';
-import { tourUrl, whatsappLink } from './share';
+import { tourUrlAsync, whatsappLink } from './share';
 import { LANGS, pickLang } from './strings';
 
 const START = {
@@ -67,6 +68,8 @@ export default function StudioApp() {
   // photographs uploaded on the landing page are waiting here; anything added
   // below joins them
   const [photos, setPhotos] = useState(() => readDraft().photos || []);
+  // what the survey read out of the photographs, if the agent came that way
+  const [observation] = useState(() => readDraft().observation || null);
   const [link, setLink] = useState('');
   const [copied, setCopied] = useState(false);
 
@@ -80,8 +83,27 @@ export default function StudioApp() {
 
   // only rebuild the model when something structural changes, so typing a
   // title does not throw the preview camera back to the front door
-  const shapeKey = `${spec.bedrooms}-${spec.bathrooms}-${spec.size}-${spec.openKitchen}-${spec.balcony}`;
-  const plan = useMemo(() => generatePlan(spec), [shapeKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const shapeKey = observation
+    ? 'surveyed'
+    : `${spec.bedrooms}-${spec.bathrooms}-${spec.size}-${spec.openKitchen}-${spec.balcony}`;
+
+  /**
+   * A surveyed home wins over the form every time: the form describes a flat
+   * that could exist, the survey describes the one in the photographs. The form
+   * below stays for the things a photograph cannot tell you — the price, the
+   * address, who to ring.
+   */
+  const plan = useMemo(() => {
+    if (observation) {
+      try {
+        return planFromObservation(observation);
+      } catch {
+        // a survey we cannot build is worse than no survey
+        return generatePlan(spec);
+      }
+    }
+    return generatePlan(spec);
+  }, [shapeKey, observation]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // keep the draft in step, so a reload or a trip back to the landing page
   // does not lose an upload the agent already waited for
@@ -89,9 +111,10 @@ export default function StudioApp() {
     saveDraft({ photos });
   }, [photos]);
 
-  const build = () => {
+  const build = async () => {
     const clean = normaliseSpec({ ...spec, photos });
-    const url = tourUrl(clean);
+    if (observation) clean.observation = observation;
+    const url = await tourUrlAsync(clean);
     setLink(url);
     setCopied(false);
     navigator.clipboard?.writeText(url).then(
@@ -108,9 +131,9 @@ export default function StudioApp() {
     <div className="fixed inset-0 bg-ink-900 text-ink-900 overflow-hidden flex flex-col md:flex-row">
       {/* live model */}
       <div className="relative h-[38vh] md:h-full md:flex-1 shrink-0 bg-[#0d1017]">
-        <TourScene key={shapeKey} plan={plan} photos={photos} compact />
+        <TourScene key={shapeKey} plan={plan} compact />
         <span className="ui-layer absolute top-3 start-3 z-20 h-8 px-3 rounded-full bg-ink-800/85 backdrop-blur-md border border-ink-line text-[11.5px] font-bold text-white grid place-items-center">
-          {T.preview} · {plan.area} {T.sqm}
+          {observation ? T.surveyed : T.preview} · {plan.area} {T.sqm}
         </span>
       </div>
 
@@ -140,28 +163,50 @@ export default function StudioApp() {
                 <input className={inputClass} value={spec.floor} onChange={(e) => set({ floor: e.target.value })} />
               </Field>
             </div>
-            <Field label={`${T.sizeLabel} — ${spec.size}`}>
-              <input
-                type="range"
-                min="28"
-                max="220"
-                value={spec.size}
-                onChange={(e) => set({ size: Number(e.target.value) })}
-                className="w-full accent-brand h-11"
-              />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label={T.bedroomsLabel}>
-                <Stepper value={spec.bedrooms} onChange={(v) => set({ bedrooms: v })} min={0} max={4} />
-              </Field>
-              <Field label={T.bathroomsLabel}>
-                <Stepper value={spec.bathrooms} onChange={(v) => set({ bathrooms: v })} min={1} max={3} />
-              </Field>
-            </div>
-            <div className="flex gap-2">
-              <Toggle label={T.openKitchen} on={spec.openKitchen} onChange={(v) => set({ openKitchen: v })} />
-              <Toggle label={T.balcony} on={spec.balcony} onChange={(v) => set({ balcony: v })} />
-            </div>
+            {observation && (
+              <div className="rounded-xl bg-paper-50 border border-paper-200 p-3">
+                <div className="text-[11px] font-black text-paper-muted mb-1.5">{T.roomsFound}</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {plan.rooms.map((r) => (
+                    <span
+                      key={r.id}
+                      className="h-7 px-2.5 rounded-lg bg-paper text-ink-900 border border-paper-200 text-[11.5px] font-bold grid place-items-center"
+                    >
+                      {lang === 'he' ? r.observed.nameHe : r.observed.nameEn} ·{' '}
+                      {Math.round(r.observed.widthM * r.observed.depthM)} {T.sqm}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* the shape controls describe a flat; once one has been surveyed
+                they would only argue with it, so they step aside */}
+            {!observation && (
+              <>
+                <Field label={`${T.sizeLabel} — ${spec.size}`}>
+                  <input
+                    type="range"
+                    min="28"
+                    max="220"
+                    value={spec.size}
+                    onChange={(e) => set({ size: Number(e.target.value) })}
+                    className="w-full accent-brand h-11"
+                  />
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label={T.bedroomsLabel}>
+                    <Stepper value={spec.bedrooms} onChange={(v) => set({ bedrooms: v })} min={0} max={4} />
+                  </Field>
+                  <Field label={T.bathroomsLabel}>
+                    <Stepper value={spec.bathrooms} onChange={(v) => set({ bathrooms: v })} min={1} max={3} />
+                  </Field>
+                </div>
+                <div className="flex gap-2">
+                  <Toggle label={T.openKitchen} on={spec.openKitchen} onChange={(v) => set({ openKitchen: v })} />
+                  <Toggle label={T.balcony} on={spec.balcony} onChange={(v) => set({ balcony: v })} />
+                </div>
+              </>
+            )}
           </section>
 
           <section className="space-y-3">

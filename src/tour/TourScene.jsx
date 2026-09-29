@@ -1,13 +1,21 @@
 import { Suspense, useEffect, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import Home from './Home';
+import SurveyedHome from './SurveyedHome';
 import AdaptiveFov from './engine/AdaptiveFov';
 import Stick from './engine/Stick';
 import Viewer from './engine/Viewer';
 import { addLook, attachKeyboard } from './engine/controls';
 
-/** The canvas plus its controls — shared by the tour and the studio preview. */
-export default function TourScene({ plan, photos = [], compact = false, stickBottom }) {
+/**
+ * The canvas plus its controls — shared by the tour and the studio preview.
+ *
+ * Two kinds of plan arrive here. One was surveyed from the agent's photographs
+ * and carries a colour for every surface; the other was generated from the
+ * builder's form and is what the preview shows before any photograph exists.
+ * They are different enough to draw that each has its own renderer.
+ */
+export default function TourScene({ plan, compact = false, stickBottom }) {
   const last = useRef(null);
 
   useEffect(() => attachKeyboard(), []);
@@ -77,7 +85,7 @@ export default function TourScene({ plan, photos = [], compact = false, stickBot
           shadow-camera-far={34}
         />
         <Suspense fallback={null}>
-          <Home plan={plan} photos={photos} />
+          {plan.fromPhotos ? <SurveyedHome plan={plan} /> : <Home plan={plan} />}
           <Viewer start={plan.spawn} canStand={plan.canStand} />
         </Suspense>
       </Canvas>

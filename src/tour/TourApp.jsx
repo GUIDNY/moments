@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import TourScene from './TourScene';
+import { planFromObservation } from './fromPhotos';
 import { generatePlan, DEFAULT_SPEC } from './generate';
 import { goTo } from './engine/controls';
-import { specFromLocation, whatsappLink } from './share';
+import { encodedFromLocation, unpackSpec, whatsappLink } from './share';
 import { LANGS, pickLang } from './strings';
 import Sheet from '../ui/Sheet';
 
@@ -16,6 +17,12 @@ const DEMO = {
   bedrooms: 2,
   bathrooms: 1,
   agent: { name: 'ישראל ישראלי', agency: 'נדל״ן פלוס', phone: '0501234567' },
+};
+
+/** Icons for the room kinds the survey can return. */
+const KIND_ICON = {
+  entry: '🚪', hall: '🚪', living: '🛋️', kitchen: '🍳', dining: '🍽️',
+  bedroom: '🛏️', bathroom: '🚿', wc: '🚽', balcony: '🌿', study: '📚', utility: '🧺',
 };
 
 const ROOM_ICON = {
@@ -32,16 +39,51 @@ const ROOM_ICON = {
 export default function TourApp() {
   const lang = pickLang();
   const T = LANGS[lang];
-  const spec = useMemo(() => specFromLocation() || DEMO, []);
-  const plan = useMemo(() => generatePlan(spec), [spec]);
+  // the property is gzipped into the link, so unpacking it is asynchronous
+  const [spec, setSpec] = useState(null);
   const [active, setActive] = useState('entrance');
   const [details, setDetails] = useState(false);
 
   useEffect(() => {
+    let alive = true;
+    unpackSpec(encodedFromLocation()).then((s) => {
+      if (alive) setSpec(s || DEMO);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  /**
+   * A surveyed home is built from what the photographs showed. A link made
+   * before the survey existed, or without photographs, still describes a flat
+   * by its shape, and that is generated as before.
+   */
+  const plan = useMemo(() => {
+    if (!spec) return null;
+    if (spec.observation) {
+      try {
+        return planFromObservation(spec.observation);
+      } catch {
+        return generatePlan(spec);
+      }
+    }
+    return generatePlan(spec);
+  }, [spec]);
+
+  useEffect(() => {
     document.documentElement.lang = lang;
     document.documentElement.dir = T.dir;
-    if (spec.title) document.title = spec.title;
-  }, [lang, T.dir, spec.title]);
+    if (spec?.title) document.title = spec.title;
+  }, [lang, T.dir, spec?.title]);
+
+  if (!spec || !plan) {
+    return (
+      <div className="fixed inset-0 bg-[#0d1017] grid place-items-center">
+        <span className="w-8 h-8 rounded-full border-2 border-brand border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
   const photos = Array.isArray(spec.photos) ? spec.photos.filter(Boolean) : [];
   const wa = whatsappLink(
@@ -53,11 +95,17 @@ export default function TourApp() {
     { id: 'entrance', icon: '🚪', label: T.entrance, x: plan.spawn.x, z: plan.spawn.z, yaw: Math.PI },
     ...plan.rooms.map((r) => ({
       id: r.id,
-      icon: ROOM_ICON[r.id] ?? '🚪',
-      label: r.id === 'living' ? (spec.openKitchen ? T.living : T.livingClosed) : T[r.id] || r.id,
+      // a surveyed room already knows what it is called, in both languages
+      icon: (r.observed ? KIND_ICON[r.type] : ROOM_ICON[r.id]) ?? '🚪',
+      label: r.observed
+        ? (lang === 'he' ? r.observed.nameHe : r.observed.nameEn)
+        : r.id === 'living'
+          ? (spec.openKitchen ? T.living : T.livingClosed)
+          : T[r.id] || r.id,
       x: r.view.x,
       z: r.view.z,
       yaw: r.view.yaw,
+      pitch: r.view.pitch,
     })),
   ];
 
@@ -65,7 +113,6 @@ export default function TourApp() {
     <div className="fixed inset-0 bg-[#0d1017] overflow-hidden touch-none select-none">
       <TourScene
         plan={plan}
-        photos={photos}
         compact
         stickBottom="calc(9.4rem + env(safe-area-inset-bottom, 0px))"
       />

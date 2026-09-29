@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { saveDraft } from '../tour/draft';
 import { siblingPage } from '../tour/share';
 import { LANGS, pickLang } from '../tour/strings';
+import { surveyPhotos } from '../tour/survey';
 import PhotoUploader from '../upload/PhotoUploader';
 
 /**
@@ -40,10 +41,40 @@ function Reason({ title, body }) {
   );
 }
 
+/** What the survey is doing, roughly, while it does it. */
+function Progress({ T }) {
+  const steps = [T.readingStep1, T.readingStep2, T.readingStep3, T.readingStep4];
+  const [at, setAt] = useState(0);
+  useEffect(() => {
+    // the endpoint is one call and cannot report progress, so rather than a
+    // spinner that says nothing, walk the stages it is actually working through
+    const id = setInterval(() => setAt((i) => Math.min(steps.length - 1, i + 1)), 9000);
+    return () => clearInterval(id);
+  }, [steps.length]);
+
+  return (
+    <div className="py-2" aria-live="polite">
+      <div className="flex items-center gap-2.5">
+        <span className="w-5 h-5 rounded-full border-2 border-brand border-t-transparent animate-spin" />
+        <span className="text-[14px] font-black text-ink-900">{steps[at]}</span>
+      </div>
+      <div className="mt-3 h-1.5 rounded-full bg-paper-100 overflow-hidden">
+        <div
+          className="h-full bg-brand transition-[width] duration-1000 ease-out"
+          style={{ width: `${((at + 1) / steps.length) * 100}%` }}
+        />
+      </div>
+      <p className="mt-2 text-[11.5px] text-paper-muted leading-snug">{T.readingWait}</p>
+    </div>
+  );
+}
+
 export default function LandingApp() {
   const lang = pickLang();
   const T = LANGS[lang];
   const [photos, setPhotos] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
   const uploadRef = useRef(null);
 
   useEffect(() => {
@@ -51,8 +82,26 @@ export default function LandingApp() {
     document.documentElement.dir = T.dir;
   }, [lang, T.dir]);
 
+  /**
+   * The photographs become the home here. Everything the client will walk
+   * through — rooms, sizes, colours, floors, furniture — is read out of them by
+   * the survey, and only then does the builder open.
+   */
+  const buildFromPhotos = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const observation = await surveyPhotos(photos);
+      saveDraft({ photos, observation });
+      window.location.href = siblingPage('studio');
+    } catch (err) {
+      setError(err.code || 'failed');
+      setBusy(false);
+    }
+  };
+
   const goToBuilder = () => {
-    saveDraft({ photos });
+    saveDraft({ photos, observation: null });
     window.location.href = siblingPage('studio');
   };
 
@@ -113,13 +162,37 @@ export default function LandingApp() {
 
           <PhotoUploader value={photos} onChange={setPhotos} T={T} max={8} />
 
-          <button
-            type="button"
-            onClick={goToBuilder}
-            className="mt-5 w-full h-12 rounded-2xl bg-brand text-white font-black text-[15px] shadow-fab active:scale-[0.99] transition-transform"
-          >
-            {photos.length ? T.landContinue : T.landSkip}
-          </button>
+          <p className="mt-3 text-[11.5px] text-paper-muted leading-snug">{T.photosNote}</p>
+
+          {busy ? (
+            <Progress T={T} />
+          ) : (
+            <>
+              {error && (
+                <div className="mt-4 rounded-xl bg-brand/10 p-3">
+                  <p className="text-[12.5px] font-bold text-brand-deep leading-snug">
+                    {T.surveyErrors[error] || T.surveyErrors.failed}
+                  </p>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={photos.length ? buildFromPhotos : goToBuilder}
+                className="mt-5 w-full h-12 rounded-2xl bg-brand text-white font-black text-[15px] shadow-fab active:scale-[0.99] transition-transform"
+              >
+                {photos.length ? (error ? T.tryAgain : T.buildHouse) : T.landSkip}
+              </button>
+              {photos.length > 0 && (
+                <button
+                  type="button"
+                  onClick={goToBuilder}
+                  className="mt-2 w-full h-11 rounded-2xl bg-paper-100 text-ink-900 font-bold text-[13px] active:scale-[0.99] transition-transform"
+                >
+                  {T.manualBuild}
+                </button>
+              )}
+            </>
+          )}
         </div>
       </section>
 
