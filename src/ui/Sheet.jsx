@@ -12,10 +12,15 @@ export default function Sheet({
   open,
   onClose,
   children,
+  title,
   labelledBy,
   tone = 'paper',
   dismissable = true,
 }) {
+  // every caller already passed a title and none of them was ever drawn; the
+  // sheets opened as an unlabelled slab of content, and screen readers got an
+  // `aria-labelledby` pointing at nothing
+  const headingId = labelledBy ?? (title ? 'sheet-title' : undefined);
   useEffect(() => {
     if (!open || !dismissable) return undefined;
     const onKey = (e) => {
@@ -41,7 +46,7 @@ export default function Sheet({
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby={labelledBy}
+        aria-labelledby={headingId}
         onClick={(e) => e.stopPropagation()}
         className={`ui-layer w-full md:max-w-md border shadow-sheet animate-sheet-up md:animate-pop-in
           rounded-t-[26px] md:rounded-3xl
@@ -56,7 +61,24 @@ export default function Sheet({
             }`}
           />
         </div>
-        {children}
+        {/* A sheet given a title owns its own padding; one given only
+            `labelledBy` has a caller that lays out its own header and padding,
+            and wrapping that would pad it twice. */}
+        {title ? (
+          <div className="px-4 pb-4 pt-1 md:p-5">
+            <h2
+              id={headingId}
+              className={`text-[17px] font-black mb-3 ${
+                tone === 'paper' ? 'text-ink-900' : 'text-white'
+              }`}
+            >
+              {title}
+            </h2>
+            {children}
+          </div>
+        ) : (
+          children
+        )}
       </div>
     </div>
   );

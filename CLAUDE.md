@@ -1,23 +1,32 @@
-# Playtown — Claude Code notes
+# A 3D portfolio town — Claude Code notes
 
 ## What this is
-A dark-mode 3D town of mini-games. The player walks a voxel character around the streets, steps
-into a lit doorway, plays a mini-game and earns coins into one shared wallet. English by default
-with a Hebrew toggle; the look is third-person voxel.
+A dark-mode 3D town you walk around in, where **every building is a real project**. Step into a
+lit doorway and you get that project's case study: what was wrong before, what got built, what it
+was built with, and what changed. The zones are the kinds of work — automations, websites, WhatsApp
+bots, apps, business systems — plus a studio block for "about" and "get in touch".
 
-The theme is deliberately neutral — no finance, no niche — because the target is web game portals
-and a broad audience.
+Hebrew first, English as a toggle. The look is third-person voxel.
 
-## Five pages
+This began life as a town of mini-games and the bones were right, so the streets, the joystick, the
+doorway magnetism and the minimap all survived; the coins, the wallet and the games did not. A
+portfolio has nothing to spend.
+
+## The one file to edit
+`src/portfolio/projects.js` holds `ZONES`, `PROJECTS` and `OWNER`, and everything else reads from
+it — the districts, the buildings, the signs over the doors, the directory, the case studies and
+the counter in the header. **Adding a project is an entry in a list; it is never an edit to the
+map.** The projects shipped there are placeholders and say so.
+
+## Four pages
 Vite is an MPA (`build.rollupOptions.input`); the pages share the build and the Tailwind tokens and
 nothing else.
-- `index.html` — the game.
+- `index.html` — the portfolio town.
 - `apartment.html` — a hand-built first-person walkthrough of one ski studio, modelled from photos.
-- `landing.html` — the front door of the agent product: it takes the photographs and hands off to
-  the builder.
-- `studio.html` / `tour.html` — the estate-agent product. Both load `src/tour/entry.jsx`, which
-  shows the **builder** when the URL has no `?p=`, and the **client tour** when it does. That is
-  why the link an agent generates is just this same page again, and works under any host.
+- `landing.html` — the front door of the estate-agent product: it takes the photographs.
+- `studio.html` / `tour.html` — that product. Both load `src/tour/entry.jsx`, which shows the
+  **builder** when the URL has no `?p=`, and the **client tour** when it does. That is why the link
+  an agent generates is just this same page again, and works under any host.
 
 ## Stack
 Vite 6 + React 18 (JSX, no TypeScript) + Tailwind 3, with three.js through react-three-fiber for
@@ -25,53 +34,52 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
 `src/App.jsx`, and every label in the 3D scene is a canvas texture.
 
 ## Layout
-- `src/engine/` — seeded RNG (`rng.js`), coins/XP/levels
-  (`economy.js`), persistence (`storage.js`), the store (`GameContext.jsx`), shared hooks.
-- `src/i18n/` — `strings.js` (flat en/he dictionary) and `I18nContext.jsx` (`t`, `loc`, `setLang`).
-- `src/data/` — `items.js`, `achievements.js`.
-- `src/world/` — `map-data.js` (the tile grid, buildings, doors, props), `CityHud.jsx`,
+- `src/portfolio/` — **the product**: `projects.js` (the content), `VisitContext.jsx` (which
+  projects have been opened and where you were standing), `ProjectScreen.jsx` (a case study),
+  `AboutScreen.jsx`, `ContactScreen.jsx`.
+- `src/world/` — `map-data.js` (generates the whole town from `projects.js`), `CityHud.jsx`,
   `Directory.jsx`.
 - `src/world3d/` — `World3D.jsx` (canvas, lights, DOM chrome), `Scenery.jsx`, `VoxelPerson.jsx`,
-  `Player.jsx`, `Npcs.jsx`, `Joystick.jsx`, `controls.js`, `textures.js`.
-- `src/games/` — one file per mini-game plus `registry.js`.
-- `src/screens/` — bank, shop, profile.
+  `Player.jsx`, `Npcs.jsx`, `Joystick.jsx`, `MiniMap.jsx`, `controls.js`, `textures.js`,
+  `playerPos.js`.
+- `src/i18n/` — `strings.js` (flat he/en dictionary, Hebrew default) and `I18nContext.jsx`
+  (`t`, `loc`, `setLang`).
 - `src/apartment/` — the walkthrough: `plan.js` (metres, walls, solids, viewpoints and the
   collision test), `materials.js` (every surface painted on a canvas), `Apartment.jsx` (geometry),
   `Viewer.jsx` (camera), `controls.js`, `Stick.jsx`.
-- `src/tour/` — the agent product. Two ways to get a flat: `fromPhotos.js` builds **the** flat from
-  what `api/analyse.js` read in the photographs, and `generate.js` builds *a* flat from the
-  builder's form for the preview before any photograph exists. `SurveyedHome.jsx` draws the first,
-  `Home.jsx` the second, `surfaces.js` paints every surface from the observed colours,
-  `TourApp`/`StudioApp` are the two faces, `share.js` packs the property into the URL, and
-  `engine/` holds the first-person camera, joystick and adaptive field of view shared with the
-  apartment page.
-- `src/lib/readPhoto.js` — reads a room off a photograph in a canvas: wall, floor and
-  ceiling colour, what the floor is made of, and whether there is a window. No model,
-  no key, no network.
+- `src/tour/` — the estate-agent product. Two ways to get a flat: `fromPhotos.js` builds **the**
+  flat from a survey, and `generate.js` builds *a* flat from the builder's form for the preview.
+  `SurveyedHome.jsx` draws the first, `Home.jsx` the second, `surfaces.js` paints every surface from
+  the observed colours, `TourApp`/`StudioApp` are the two faces, `share.js` packs the property into
+  the URL, and `engine/` holds the first-person camera, joystick and adaptive field of view.
+- `src/lib/readPhoto.js` — reads a room off a photograph in a canvas. No model, no key, no network.
 - `src/tour/surveyFromPhotos.js` — those readings plus the agent's tags become a survey.
-- `api/analyse.js` — an *optional* upgrade, not the product: a Vercel function that sends
-  the photographs to Claude for a richer survey. Nothing in the UI calls it, because the
-  free path is the product.
-- `src/landing/` — `LandingApp.jsx`, the marketing page that owns the first upload.
-- `src/upload/PhotoUploader.jsx` — the one place a photograph enters the product, shared by the
-  landing page and the builder.
-- `src/lib/` — `supabase.js` (a ~60-line REST client for Storage) and `images.js` (canvas
-  downscaling).
-- `src/ui/` — button, panel, modal, `Sheet` (bottom sheet on phones, dialog from md up),
-  toasts, `GameShell`, `ResultScreen`.
+- `api/analyse.js` — an *optional* upgrade, not the product: a Vercel function that sends the
+  photographs to Claude for a richer survey. Nothing in the UI calls it.
+- `src/landing/` — `LandingApp.jsx` and `RoomTagger.jsx`.
+- `src/upload/PhotoUploader.jsx` — the one place a photograph enters the product.
+- `src/ui/` — button, panel, modal, `Sheet` (bottom sheet on phones, dialog from md up), toasts.
 
 ## Rules of the road
-- Every mini-game is `({ meta, onExit }) => JSX`, wraps itself in `<GameShell>`, ends on
-  `<ResultScreen>`, and pays out through `finishGame(meta.id, { score, base, accuracy, … })` so the
-  economy stays on one scale. Never add coins directly from a game.
-- User-facing text goes through `t('key')` from the dictionary, or `loc(entry)` for `{ en, he }`
-  content that lives beside its data (game names, item names, achievements, level titles). No bare
-  strings in components — a Hebrew literal in a component is a bug.
+- User-facing text goes through `t('key')` from the dictionary, or `loc(entry)` for `{ he, en }`
+  content that lives beside its data — every project name, zone name, case-study paragraph and the
+  owner's own details. No bare strings in components; a Hebrew literal in a component is a bug.
+- **The town is generated, so it is also checked.** `map-data.js` lays out four plots per zone and
+  fills them from `projects.js`; a generated door can face a wall as easily as a street and the
+  failure is silent — the building is there, the sign is over it, and you simply cannot get in.
+  `unreachableDoors()` flood-fills from the spawn point and must return empty. Run it after any
+  change to the plots, the roads or the props.
+- Which row of a plot the door goes in depends on which road the plot can reach, which is what
+  `doorFor`'s `doorRow` is for. The blocks between two roads open upward from the top row and
+  downward from the bottom one.
+- Props are filtered against the building footprints rather than hand-avoided: the buildings move
+  whenever the portfolio changes, and a prop dropped on top of one would block a doorway.
+- `Sheet` renders a `title` when given one, and wraps it with the padding to match — a sheet given
+  only `labelledBy` lays out its own header and must not be wrapped again. For a long time it took
+  a `title` and drew nothing, so every sheet opened unlabelled with `aria-labelledby` pointing at
+  an element that did not exist.
 - `t()` localises object parameters too, so `t('achv.unlocked', { name: a.name })` works with a
   bilingual name straight from the data file.
-- A building's `target` in `map-data.js` must match a game id in `registry.js` or a key in
-  `SCREENS` in `App.jsx`. Adding a game means bumping `TOTAL_GAMES` in `engine/constants.js`
-  (the "played everything" achievement counts against it).
 - Door tiles are walkable holes inside a blocked building footprint. The opening is one tile and
   the player's collider is 0.6 wide, so `Player.jsx` steers the avatar towards the door centre when
   it is walking into one — without that magnetism you scrape the wall and never get in.

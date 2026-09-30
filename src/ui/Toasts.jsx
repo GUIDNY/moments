@@ -1,8 +1,8 @@
-import { useGame } from '../engine/GameContext';
+import { useVisit } from '../portfolio/VisitContext';
 import { useI18n } from '../i18n/I18nContext';
 
 export default function Toasts() {
-  const { toasts, dismissToast } = useGame();
+  const { toasts, dismissToast } = useVisit();
   const { t, loc } = useI18n();
   if (toasts.length === 0) return null;
   return (

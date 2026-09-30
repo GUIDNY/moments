@@ -8,10 +8,9 @@ import Npcs from './Npcs';
 import Player from './Player';
 import { Ground, PlazaScreen, Props, River, Shops } from './Scenery';
 import { SPAWN, isWalkable } from '../world/map-data';
-import { useGame } from '../engine/GameContext';
+import { useVisit } from '../portfolio/VisitContext';
 import { useI18n } from '../i18n/I18nContext';
-import { formatCoins } from '../engine/economy';
-import { GAMES_BY_ID } from '../games/registry';
+import { OWNER, PROJECTS_BY_ID } from '../portfolio/projects';
 
 const REACTIONS = ['👍', '🔥', '😂', '🤑', '👋'];
 
@@ -37,7 +36,7 @@ function useIsCompact() {
 
 /** The town, in three dimensions. DOM chrome floats over the canvas. */
 export default function World3D({ onEnter, onOpenDirectory }) {
-  const { state, rememberSpawn } = useGame();
+  const { spawn: savedSpawn, rememberSpawn } = useVisit();
   const { t, loc } = useI18n();
   const compact = useIsCompact();
   const [near, setNear] = useState(null);
@@ -48,7 +47,7 @@ export default function World3D({ onEnter, onOpenDirectory }) {
   const cardRef = useRef(null);
 
   const startTile = useMemo(() => {
-    const saved = state.spawn;
+    const saved = savedSpawn;
     return saved && isWalkable(saved.x, saved.y) ? saved : SPAWN;
     // only on mount: the player keeps walking from wherever they came out
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -84,7 +83,7 @@ export default function World3D({ onEnter, onOpenDirectory }) {
 
   const handleEnter = useCallback((building) => onEnter(building), [onEnter]);
 
-  const nearGame = near ? GAMES_BY_ID[near.target] : null;
+  const nearProject = near ? PROJECTS_BY_ID[near.target] : null;
   const dockOffset = {
     bottom: near
       ? 'calc(var(--dock, 0px) + 1rem + env(safe-area-inset-bottom, 0px))'
@@ -124,15 +123,15 @@ export default function World3D({ onEnter, onOpenDirectory }) {
           <Shops compact={compact} />
           <Props />
           <PlazaScreen
-            title={t('app.name')}
-            tagline={t('app.tagline')}
-            coins={`${formatCoins(state.coins)} ${t('common.coins')}`}
+            title={loc(OWNER.name)}
+            tagline={loc(OWNER.role)}
+            coins={t('app.tagline')}
             compact={compact}
           />
           <Npcs />
           <Player
-            avatarSkin={skinFor(state.avatar)}
-            label={state.name}
+            avatarSkin={skinFor('default')}
+            label={loc(OWNER.name)}
             startTile={startTile}
             onEnterDoor={handleEnter}
             onNearDoor={setNear}
@@ -231,12 +230,13 @@ export default function World3D({ onEnter, onOpenDirectory }) {
                 />
                 <h2 className="text-[15px] font-black truncate">{loc(near.name)}</h2>
               </div>
+              {/* the result is the hook: it is the reason to step inside */}
               <p className="text-[12px] text-paper-muted truncate">
-                {nearGame ? loc(nearGame.tagline) : t('hud.doorHint')}
+                {nearProject?.client ? loc(nearProject.client) : t('hud.doorHint')}
               </p>
-              {nearGame && (
-                <p className="text-[13px] font-bold text-brand-deep mt-0.5">
-                  🪙 {loc(nearGame.payout)}
+              {nearProject?.result && (
+                <p className="text-[13px] font-bold text-brand-deep mt-0.5 truncate">
+                  {loc(nearProject.result)}
                 </p>
               )}
             </div>
