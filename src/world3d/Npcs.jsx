@@ -1,14 +1,26 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { isWalkable } from '../world/map-data';
+import { H_ROADS, V_ROADS, isWalkable } from '../world/map-data';
 import VoxelPerson from './VoxelPerson';
 import { NPC_SKINS } from './skins';
 
+/* A walk along the kerb of every road, both sides, plus the plaza cross: a
+   city's streets have people on them all the way along, not six walkers
+   pacing six lines. The kerb, not the pavement — the pavement is paint on
+   tiles that are mostly buildings, and a route through a building is a
+   walker through a wall. The strip at the road's edge is always road, and
+   the cars keep to the middle of their lanes to leave it free. */
 const ROUTES = [
+  ...H_ROADS.filter((_, i) => i % 2 === 0).flatMap((r) => [
+    { from: [r.x0 + 1.5, r.y + 0.18], to: [r.x1 - 0.5, r.y + 0.18] },
+    { from: [r.x1 - 1.5, r.y + 1.82], to: [r.x0 + 0.5, r.y + 1.82] },
+  ]),
+  ...V_ROADS.filter((_, i) => i % 2 === 0).flatMap((r) => [
+    { from: [r.x + 0.18, r.y0 + 1.5], to: [r.x + 0.18, r.y1 - 0.5] },
+    { from: [r.x + 1.82, r.y1 - 1.5], to: [r.x + 1.82, r.y0 + 0.5] },
+  ]),
   { from: [16.5, 20.5], to: [16.5, 3.5] },
   { from: [3.5, 11.5], to: [30.5, 11.5] },
-  { from: [4.5, 5.5], to: [4.5, 18.5] },
-  { from: [28.5, 18.5], to: [28.5, 5.5] },
   { from: [9.5, 11.5], to: [9.5, 18.5] },
   { from: [22.5, 4.5], to: [27.5, 4.5] },
 ];

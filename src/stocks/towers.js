@@ -10,8 +10,9 @@
 
 export const towers = { bySymbol: {}, biggest: 0 };
 
-const MIN_H = 2.2;   // even a token holding is a building, not a kerbstone
-const MAX_H = 7.5;   // the camera sits 15 up and 14 back: taller than this
+const MIN_H = 5;     // above the tallest ordinary building on the street: even
+                     // a token holding is the landmark on its block
+const MAX_H = 11;    // the camera sits 15 up and 14 back: taller than this
                      // and the biggest holding is a wall rather than a tower
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));

@@ -199,6 +199,25 @@ export function groundTexture(grid, colors, tilePx = 24) {
         // the asphalt's grain, so a long street is not one flat grey
         ctx.fillStyle = (x + y) % 2 ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.02)';
         ctx.fillRect(px, py, tilePx, tilePx);
+        /* A zebra crossing on the last tile of a street before a junction: a
+           junction is a road tile with road on all four sides, and a crossing
+           tile is one with road on exactly two opposite sides that touches a
+           junction. The stripes run across the direction of travel. */
+        const junction = (jx, jy) => isRoad(jx, jy) && isRoad(jx - 1, jy) && isRoad(jx + 1, jy) && isRoad(jx, jy - 1) && isRoad(jx, jy + 1);
+        const alongX = isRoad(x - 1, y) && isRoad(x + 1, y) && !isRoad(x, y - 1) && !isRoad(x, y + 1);
+        const alongZ = isRoad(x, y - 1) && isRoad(x, y + 1) && !isRoad(x - 1, y) && !isRoad(x + 1, y);
+        const nearJunction =
+          (alongX && (junction(x - 1, y) || junction(x + 1, y))) ||
+          (alongZ && (junction(x, y - 1) || junction(x, y + 1)));
+        if (nearJunction) {
+          ctx.fillStyle = 'rgba(255,255,255,0.85)';
+          const stripes = 5;
+          const step = tilePx / stripes;
+          for (let i = 0; i < stripes; i += 2) {
+            if (alongX) ctx.fillRect(px + i * step + 1, py + 2, step - 2, tilePx - 4);
+            else ctx.fillRect(px + 2, py + i * step + 1, tilePx - 4, step - 2);
+          }
+        }
       } else if (tile === 4) {
         // the plaza is paved in a diagonal pattern
         ctx.strokeStyle = 'rgba(0,0,0,0.07)';

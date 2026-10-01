@@ -90,12 +90,16 @@ export function Surrounds() {
       const out_z = Math.max(0, -z, z - MAP_H);
       if (next() > (1 - Math.hypot(out_x, out_z) / RING) ** 2) continue;
       const r = next();
-      const near = Math.hypot(out_x, out_z) < 18;
-      // the first streets past the kerb are houses: a city does not stop at a
-      // line and become a forest, it thins out
-      const kind = near && r < 0.42
-        ? 'house'
-        : r < 0.6 ? 'tree' : r < 0.8 ? 'pine' : r < 0.91 ? 'field' : 'hedge';
+      const d = Math.hypot(out_x, out_z);
+      /* The city keeps going past the kerb. Blocks like the ones inside for
+         the first streets, then — in the fog, where only a silhouette
+         survives — towers, so the horizon is a skyline and not a tree line.
+         Nothing out there is a place; it is the backdrop that makes the
+         places inside feel like the centre of somewhere. */
+      const kind =
+        d < 16 && r < 0.5 ? 'block'
+        : d >= 16 && d < 40 && r < 0.34 ? 'tower'
+        : r < 0.62 ? 'tree' : r < 0.8 ? 'pine' : r < 0.9 ? 'field' : 'hedge';
       out.push({
         x,
         z,
@@ -124,25 +128,36 @@ export function Surrounds() {
             </mesh>
           );
         }
-        if (it.kind === 'house') {
+        if (it.kind === 'block' || it.kind === 'tower') {
           const wall = ['#f1e9dc', '#e9dfd0', '#e3e6e9', '#f3ecd9', '#ead9cf', '#e6ebe3', '#efe3dd'][it.hue];
           const roof = ['#c96f5c', '#b5705e', '#9c8c7b', '#8f9ca8'][it.hue % 4];
-          const tall = 1.1 + (it.hue % 3) * 0.5;
+          const tower = it.kind === 'tower';
+          const tall = tower ? 6 + (it.hue % 4) * 2.5 + it.size * 3 : 2.4 + (it.hue % 4) * 1.1;
+          const fw = (tower ? 2.6 : 2.6) * it.size;
+          const fd = (tower ? 2.6 : 1.9) * it.size;
           return (
             <group key={key} position={[it.x, 0, it.z]} rotation={[0, Math.round(it.turn / (Math.PI / 2)) * (Math.PI / 2), 0]}>
               <mesh position={[0, tall / 2, 0]} castShadow receiveShadow>
-                <boxGeometry args={[2.2 * it.size, tall, 1.6 * it.size]} />
-                <meshLambertMaterial color={wall} />
+                <boxGeometry args={[fw, tall, fd]} />
+                <meshLambertMaterial color={tower ? ['#dfe6ec', '#e9ecef', '#cfd9e2', '#e4e1da'][it.hue % 4] : wall} />
               </mesh>
-              {it.hue % 2 ? (
+              {/* window bands painted as thin dark strips, one per floor,
+                  which is all a facade needs to be at this distance */}
+              {Array.from({ length: Math.max(1, Math.floor(tall / 1.15)) }, (_, i) => (
+                <mesh key={i} position={[0, 0.75 + i * 1.15, fd / 2 + 0.01]}>
+                  <planeGeometry args={[fw * 0.8, 0.42]} />
+                  <meshLambertMaterial color={tower ? '#8fa9ba' : '#9db3c2'} />
+                </mesh>
+              ))}
+              {!tower && it.hue % 2 ? (
                 <mesh position={[0, tall + 0.35, 0]} rotation={[0, Math.PI / 2, 0]} castShadow>
-                  <cylinderGeometry args={[0, 1.25 * it.size, 0.7, 4, 1]} />
+                  <cylinderGeometry args={[0, 1.45 * it.size, 0.7, 4, 1]} />
                   <meshLambertMaterial color={roof} />
                 </mesh>
               ) : (
                 <mesh position={[0, tall + 0.06, 0]} castShadow>
-                  <boxGeometry args={[2.3 * it.size, 0.12, 1.7 * it.size]} />
-                  <meshLambertMaterial color={roof} />
+                  <boxGeometry args={[fw + 0.1, 0.12, fd + 0.1]} />
+                  <meshLambertMaterial color={tower ? '#c9d2d9' : roof} />
                 </mesh>
               )}
             </group>

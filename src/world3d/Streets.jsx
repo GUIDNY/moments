@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import { H_ROADS, MAP_H, MAP_W, V_ROADS, getFillers, getVersion } from '../world/map-data';
 import { facadeTexture } from './textures';
 
@@ -23,16 +24,25 @@ function pick(list, seed, salt = 0) {
   return list[(seed + salt) % list.length];
 }
 
-/** One ordinary building: an apartment block, a townhouse or a shop with an awning. */
+/**
+ * One ordinary building. A city is mid-rise: apartment blocks of four to
+ * seven floors, an office block in glass now and then, a shop with an awning
+ * at the corner — and the odd townhouse so the skyline is not a bar chart.
+ * The towers that matter are still the tallest things on their street,
+ * because a holding's tower starts above a filler's roof.
+ */
 function Filler({ b }) {
   const { x, y, w, h, seed, facing } = b;
-  const kind = seed % 3; // 0 flats, 1 house, 2 shop
-  const wall = pick(WALLS, seed);
-  const storeys = kind === 0 ? 2 + (seed % 3) : kind === 1 ? 1 : 2;
-  const storey = 1.25;
+  const kind = seed % 5; // 0,1 flats, 2 office, 3 shop, 4 townhouse
+  const wall = kind === 2 ? '#e8edf1' : pick(WALLS, seed);
+  // two to four floors: the shortest holding's tower starts above the tallest
+  // filler's roof, so the places that matter are the tallest on their street
+  const storeys = kind === 4 ? 2 : kind === 3 ? 2 : kind === 2 ? 3 + (seed % 2) : 2 + (seed % 3);
+  const storey = 1.1;
   const tall = storeys * storey;
   const facade = useMemo(() => {
-    const t = facadeTexture(wall, pick(GLASS, seed, 1), kind === 2 ? 'clinic' : 'window').clone();
+    const style = kind === 2 ? 'glass' : kind === 3 ? 'clinic' : 'window';
+    const t = facadeTexture(wall, kind === 2 ? '#86b1c6' : pick(GLASS, seed, 1), style).clone();
     t.repeat.set(1, storeys);
     return t;
   }, [wall, seed, kind, storeys]);
@@ -47,7 +57,7 @@ function Filler({ b }) {
         <meshLambertMaterial color={wall} map={facade} />
       </mesh>
 
-      {kind === 1 ? (
+      {kind === 4 ? (
         // a pitched roof on the townhouse
         <mesh position={[cx, tall + 0.42, cz]} rotation={[0, Math.PI / 2, 0]} castShadow>
           <cylinderGeometry args={[0, (h - 0.3) * 0.72, 0.85, 4, 1]} />
@@ -71,7 +81,7 @@ function Filler({ b }) {
         </>
       )}
 
-      {kind === 2 && (
+      {kind === 3 && (
         // the shop's awning, out over the pavement on the street side
         <mesh
           position={[cx, 1.05, front + facing * 0.3]}
@@ -83,13 +93,14 @@ function Filler({ b }) {
         </mesh>
       )}
 
-      {kind === 0 && storeys > 2 && (
-        // balconies on the taller blocks
-        <mesh position={[cx, storey * 2, front + facing * 0.2]} castShadow>
-          <boxGeometry args={[w - 0.9, 0.08, 0.4]} />
-          <meshLambertMaterial color="#ffffff" />
-        </mesh>
-      )}
+      {kind <= 1 &&
+        // a balcony on every floor above the ground, on the street side
+        Array.from({ length: storeys - 1 }, (_, i) => (
+          <mesh key={i} position={[cx, storey * (i + 1), front + facing * 0.22]} castShadow>
+            <boxGeometry args={[w - 0.9, 0.07, 0.42]} />
+            <meshLambertMaterial color="#ffffff" />
+          </mesh>
+        ))}
     </group>
   );
 }
@@ -155,7 +166,7 @@ function Furniture() {
         lamps.push([x + 2.5, 0, r.y + 2.15]);          // pavement below the bottom lane
       }
       for (let x = r.x0 + 2; x <= r.x1 - 1; x += 5) {
-        if ((x + r.y) % 3 === 0) cars.push({ at: [x + 0.5, 0, r.y + 0.42], along: 'x', c: (x * 7 + r.y) % CARS.length });
+        if ((x + r.y) % 3 === 0) cars.push({ at: [x + 0.5, 0, r.y + 0.62], along: 'x', c: (x * 7 + r.y) % CARS.length });
       }
     });
     V_ROADS.forEach((r, i) => {
@@ -165,7 +176,7 @@ function Furniture() {
         lamps.push([r.x + 2.15, 0, y + 2.5]);
       }
       for (let y = r.y0 + 1; y <= r.y1 - 1; y += 5) {
-        if ((y + r.x) % 3 === 1) cars.push({ at: [r.x + 0.42, 0, y + 0.5], along: 'z', c: (y * 5 + r.x) % CARS.length });
+        if ((y + r.x) % 3 === 1) cars.push({ at: [r.x + 0.62, 0, y + 0.5], along: 'z', c: (y * 5 + r.x) % CARS.length });
       }
     });
     const inside = ([x, , z]) => x > 0.2 && x < MAP_W - 0.2 && z > 0.2 && z < MAP_H - 0.2;
@@ -184,6 +195,72 @@ function Furniture() {
   );
 }
 
+/**
+ * Cars that move. Nothing says "city" like traffic, and nothing is cheaper:
+ * each car owns one road, drives its lane to the end and comes back up the
+ * other, and is advanced from a ref in `useFrame` — a dozen cars cost one
+ * position write per frame each and never touch React. They are scenery:
+ * the walker passes through them, and they pass through the plaza, because
+ * the plaza is where the two main roads cross.
+ */
+const LANES = [
+  // lanes sit a little in from the kerb, which is where the pedestrians walk
+  ...H_ROADS.filter((_, i) => i % 2 === 0).map((r) => ({
+    axis: 'x', from: r.x0 + 0.5, to: r.x1 + 0.5, lane: [r.y + 0.64, r.y + 1.36],
+  })),
+  ...V_ROADS.filter((_, i) => i % 2 === 0).map((r) => ({
+    axis: 'z', from: r.y0 + 0.5, to: r.y1 + 0.5, lane: [r.x + 0.64, r.x + 1.36],
+  })),
+];
+
+function MovingCar({ road, offset, speed, colour }) {
+  const ref = useRef();
+  const t = useRef(offset);          // 0..2: out along lane 0, back along lane 1
+  const len = road.to - road.from;
+  useFrame((_, rawDelta) => {
+    const delta = Math.min(0.05, rawDelta);
+    t.current = (t.current + (speed * delta) / len) % 2;
+    const out = t.current < 1;
+    const along = road.from + (out ? t.current : 2 - t.current) * len;
+    const side = road.lane[out ? 0 : 1];
+    const car = ref.current;
+    if (!car) return;
+    if (road.axis === 'x') {
+      car.position.set(along, 0, side);
+      car.rotation.y = out ? 0 : Math.PI;
+    } else {
+      car.position.set(side, 0, along);
+      car.rotation.y = out ? -Math.PI / 2 : Math.PI / 2;
+    }
+  });
+  return (
+    <group ref={ref}>
+      <Car position={[0, 0, 0]} along="x" colour={colour} />
+    </group>
+  );
+}
+
+function Traffic() {
+  const cars = useMemo(() => {
+    const out = [];
+    LANES.forEach((road, i) => {
+      // two or three per road, spread out so they never bunch
+      const n = 2 + (i % 2);
+      for (let k = 0; k < n; k++) {
+        out.push({ road, offset: ((k * 2) / n + i * 0.23) % 2, speed: 2.2 + ((i + k) % 3) * 0.5, colour: CARS[(i * 3 + k) % CARS.length] });
+      }
+    });
+    return out;
+  }, []);
+  return (
+    <group>
+      {cars.map((c, i) => (
+        <MovingCar key={i} {...c} />
+      ))}
+    </group>
+  );
+}
+
 export default function Streets() {
   // the fillers change with every relayout, the furniture never does
   const version = getVersion();
@@ -194,6 +271,7 @@ export default function Streets() {
         <Filler key={b.id} b={b} />
       ))}
       <Furniture />
+      <Traffic />
     </group>
   );
 }

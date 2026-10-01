@@ -89,12 +89,20 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   minute is one day and midnight is the user's, not the server's.
 - The in-world mover badge (🔥/🧊 over a roof) fires at ±3% on the day, read in `useFrame` from
   `towers`. Lower and it is noise over every roof; it is a flag you cross the city for.
-- **Every plot is built on.** The plots no holding occupies get a filler — an ordinary block, a
-  townhouse, a shop with an awning — with no door and nothing behind it. Three towers in a field
-  are a chart; three towers among a street of ordinary buildings are a city with three places that
-  matter. Fillers are blocked tiles like any building, so `unreachableDoors()` covers them, and the
-  spawn has to find a road tile with nothing in the three tiles behind it, because the camera is
-  twelve tiles further south and a filler there hides the avatar.
+- **Every plot is built on.** The plots no holding occupies get a filler — an apartment block, an
+  office, a shop with an awning, a townhouse — with no door and nothing behind it. Three towers in
+  a field are a chart; three towers among a street of ordinary buildings are a city with three
+  places that matter. Fillers are blocked tiles like any building, so `unreachableDoors()` covers
+  them, and the spawn has to find a road tile with nothing in the three tiles behind it, because
+  the camera is twelve tiles further south and a filler there hides the avatar.
+- **A holding's tower starts above the tallest filler's roof.** Fillers are two to four storeys of
+  1.1; `towers.js` `MIN_H` is 5. Raise one and raise the other, or a token holding disappears into
+  the street it is supposed to be the landmark of.
+- The city is alive from refs, never state: cars drive their lanes and walkers pace the kerbs from
+  `useFrame`. Walkers keep to the kerb strip of the road tiles — the painted pavement is mostly
+  building — and cars keep to the middle of their lanes to leave that strip free. Past the kerb,
+  `Surrounds` puts blocks first and towers further out, so the fog holds a skyline rather than a
+  tree line.
 - **The pavement is paint.** `groundTexture` draws a kerb and a pavement on every tile beside a
   road, lane dashes down the centre of each two-lane street and nothing on a junction — all from
   the grid, none of it in the grid. The walker still sees grass. Do not add a pavement terrain.
