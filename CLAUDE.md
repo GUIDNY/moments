@@ -5,12 +5,14 @@ A game that teaches how the stock market works, played the way a builder's game 
 start with **$100,000 of play money**, buy and sell real stocks at real (delayed) prices, and look
 down on a 3D city in daylight where **every tower is a stock you hold**: tap a vacant lot to build
 (buy), watch the tower go up, tap it to go in. There is no avatar and no joystick — you are the
-mayor, not a pedestrian. Drag to pan, pinch or scroll to zoom. Its height is
-what the position is worth, its roof is green when the stock is up today and red when it is down,
-and the facade is bright when you are in profit and dark and cold when you are not. What the tower
-is *made of* is its sector: stone and columns for the banks, curtain glass and a mast for the chip
-makers, a chimney for energy, a radar for defence, a cross for health. Step into a doorway and you
-get that holding's numbers: shares, price, what you paid, profit and loss.
+mayor, not a pedestrian. Drag to pan, pinch or scroll to zoom. A tower's height is what the
+position is worth, its roof is green when the stock is up today and red when it is down, and the
+facade is bright when you are in profit and dark and cold when you are not. What the tower is
+*made of* is its sector: stone and columns for the banks, curtain glass and a mast for the chip
+makers, a chimney for energy, a radar for defence, a cross for health. Tap a tower and you get
+that holding's numbers — shares, price, what you paid, profit and loss, three months of price with
+your cost drawn across it — and the buttons to buy more or sell. The missions walk a beginner
+through it; the lessons say what each number means; the glossary is for the words.
 
 Prices are live, free and keyless. Hebrew first, English as a toggle.
 
@@ -62,9 +64,9 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   city), `architecture.js` (what each sector's buildings are made of), `logos.js` (a company's
   mark and its colour, loaded once), `models.js` + `Kit.jsx` (the kit models: loader, cache,
   fit-to-plot) with `kenney-bounds.json` (every model's footprint, measured from the files),
-  `nav.js` (tap to walk), `VoxelPerson.jsx`, `Player.jsx`, `Npcs.jsx`, `Joystick.jsx`,
-  `CameraRig.jsx` (drag to pan, pinch to zoom, fly to what asks) with `focus.js`, `MiniMap.jsx`,
-  `textures.js`, `playerPos.js` (now the camera's point of attention).
+  `nav.js` (what counts as a tap), `VoxelPerson.jsx`, `Npcs.jsx`, `CameraRig.jsx` (drag to pan,
+  pinch to zoom, fly to what asks) with `focus.js`, `MiniMap.jsx`, `textures.js`, `playerPos.js`
+  (now the camera's point of attention).
 - `public/models/` — Kenney's CC0 city kits (commercial, suburban, industrial, and the ready-made
   samples from modular), GLB plus each kit's `Textures/colormap.png`. The GLBs reference that
   colormap by relative path, so a kit folder is copied whole or not at all.
@@ -103,9 +105,9 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   a field are a chart; three towers among a street of ordinary buildings are a city with three
   places that matter. Fillers are blocked tiles like any building, so `unreachableDoors()` still
   covers them: nobody walks now, but a door facing a wall is still a layout bug, and the NPCs do.
-- **A holding's tower starts above the tallest filler's roof.** Fillers are two to four storeys of
-  1.1; `towers.js` `MIN_H` is 5. Raise one and raise the other, or a token holding disappears into
-  the street it is supposed to be the landmark of.
+- **A holding's tower starts above the tallest filler's roof.** Kit fillers are fitted under
+  `maxScale` 2.2 (about 2.8 high); `towers.js` `MIN_H` is 4. Raise one and raise the other, or a
+  token holding disappears into the street it is supposed to be the landmark of.
 - The city is alive from refs, never state: cars drive their lanes and walkers pace the kerbs from
   `useFrame`. Walkers keep to the kerb strip of the road tiles — the painted pavement is mostly
   building — and cars keep to the middle of their lanes to leave that strip free. Past the kerb,
@@ -165,15 +167,19 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   hand on the city clears it first.
 - **A tap is measured on the screen, not in the world.** While the city is being dragged the world
   point under the finger hardly moves, so a world-space tap test read every drag as a tap on
-  wherever it ended. `nav.js` compares `clientX/Y` (10 px, 500 ms). Lots and towers stop
+  wherever it ended. `nav.js` compares `clientX/Y` (10 px, 500 ms) and acts on the next tick,
+  after the browser's follow-up `click` has gone by — a tap on a lot used to open the board and,
+  in the same breath, the ticket for the row that was now under the finger. Lots and towers stop
   propagation so the ground does not also get the tap.
 - **The first empty block is the lots.** `map-data` themes it `lot`; `Streets` draws a fenced plot
   with a build-here sign that opens the board. A builder's city always has somewhere to build.
-- **A new tower rises.** `map-data` flags a building `fresh` when its symbol was not in the previous
-  layout (and the previous layout was not empty, so a reload does not rebuild the whole skyline);
-  `Shop` starts a fresh tower at the ground and eases it up slowly under a crane sprite, and
-  `World3D` flies the camera to it. The city is relaid during render (`useMemo` in `CityContext`),
-  not in an effect, so the first frame after a buy already has the tower.
+- **A new tower rises.** `CityContext` tells `rebuild()` which symbols are new since *its* last
+  layout, and `map-data` flags those buildings `fresh` — so a reload builds the skyline standing
+  and only a buy makes one rise. `Shop` starts a fresh tower at the ground and eases it up slowly
+  under a crane sprite; `World3D` flies the camera to it and clears the flag, so coming back from
+  the tower's own screen does not fly there again. The city is relaid during render (`useMemo` in
+  `CityContext`), not in an effect: a buy closes the board and mounts the city in the same commit,
+  and the city's first render already needs the tower.
 - **The map is generated, so it is checked.** `unreachableDoors()` flood-fills from the plaza and
   must return empty, for every portfolio size from 0 to 24.
 - Sectors keep their name and colour; **which block they occupy adapts** so the occupied ones crowd
@@ -189,11 +195,6 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   content that lives beside its data — company names, sector names. No bare strings in components;
   a Hebrew literal in a component is a bug. A name we chose in Hebrew beats the exchange's own
   ALL-CAPS English; a symbol found by search has no catalogue name, so the quote fills in.
-- **The town is generated, so it is also checked.** `map-data.js` lays out four plots per zone and
-  fills them from `projects.js`; a generated door can face a wall as easily as a street and the
-  failure is silent — the building is there, the sign is over it, and you simply cannot get in.
-  `unreachableDoors()` flood-fills from the spawn point and must return empty. Run it after any
-  change to the plots, the roads or the props.
 - Which row of a plot the door goes in depends on which road the plot can reach, which is what
   `doorFor`'s `doorRow` is for. The blocks between two roads open upward from the top row and
   downward from the bottom one.
@@ -209,7 +210,9 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   inside `useFrame`, never through React state: `VoxelPerson` takes a `motion` ref for exactly this
   reason. A prop set once per render would freeze mid-walk.
 - ESLint's `react/no-unknown-property` is off for `src/world3d/**`: those JSX elements are three.js
-  objects, not DOM nodes.
+  objects, not DOM nodes. The config's `rules` key overwrites the `recommended` spread above it,
+  so the recommended rules are spread again inside `rules` — without that `no-undef` is silently
+  off, and two ReferenceErrors once shipped past a clean lint.
 - The page direction is not fixed: `ltr` by default, `rtl` while Hebrew is on, flipped by
   `I18nProvider`. So never assume either one. In RTL an absolutely positioned box with `auto`
   insets lands on the *right*, which silently pushes anything positioned by `left:` off screen —
@@ -246,11 +249,11 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
 - The mood of a holding is a **shade**, not a colour. `towers.js` publishes `shade` and `chill` and
   `Scenery` multiplies the district's own wall colour by them. It used to publish a finished grey,
   which painted all six districts the same the moment they stopped being identical boxes.
-- **The camera trails the avatar from above and behind, so the edge of the map is always in shot.**
-  `Ground` therefore lays an apron far past the fog's far plane and `Surrounds` fills the first
-  forty metres of it with copses, hedges and fields, densest at the kerb. Without them, walking to
-  the southern pavement fills half the screen with nothing. The river runs the length of the apron
-  for the same reason — one that stopped at the boundary gave the whole trick away.
+- **The camera can be dragged to the map's edge, so the edge is always in shot.** `Ground`
+  therefore lays an apron far past the fog's far plane and `Surrounds` fills the first forty
+  metres of it with blocks, towers, copses, hedges and fields, densest at the kerb. Without them,
+  panning to the southern margin fills half the screen with nothing. The river runs the length of
+  the apron for the same reason — one that stopped at the boundary gave the whole trick away.
 - `world3d/playerPos.js` publishes the camera's point of attention outside React. The minimap
   reads it in its own animation frame and the header samples it every 400ms — neither re-renders
   while you drag.
