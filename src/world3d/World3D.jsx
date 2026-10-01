@@ -6,7 +6,7 @@ import Joystick from './Joystick';
 import MiniMap from './MiniMap';
 import Npcs from './Npcs';
 import Player from './Player';
-import { Ground, PlazaScreen, Props, River, Shops } from './Scenery';
+import { Ground, PlazaScreen, Props, River, Shops, Surrounds } from './Scenery';
 import { getSpawn } from '../world/map-data';
 import { useCity } from '../stocks/CityContext';
 import { useI18n } from '../i18n/I18nContext';
@@ -18,7 +18,7 @@ const REACTIONS = ['👍', '🔥', '😂', '🤑', '👋'];
 /** One size, one radius, one surface for every floating control. */
 const RAIL_BUTTON =
   'ui-layer w-11 h-11 rounded-full grid place-items-center text-lg ' +
-  'bg-ink-800/85 backdrop-blur-md border border-ink-line shadow-chip ' +
+  'bg-white/92 backdrop-blur-md border border-paper-200 text-ink-900 shadow-card ' +
   'active:scale-90 transition-transform';
 
 /** Phones get smaller in-world signage and a bottom sheet instead of a panel. */
@@ -89,34 +89,38 @@ export default function World3D({ onEnter, onOpenDirectory }) {
   };
 
   return (
-    <div ref={rootRef} className="absolute inset-0 bg-[#0a0d14] overflow-hidden touch-none">
+    <div ref={rootRef} className="absolute inset-0 bg-[#e9eef2] overflow-hidden touch-none">
       <Canvas
         shadows
         dpr={[1, 1.75]}
         camera={{ fov: 46, near: 0.1, far: 140, position: [16.5, 13, 26] }}
         gl={{ antialias: true }}
       >
-        <color attach="background" args={['#101a2b']} />
-        <fog attach="fog" args={['#101a2b', 34, 58]} />
+        <color attach="background" args={['#e9eef2']} />
+        <fog attach="fog" args={['#e9eef2', 42, 72]} />
 
-        {/* warmer key light, cool bounce — the town reads lit rather than grey */}
-        <ambientLight intensity={0.22} color="#ffd9b0" />
-        <hemisphereLight args={['#ffeede', '#31424f', 1.25]} />
+        {/* A model on a table in daylight: a lot of flat fill so nothing is
+            ever in the dark, and one soft sun for the shadows that give the
+            buildings their edges. */}
+        <ambientLight intensity={0.78} color="#ffffff" />
+        <hemisphereLight args={['#ffffff', '#cfd6d0', 0.95]} />
         <directionalLight
-          position={[18, 22, 14]}
-          intensity={1.5}
-          color="#fff2e2"
+          position={[20, 26, 16]}
+          intensity={1.25}
+          color="#fffaf2"
           castShadow
           shadow-mapSize={[2048, 2048]}
           shadow-camera-left={-24}
           shadow-camera-right={24}
           shadow-camera-top={20}
           shadow-camera-bottom={-20}
-          shadow-camera-far={70}
+          shadow-camera-far={80}
+          shadow-bias={-0.0008}
         />
 
         <Suspense fallback={null}>
           <Ground />
+          <Surrounds />
           <River />
           <Shops compact={compact} />
           <Props />
@@ -124,6 +128,7 @@ export default function World3D({ onEnter, onOpenDirectory }) {
             title={t('app.name')}
             tagline={holdings.length ? formatMoney(summary.value, display, true) : t('app.tagline')}
             coins={holdings.length ? `${formatPct(summary.dayPct)} ${t('city.today')}` : ''}
+            accent={holdings.length ? moveColor(summary.dayPct) : '#6b7a90'}
             compact={compact}
           />
           <Npcs />
@@ -203,7 +208,7 @@ export default function World3D({ onEnter, onOpenDirectory }) {
         <div
           ref={cardRef}
           className="ui-layer absolute z-30 inset-x-0 bottom-0 md:inset-x-auto md:bottom-6 md:start-1/2 md:-translate-x-1/2 md:w-[420px]
-            bg-paper text-ink-900 rounded-t-[26px] md:rounded-3xl shadow-sheet
+            bg-white text-ink-900 rounded-t-[26px] md:rounded-3xl shadow-card-lg
             px-4 pt-2 pb-[calc(0.875rem+env(safe-area-inset-bottom,0px))] md:pb-4
             animate-sheet-up md:animate-pop-in"
         >
@@ -255,7 +260,7 @@ export default function World3D({ onEnter, onOpenDirectory }) {
         </div>
       )}
 
-      <p className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[11px] text-white/30 pointer-events-none hidden md:block">
+      <p className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[11px] text-ink-900/35 pointer-events-none hidden md:block">
         {t('hud.hint')}
       </p>
     </div>

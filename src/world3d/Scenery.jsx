@@ -3,9 +3,10 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { MAP_H, MAP_W, TERRAIN, getBuildings, getGrid, getProps } from '../world/map-data'
 import { towerFor } from '../stocks/towers';
+import { archetypeFor } from './architecture';
 import { useI18n } from '../i18n/I18nContext';
 import { playerPos } from './playerPos';
-import { emojiTexture, groundTexture, signTexture, billboardTexture } from './textures';
+import { emojiTexture, facadeTexture, groundTexture, signTexture, billboardTexture } from './textures';
 
 /* Lerping towards a colour needs a Color to lerp towards, and allocating two
    per building per frame is how a city of twenty towers starts stuttering. */
@@ -14,30 +15,131 @@ const SCRATCH = new THREE.Color();
 /** tile (x, y) -> the centre of that tile in world space */
 export const tileToWorld = (x, y) => [x + 0.5, 0, y + 0.5];
 
+/* Daylight, not night. The whole city reads as a model on a table: pale
+   pavement, soft planting, nothing saturated enough to compete with the one
+   thing that is meant to carry colour — whether a holding is up or down. */
 const GROUND_COLORS = {
-  [TERRAIN.GRASS]: '#37714f',
-  [TERRAIN.ROAD]: '#5a6379',
-  [TERRAIN.WATER]: '#2a6296',
-  [TERRAIN.BLOCKED]: '#37714f',
-  [TERRAIN.PLAZA]: '#6b7490',
+  [TERRAIN.GRASS]: '#bdd3b4',
+  [TERRAIN.ROAD]: '#d6d7d1',
+  [TERRAIN.WATER]: '#aecde0',
+  [TERRAIN.BLOCKED]: '#bdd3b4',
+  [TERRAIN.PLAZA]: '#e4e3dc',
 };
+
+/* The camera sits behind and above the avatar, so standing anywhere near an
+   edge of the map points it straight off the end of the world. The apron is
+   open country carried out well past the fog's far plane, which turns the
+   map's edge into a horizon instead of a cliff. It is a shade deeper than the
+   planting inside the town so the boundary reads as the edge of the built-up
+   area rather than as unfinished ground. */
+const APRON = 180;
+const APRON_COLOR = '#b1c9a7';
 
 export function Ground() {
   const tex = useMemo(() => groundTexture(getGrid(), GROUND_COLORS), []);
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[MAP_W / 2, 0, MAP_H / 2]} receiveShadow>
-      <planeGeometry args={[MAP_W, MAP_H]} />
-      <meshLambertMaterial map={tex} />
-    </mesh>
+    <group>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[MAP_W / 2, -0.02, MAP_H / 2]}>
+        <planeGeometry args={[APRON, APRON]} />
+        <meshLambertMaterial color={APRON_COLOR} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[MAP_W / 2, 0, MAP_H / 2]} receiveShadow>
+        <planeGeometry args={[MAP_W, MAP_H]} />
+        <meshLambertMaterial map={tex} />
+      </mesh>
+    </group>
   );
 }
 
-/** Water sits a hair above the floor so it reads as a surface, not a painted tile. */
+/* Deterministic, because the countryside must not reshuffle itself every time
+   a price moves and React re-renders the scene. */
+function rng(seed) {
+  let s = seed;
+  return () => {
+    s = (s * 1664525 + 1013904223) % 4294967296;
+    return s / 4294967296;
+  };
+}
+
+/**
+ * The country the town sits in.
+ *
+ * Without it the map's edge is a straight line with nothing past it, and since
+ * the camera trails the avatar from above and behind, walking to the southern
+ * kerb fills half the screen with empty ground. Fields and copses out to the
+ * fog line give the city a landscape to be the middle of.
+ */
+export function Surrounds() {
+  const items = useMemo(() => {
+    const next = rng(20260401);
+    const out = [];
+    const RING = 44;
+    /* Density falls off with distance from the kerb. Scattering evenly across
+       the whole apron instead leaves the first few metres past the boundary —
+       the part you are actually looking at — bare, which is the exact gap this
+       is here to close. */
+    for (let i = 0; i < 2400 && out.length < 240; i++) {
+      const x = -RING + next() * (MAP_W + RING * 2);
+      const z = -RING + next() * (MAP_H + RING * 2);
+      // the town itself is already built; this is only what surrounds it
+      if (x > -1.5 && x < MAP_W + 1.5 && z > -1.5 && z < MAP_H + 1.5) continue;
+      const out_x = Math.max(0, -x, x - MAP_W);
+      const out_z = Math.max(0, -z, z - MAP_H);
+      if (next() > 1 - Math.hypot(out_x, out_z) / RING) continue;
+      const r = next();
+      out.push({
+        x,
+        z,
+        kind: r < 0.54 ? 'tree' : r < 0.78 ? 'pine' : r < 0.9 ? 'field' : 'hedge',
+        size: 0.7 + next() * 0.8,
+        turn: next() * Math.PI,
+      });
+    }
+    return out;
+  }, []);
+
+  return (
+    <group>
+      {items.map((it, i) => {
+        const key = `s${i}`;
+        if (it.kind === 'field') {
+          return (
+            <mesh
+              key={key}
+              rotation={[-Math.PI / 2, 0, it.turn]}
+              position={[it.x, 0.01, it.z]}
+            >
+              <planeGeometry args={[6 * it.size, 4.5 * it.size]} />
+              <meshLambertMaterial color={i % 2 ? '#a6c09b' : '#9bb891'} />
+            </mesh>
+          );
+        }
+        if (it.kind === 'hedge') {
+          return (
+            <mesh key={key} position={[it.x, 0.3, it.z]} rotation={[0, it.turn, 0]} castShadow>
+              <boxGeometry args={[3.2 * it.size, 0.6, 0.7]} />
+              <meshLambertMaterial color="#5d8f63" />
+            </mesh>
+          );
+        }
+        return (
+          <group key={key} scale={it.size}>
+            <Tree position={[it.x / it.size, 0, it.z / it.size]} tall={it.kind === 'pine'} />
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
+/** Water sits a hair above the floor so it reads as a surface, not a painted tile.
+ *  It runs the length of the apron, not the map: a river that stops dead at the
+ *  town boundary is the one thing that gives the edge away. */
 export function River() {
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[1, 0.04, MAP_H / 2]}>
-      <planeGeometry args={[2, MAP_H]} />
-      <meshLambertMaterial color="#2a6ea8" transparent opacity={0.85} />
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[1, 0.03, MAP_H / 2]}>
+      <planeGeometry args={[2, APRON]} />
+      <meshLambertMaterial color="#3f84b8" transparent opacity={0.85} />
     </mesh>
   );
 }
@@ -175,10 +277,158 @@ export function Props() {
 }
 
 const BUILDING_HEIGHT = 2.4;
-const WALL_COLOR = '#49516b';
+/** One storey, in world units — what a repeat of the facade texture covers. */
+const STOREY = 1.5;
+
+/**
+ * The roofwork that tells you which district you are in from a street away.
+ *
+ * It is drawn at the top of the shaft, so it is mounted in a group whose height
+ * `Shop` moves every frame — a crown written at a fixed y would sink into a
+ * tower the moment its holding grew.
+ */
+function Crown({ kind, w, h, trim }) {
+  const small = Math.min(w, h);
+  switch (kind) {
+    case 'mast':
+      // a communications mast and a rooftop plant room: a campus, not an office
+      return (
+        <group>
+          <mesh position={[w * 0.22, 0.3, -h * 0.2]} castShadow>
+            <boxGeometry args={[small * 0.5, 0.6, small * 0.45]} />
+            <meshLambertMaterial color={trim} />
+          </mesh>
+          <mesh position={[-w * 0.2, 0.85, h * 0.18]} castShadow>
+            <cylinderGeometry args={[0.05, 0.07, 1.7, 6]} />
+            <meshLambertMaterial color="#8d99a4" />
+          </mesh>
+          <mesh position={[-w * 0.2, 1.55, h * 0.18]} rotation={[0.5, 0, 0]}>
+            <cylinderGeometry args={[0.3, 0.08, 0.14, 12]} />
+            <meshLambertMaterial color="#e6ebee" />
+          </mesh>
+          <mesh position={[-w * 0.2, 1.78, h * 0.18]}>
+            <sphereGeometry args={[0.07, 8, 8]} />
+            <meshBasicMaterial color="#6fd3ff" />
+          </mesh>
+        </group>
+      );
+
+    case 'pediment':
+      // a deep cornice and a pitched stone roof — the bank at the end of the
+      // high street, four storeys up
+      return (
+        <group>
+          <mesh position={[0, 0.12, 0]} castShadow>
+            <boxGeometry args={[w + 0.42, 0.24, h + 0.42]} />
+            <meshLambertMaterial color={trim} />
+          </mesh>
+          <mesh position={[0, 0.72, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
+            <coneGeometry args={[Math.hypot(w, h) * 0.46, 0.95, 4]} />
+            <meshLambertMaterial color="#c9b98f" />
+          </mesh>
+        </group>
+      );
+
+    case 'radar':
+      // a dish on a gantry and a whip aerial: you can see what this site does
+      return (
+        <group>
+          <mesh position={[w * 0.18, 0.22, 0]} castShadow>
+            <boxGeometry args={[small * 0.7, 0.44, small * 0.6]} />
+            <meshLambertMaterial color={trim} />
+          </mesh>
+          <mesh position={[w * 0.18, 0.72, 0]} castShadow>
+            <cylinderGeometry args={[0.07, 0.09, 0.6, 6]} />
+            <meshLambertMaterial color="#79857c" />
+          </mesh>
+          <mesh position={[w * 0.18, 1.08, 0]} rotation={[-0.75, 0, 0]} castShadow>
+            <cylinderGeometry args={[0.46, 0.12, 0.2, 14]} />
+            <meshLambertMaterial color="#eef1ee" />
+          </mesh>
+          <mesh position={[-w * 0.26, 0.75, h * 0.2]} castShadow>
+            <cylinderGeometry args={[0.03, 0.04, 1.5, 5]} />
+            <meshLambertMaterial color="#5f6b63" />
+          </mesh>
+        </group>
+      );
+
+    case 'cross':
+      // the one sign nobody has to be taught
+      return (
+        <group>
+          <mesh position={[0, 0.16, 0]} castShadow>
+            <boxGeometry args={[small * 0.8, 0.32, small * 0.7]} />
+            <meshLambertMaterial color={trim} />
+          </mesh>
+          <mesh position={[0, 0.78, 0]}>
+            <boxGeometry args={[0.24, 0.86, 0.1]} />
+            <meshLambertMaterial color="#3fae8e" />
+          </mesh>
+          <mesh position={[0, 0.78, 0]}>
+            <boxGeometry args={[0.86, 0.24, 0.1]} />
+            <meshLambertMaterial color="#3fae8e" />
+          </mesh>
+        </group>
+      );
+
+    case 'stack':
+      // a flue with its hazard band, and a storage tank beside it
+      return (
+        <group>
+          <mesh position={[w * 0.26, 0.95, -h * 0.22]} castShadow>
+            <cylinderGeometry args={[0.24, 0.3, 1.9, 10]} />
+            <meshLambertMaterial color="#e3d9cb" />
+          </mesh>
+          <mesh position={[w * 0.26, 1.72, -h * 0.22]}>
+            <cylinderGeometry args={[0.26, 0.26, 0.26, 10]} />
+            <meshLambertMaterial color="#cf7a3c" />
+          </mesh>
+          <mesh position={[-w * 0.22, 0.34, h * 0.2]} castShadow>
+            <cylinderGeometry args={[0.42, 0.42, 0.68, 12]} />
+            <meshLambertMaterial color={trim} />
+          </mesh>
+        </group>
+      );
+
+    default:
+      // the plain roof deck: a pale slab and a couple of vents
+      return (
+        <group>
+          <mesh position={[0, 0.04, 0]}>
+            <boxGeometry args={[w - 0.25, 0.08, h - 0.25]} />
+            <meshLambertMaterial color={trim} />
+          </mesh>
+          <mesh position={[w * 0.2, 0.26, h * 0.18]} castShadow>
+            <boxGeometry args={[small * 0.4, 0.36, small * 0.4]} />
+            <meshLambertMaterial color={trim} />
+          </mesh>
+        </group>
+      );
+  }
+}
+
+/** The colonnade across a bank's street front. */
+function Columns({ x, w, faceZ, dir, color }) {
+  const count = Math.max(2, Math.round(w) + 1);
+  const span = w - 0.5;
+  return (
+    <group>
+      {Array.from({ length: count }, (_, i) => (
+        <mesh
+          key={i}
+          position={[x + 0.25 + (span / (count - 1)) * i, 0.62, faceZ + dir * 0.12]}
+          castShadow
+        >
+          <cylinderGeometry args={[0.13, 0.15, 1.24, 8]} />
+          <meshLambertMaterial color={color} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
 
 function Shop({ building, compact }) {
-  const { x, y, w, h, door, emoji, name, color } = building;
+  const { x, y, w, h, door, emoji, name, color, district } = building;
   const { loc, dir: textDir } = useI18n();
   const label = loc(name);
   const sign = useMemo(() => signTexture(emoji, label, color, textDir), [emoji, label, color, textDir]);
@@ -186,6 +436,10 @@ function Shop({ building, compact }) {
   // sign and doorway face the street the door opens onto
   const faceZ = doorOnTopRow ? y : y + h;
   const dir = doorOnTopRow ? -1 : 1;
+
+  /* What this building is made of, which is decided by the sector and never
+     changes; how tall it is and how the day has gone come from the price. */
+  const arch = archetypeFor(district);
 
   // distance fade: full strength close by, gone once the venue is well behind you
   const signMat = useRef(null);
@@ -216,23 +470,42 @@ function Shop({ building, compact }) {
      `useFrame`; nothing here re-renders when a price moves. */
   const shaft = useRef(null);
   const roof = useRef(null);
+  const crown = useRef(null);
   const shaftMat = useRef(null);
   const roofMat = useRef(null);
   const current = useRef(BUILDING_HEIGHT);
 
+  // one texture per sector; the repeat is per-material, not per-texture, so a
+  // shared map still gives each building its own number of storeys
+  const facade = useMemo(() => facadeTexture(arch.wall, arch.glass, arch.style).clone(), [arch]);
+
+  /* The mood tints the district's own material rather than replacing it, so a
+     bank under water is still stone and a chip maker in profit is still glass. */
+  const wall = useMemo(() => new THREE.Color(arch.wall), [arch]);
+  const target = useMemo(() => new THREE.Color(), []);
+
   useFrame(() => {
     const tower = building.symbol ? towerFor(building.symbol) : null;
-    const target = tower?.height ?? BUILDING_HEIGHT;
-    current.current += (target - current.current) * 0.08;
+    const want = tower?.height ?? BUILDING_HEIGHT;
+    current.current += (want - current.current) * 0.08;
     const tall = current.current;
 
     if (shaft.current) {
       shaft.current.scale.y = tall / BUILDING_HEIGHT;
       shaft.current.position.y = tall / 2;
     }
-    if (roof.current) roof.current.position.y = tall + 0.1;
+    if (roof.current) roof.current.position.y = tall + 0.08;
+    if (crown.current) crown.current.position.y = tall + 0.19;
+
+    // the facade repeats once per storey, and a storey is taller in a bank
+    // than in a plant — which is most of why the two read differently
+    facade.repeat.set(1, Math.max(1, Math.round(tall / (arch.storey || STOREY))));
+
     if (tower) {
-      shaftMat.current?.color.lerp(SCRATCH.set(tower.body), 0.08);
+      target.copy(wall).multiplyScalar(tower.shade);
+      // a loss goes cold as well as dark: the blue channel is held back least
+      if (tower.chill) target.lerp(SCRATCH.set('#aab6c4'), 0.22);
+      shaftMat.current?.color.lerp(target, 0.08);
       roofMat.current?.color.lerp(SCRATCH.set(tower.roof), 0.08);
     }
   });
@@ -244,22 +517,36 @@ function Shop({ building, compact }) {
         {blocks.map(([bx, by]) => (
           <mesh key={`${bx}-${by}`} position={[bx + 0.5, 0, by + 0.5]} castShadow receiveShadow>
             <boxGeometry args={[1, BUILDING_HEIGHT, 1]} />
-            <meshLambertMaterial ref={shaftMat} color={WALL_COLOR} />
+            <meshLambertMaterial ref={shaftMat} color={arch.wall} map={facade} />
           </mesh>
         ))}
       </group>
 
-      {/* lintel over the open doorway keeps the facade unbroken */}
-      <mesh position={[door.x + 0.5, 2.1, door.y + 0.5]} castShadow>
-        <boxGeometry args={[1, 0.6, 1]} />
-        <meshLambertMaterial color={WALL_COLOR} />
+      {/* ground floor: a plain band so the doorway sits in a shopfront rather
+          than halfway up a window */}
+      <mesh position={[x + w / 2, 0.42, y + h / 2]} castShadow receiveShadow>
+        <boxGeometry args={[w + 0.04, 0.84, h + 0.04]} />
+        <meshLambertMaterial color={arch.podium} />
       </mesh>
 
-      {/* roof band: the district colour normally, today's move on a tower */}
-      <mesh ref={roof} position={[x + w / 2, BUILDING_HEIGHT + 0.1, y + h / 2]} castShadow>
-        <boxGeometry args={[w, 0.2, h]} />
+      {arch.columns && (
+        <Columns x={x} w={w} faceZ={faceZ} dir={dir} color={arch.podium} />
+      )}
+
+      {/* lintel over the open doorway keeps the facade unbroken */}
+      <mesh position={[door.x + 0.5, 1.1, door.y + 0.5]} castShadow>
+        <boxGeometry args={[1, 0.5, 1]} />
+        <meshLambertMaterial color={arch.podium} />
+      </mesh>
+
+      {/* parapet in today's colour, and the district's own roofwork above it */}
+      <mesh ref={roof} position={[x + w / 2, BUILDING_HEIGHT + 0.08, y + h / 2]} castShadow>
+        <boxGeometry args={[w + 0.1, 0.22, h + 0.1]} />
         <meshLambertMaterial ref={roofMat} color={color} />
       </mesh>
+      <group ref={crown} position={[x + w / 2, BUILDING_HEIGHT + 0.19, y + h / 2]}>
+        <Crown kind={arch.crown} w={w} h={h} trim={arch.trim} />
+      </group>
 
       {/* lit doorway */}
       <mesh
@@ -284,6 +571,7 @@ function Shop({ building, compact }) {
   );
 }
 
+
 export function Shops({ compact = false }) {
   return (
     <group>
@@ -295,17 +583,17 @@ export function Shops({ compact = false }) {
 }
 
 /** The plaza screen, the way the reference world puts a promo wall in the atrium. */
-export function PlazaScreen({ title, tagline, coins, compact = false }) {
+export function PlazaScreen({ title, tagline, coins, accent = '#4caf7d', compact = false }) {
   const { dir } = useI18n();
   const tex = useMemo(
-    () => billboardTexture([title, tagline, coins], dir),
-    [title, tagline, coins, dir]
+    () => billboardTexture([title, tagline, coins], dir, accent),
+    [title, tagline, coins, dir, accent]
   );
   return (
     <group position={[16.99, 0, 9.4]} scale={compact ? 0.86 : 1}>
       <mesh position={[0, 1.2, 0]} castShadow>
-        <boxGeometry args={[0.35, 2.4, 0.35]} />
-        <meshLambertMaterial color="#2b3140" />
+        <boxGeometry args={[0.3, 2.4, 0.3]} />
+        <meshLambertMaterial color="#b9c2cc" />
       </mesh>
       <mesh position={[0, 3.3, 0.14]}>
         <planeGeometry args={[3.6, 2]} />
@@ -313,7 +601,7 @@ export function PlazaScreen({ title, tagline, coins, compact = false }) {
       </mesh>
       <mesh position={[0, 3.3, 0]} castShadow>
         <boxGeometry args={[3.9, 2.3, 0.22]} />
-        <meshLambertMaterial color="#141822" />
+        <meshLambertMaterial color="#e7eaee" />
       </mesh>
     </group>
   );

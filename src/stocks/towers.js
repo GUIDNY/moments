@@ -16,12 +16,18 @@ const MAX_H = 7.5;   // the camera sits 15 up and 14 back: taller than this
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
-/** Green up, red down, grey flat — the one colour convention nobody misreads. */
+/**
+ * Green up, red down, grey flat — the one colour convention nobody misreads.
+ *
+ * Softened for a daylight city: against pale concrete a saturated red reads as
+ * an alarm rather than a price. These still separate instantly, which is the
+ * only thing the colour has to do.
+ */
 export function moveColor(pct) {
-  if (!Number.isFinite(pct)) return '#6b7a90';
-  if (pct > 0.05) return '#2fbf71';
-  if (pct < -0.05) return '#e5484d';
-  return '#8a93a3';
+  if (!Number.isFinite(pct)) return '#9aa5b1';
+  if (pct > 0.05) return '#4caf7d';
+  if (pct < -0.05) return '#e2706f';
+  return '#a9b2bc';
 }
 
 /**
@@ -49,13 +55,16 @@ export function computeTowers(positions, totalValue) {
       gainPct: p.gainPct,
       roof: moveColor(p.dayPct),
       /* A holding under water is a building that has seen better days: the
-         facade goes dim and grey. One in profit is lit and clean. It is the
-         thing you notice from across the street, before any number. */
-      body: p.gainPct == null
-        ? '#39414f'
-        : p.gainPct >= 0
-          ? '#4a5768'
-          : '#2b2f38',
+         render goes a little darker and a little cold. One in profit is clean,
+         warm and bright. It is the thing you notice from across the street,
+         before any number.
+
+         This is a *shade*, not a colour, because each district is built out of
+         its own material now — stone for the banks, glass for the chip makers —
+         and a flat grey would paint all six of them the same. The mood tints
+         whatever the building is made of instead of replacing it. */
+      shade: p.gainPct == null ? 0.96 : p.gainPct >= 0 ? 1 : 0.87,
+      chill: p.gainPct != null && p.gainPct < 0,
       lit: p.gainPct == null ? 0.5 : clamp(0.25 + p.gainPct / 40, 0.08, 1),
     };
   }

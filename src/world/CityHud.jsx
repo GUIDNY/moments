@@ -46,11 +46,11 @@ export default function CityHud({ onOpenPortfolio }) {
           onClick={onOpenPortfolio}
           aria-label={t('directory.title')}
           className="pointer-events-auto flex min-w-0 items-center gap-2 h-11 md:h-12 px-3.5 rounded-2xl
-            bg-ink-800/85 backdrop-blur-md border border-ink-line shadow-chip
+            bg-white/92 backdrop-blur-md border border-paper-200 shadow-card
             active:scale-[0.98] transition-transform"
         >
           <span className="text-start min-w-0">
-            <span className="block text-[14px] md:text-[15px] font-black text-white tabular-nums leading-tight">
+            <span className="block text-[14px] md:text-[15px] font-black text-ink-900 tabular-nums leading-tight">
               {empty ? t('hud.empty') : formatMoney(summary.value, display, true)}
             </span>
             {!empty && (
@@ -63,7 +63,7 @@ export default function CityHud({ onOpenPortfolio }) {
             )}
           </span>
           {loading && (
-            <span className="w-3 h-3 shrink-0 rounded-full border-2 border-white/40 border-t-transparent animate-spin" />
+            <span className="w-3 h-3 shrink-0 rounded-full border-2 border-ink-900/25 border-t-transparent animate-spin" />
           )}
         </button>
 
@@ -73,13 +73,13 @@ export default function CityHud({ onOpenPortfolio }) {
         {!empty && sector && (
           <div
             className="pointer-events-none flex min-w-0 items-center gap-1.5 h-11 md:h-12 px-3 rounded-2xl
-              bg-ink-800/85 backdrop-blur-md border border-ink-line shadow-chip"
+              bg-white/92 backdrop-blur-md border border-paper-200 shadow-card"
           >
             <span
               className="w-1.5 h-1.5 rounded-full shrink-0"
               style={{ background: DISTRICT_COLOR[sectorId] ?? '#ff6b1a' }}
             />
-            <span className="text-[12.5px] font-bold text-white/95 truncate">
+            <span className="text-[12.5px] font-bold text-ink-900/90 truncate">
               {loc(sector.name)}
             </span>
           </div>

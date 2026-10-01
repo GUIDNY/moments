@@ -56,6 +56,10 @@ export default {
         chip: '0 4px 14px rgba(0,0,0,0.35)',
         sheet: '0 -12px 40px rgba(0,0,0,0.45)',
         fab: '0 8px 24px rgba(255,107,26,0.38)',
+        // the city is a model under daylight, so its chrome is white cards
+        // rather than dark glass: a short contact shadow plus a wide soft one
+        card: '0 1px 2px rgba(20,36,58,0.08), 0 8px 22px rgba(20,36,58,0.14)',
+        'card-lg': '0 2px 6px rgba(20,36,58,0.08), 0 -10px 36px rgba(20,36,58,0.18)',
       },
       fontFamily: {
         headline: ['"Be Vietnam Pro"', 'system-ui', 'sans-serif'],

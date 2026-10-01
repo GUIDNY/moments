@@ -2,13 +2,13 @@ import { useEffect, useMemo, useRef } from 'react';
 import { MAP_H, MAP_W, TERRAIN, getBuildings, getGrid } from '../world/map-data';
 import { playerPos } from './playerPos';
 
-/** Muted version of the ground palette — the minimap should read at a glance. */
+/** The ground palette again, a shade stronger — the minimap reads at a glance. */
 const MINI_COLORS = {
-  [TERRAIN.GRASS]: '#1d2b22',
-  [TERRAIN.ROAD]: '#33415a',
-  [TERRAIN.WATER]: '#16304b',
-  [TERRAIN.BLOCKED]: '#1d2b22',
-  [TERRAIN.PLAZA]: '#3c4a64',
+  [TERRAIN.GRASS]: '#b4ccab',
+  [TERRAIN.ROAD]: '#e6e7e2',
+  [TERRAIN.WATER]: '#9ec6de',
+  [TERRAIN.BLOCKED]: '#b4ccab',
+  [TERRAIN.PLAZA]: '#f0efe9',
 };
 
 /** Paint the tile grid once into a data URL we can use as a background. */
@@ -77,8 +77,8 @@ export default function MiniMap({ onOpen, className = '' }) {
       type={onOpen ? 'button' : undefined}
       onClick={onOpen}
       aria-label="Map"
-      className={`ui-layer relative shrink-0 rounded-full overflow-hidden border border-white/20
-        bg-ink-900/70 backdrop-blur-md shadow-chip ${onOpen ? 'active:scale-95 transition-transform' : ''} ${className}`}
+      className={`ui-layer relative shrink-0 rounded-full overflow-hidden border-2 border-white
+        bg-white/92 backdrop-blur-md shadow-card ${onOpen ? 'active:scale-95 transition-transform' : ''} ${className}`}
     >
       {/* the town, letterboxed inside the circle */}
       <span
@@ -98,7 +98,7 @@ export default function MiniMap({ onOpen, className = '' }) {
           className="absolute top-0 left-0 w-2 h-2 rounded-full bg-brand ring-[1.5px] ring-white/90 shadow-[0_0_8px_rgba(255,107,26,0.9)]"
         />
       </span>
-      <span className="absolute inset-0 rounded-full ring-1 ring-inset ring-white/10" />
+      <span className="absolute inset-0 rounded-full ring-1 ring-inset ring-ink-900/10" />
     </Tag>
   );
 }

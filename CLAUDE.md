@@ -1,9 +1,11 @@
 # Stock City — Claude Code notes
 
 ## What this is
-A dark-mode 3D city you walk around in, where **every tower is a stock you hold**. Its height is
+A 3D city you walk around in, in daylight, where **every tower is a stock you hold**. Its height is
 what the position is worth, its roof is green when the stock is up today and red when it is down,
-and the facade gleams when you are in profit and dims when you are not. Step into a doorway and you
+and the facade is bright when you are in profit and dark and cold when you are not. What the tower
+is *made of* is its sector: stone and columns for the banks, curtain glass and a mast for the chip
+makers, a chimney for energy, a radar for defence, a cross for health. Step into a doorway and you
 get that holding's numbers: shares, price, what you paid, profit and loss.
 
 Prices are live, free and keyless. Hebrew first, English as a toggle.
@@ -39,9 +41,9 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   sends no CORS headers, so the browser cannot call it directly. `vite.config.js` mounts the same
   handlers in dev and preview so a change can be tried without shipping it.
 - `src/world/` — `map-data.js` (lays the city out from the holdings), `CityHud.jsx`, `Directory.jsx`.
-- `src/world3d/` — `World3D.jsx` (canvas, lights, DOM chrome), `Scenery.jsx`, `VoxelPerson.jsx`,
-  `Player.jsx`, `Npcs.jsx`, `Joystick.jsx`, `MiniMap.jsx`, `controls.js`, `textures.js`,
-  `playerPos.js`.
+- `src/world3d/` — `World3D.jsx` (canvas, lights, DOM chrome), `Scenery.jsx`, `architecture.js`
+  (what each sector's buildings are made of), `VoxelPerson.jsx`, `Player.jsx`, `Npcs.jsx`,
+  `Joystick.jsx`, `MiniMap.jsx`, `controls.js`, `textures.js`, `playerPos.js`.
 - `src/i18n/` — `strings.js` (flat he/en dictionary, Hebrew default) and `I18nContext.jsx`.
 - `src/apartment/`, `src/tour/`, `src/landing/`, `src/upload/`, `src/lib/` — the estate-agent
   product and its photo reader, unchanged and independent of the city.
@@ -118,8 +120,23 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
 - The chrome over the game has its own small palette — `brand` (orange), `ink` (dark blue-greys)
   and `paper` (white/greys). The world keeps its district colours for wayfinding; do not mix the
   two sets.
-- Floating controls share one recipe: same size, same radius, same `bg-ink-800/85` + blur + border
-  + `shadow-chip`. The orange FAB is the only exception, because it is the one call to action.
+- **The city is lit as a model on a table, so its chrome is white cards.** Floating controls over
+  the city share one recipe: same size, same radius, `bg-white/92` + blur + `border-paper-200` +
+  `shadow-card`, with `text-ink-900`. The orange FAB is the only exception, because it is the one
+  call to action. The dark `bg-ink-800/85` + `shadow-chip` recipe still belongs to the estate-agent
+  pages, which are dark — do not carry either one across.
+- A sector's architecture lives in `world3d/architecture.js` and nowhere else: wall, glass, trim,
+  window `style`, roof `crown`, storey height and whether it has a colonnade. `facadeTexture` paints
+  the `style` and `Crown` in `Scenery.jsx` builds the `crown`; adding a sector means adding to all
+  three. Height and the up/down colour are *not* in there, because those are the price.
+- The mood of a holding is a **shade**, not a colour. `towers.js` publishes `shade` and `chill` and
+  `Scenery` multiplies the district's own wall colour by them. It used to publish a finished grey,
+  which painted all six districts the same the moment they stopped being identical boxes.
+- **The camera trails the avatar from above and behind, so the edge of the map is always in shot.**
+  `Ground` therefore lays an apron far past the fog's far plane and `Surrounds` fills the first
+  forty metres of it with copses, hedges and fields, densest at the kerb. Without them, walking to
+  the southern pavement fills half the screen with nothing. The river runs the length of the apron
+  for the same reason — one that stopped at the boundary gave the whole trick away.
 - `world3d/playerPos.js` publishes the player position outside React, the way `controls.js` does
   for input. The minimap reads it in its own animation frame and the header samples it every
   400ms — neither re-renders while you walk.

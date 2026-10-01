@@ -69,7 +69,7 @@ export default function Joystick({ raised = false }) {
     <div
       ref={baseRef}
       className="ui-layer absolute w-[104px] h-[104px] md:w-32 md:h-32 rounded-full
-        bg-white/[0.07] border border-white/20 backdrop-blur-sm touch-none select-none z-20
+        bg-white/55 border-2 border-white backdrop-blur-sm shadow-card touch-none select-none z-20
         start-[calc(1rem+env(safe-area-inset-left,0px))] md:start-6
         transition-[bottom] duration-300 ease-out"
       onMouseDown={(e) => {
@@ -91,7 +91,7 @@ export default function Joystick({ raised = false }) {
     >
       <span
         className="absolute top-1/2 left-1/2 w-11 h-11 md:w-14 md:h-14 -mt-[22px] -ms-[22px] md:-mt-7 md:-ms-7
-          rounded-full bg-white/70 shadow-lg pointer-events-none"
+          rounded-full bg-ink-800/80 border-2 border-white shadow-card pointer-events-none"
         style={{ transform: `translate(${knob.x}px, ${knob.y}px)` }}
       />
     </div>
