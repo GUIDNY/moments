@@ -24,6 +24,10 @@ export default [
       'react-hooks': pluginReactHooks,
     },
     rules: {
+      /* The spread of `recommended` above is overwritten by this `rules` key —
+         so its rules have to be spread again here, or `no-undef` is silently
+         off and a variable that no longer exists ships as a ReferenceError. */
+      ...pluginJs.configs.recommended.rules,
       ...pluginReact.configs.flat.recommended.rules,
       'react/prop-types': 'off',
       'react/react-in-jsx-scope': 'off',

@@ -28,15 +28,57 @@ export function onMarket(fn) {
 }
 const announce = () => listeners.forEach((fn) => fn(market));
 
-/** Currencies we may need a rate for, once the quotes say what they are. */
+/**
+ * Currencies we may need a rate for, once the quotes say what they are: into
+ * the display currency for the screen, and always into dollars, because the
+ * game's purse is in dollars and a shekel stock cannot be bought without
+ * knowing what a shekel costs.
+ */
 function neededRates(quotes, display) {
   const wanted = new Set();
   for (const q of Object.values(quotes)) {
     if (!q || q.error) continue;
     const { currency } = toMajor(q.price, q.currency);
-    if (currency && currency !== display) wanted.add(fxSymbol(currency, display));
+    if (!currency) continue;
+    if (currency !== display) wanted.add(fxSymbol(currency, display));
+    if (currency !== 'USD') wanted.add(fxSymbol(currency, 'USD'));
   }
+  if (display !== 'USD') wanted.add(fxSymbol('USD', display));
   return [...wanted];
+}
+
+/**
+ * One symbol's quote, fetched on demand — for a stock you are about to buy
+ * and do not yet hold, which the portfolio poll knows nothing about. It lands
+ * in the same table as everything else and is announced the same way.
+ */
+const pending = new Map();
+export function ensureQuote(symbol, display = 'USD') {
+  if (!symbol) return Promise.resolve(null);
+  const have = market.bySymbol[symbol];
+  if (have && !have.error) return Promise.resolve(have);
+  if (pending.has(symbol)) return pending.get(symbol);
+  const p = (async () => {
+    try {
+      const quotes = await fetchQuotes([symbol]);
+      market.bySymbol = { ...market.bySymbol, ...quotes };
+      const rateSymbols = neededRates(quotes, display).filter((r) => !Number.isFinite(market.rates[r]));
+      if (rateSymbols.length) {
+        const fx = await fetchQuotes(rateSymbols);
+        for (const [sym, q] of Object.entries(fx)) {
+          if (!q.error && Number.isFinite(q.price)) market.rates[sym] = q.price;
+        }
+      }
+      announce();
+      return market.bySymbol[symbol] ?? null;
+    } catch {
+      return null;
+    } finally {
+      pending.delete(symbol);
+    }
+  })();
+  pending.set(symbol, p);
+  return p;
 }
 
 async function fetchQuotes(symbols) {

@@ -42,18 +42,13 @@ const APRON_COLOR = '#b1c9a7';
 
 export function Ground() {
   const tex = useMemo(() => groundTexture(getGrid(), GROUND_COLORS), []);
-  // a tap on the street walks you there; the apron past the kerb is not a place
-  const tap = useMemo(
-    () => tapHandlers((e) => ({ x: Math.floor(e.point.x), y: Math.floor(e.point.z) })),
-    []
-  );
   return (
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[MAP_W / 2, -0.02, MAP_H / 2]}>
         <planeGeometry args={[APRON, APRON]} />
         <meshLambertMaterial color={APRON_COLOR} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[MAP_W / 2, 0, MAP_H / 2]} receiveShadow {...tap}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[MAP_W / 2, 0, MAP_H / 2]} receiveShadow>
         <planeGeometry args={[MAP_W, MAP_H]} />
         <meshLambertMaterial map={tex} />
       </mesh>
@@ -544,7 +539,7 @@ function useLogo(domain) {
   return logo;
 }
 
-function Shop({ building, compact }) {
+function Shop({ building, compact, onEnter }) {
   const { x, y, w, h, door, emoji, name, color, district, domain } = building;
   const { loc, dir: textDir } = useI18n();
   const label = loc(name);
@@ -565,10 +560,10 @@ function Shop({ building, compact }) {
      the way a bank's branch is the bank's red whatever street it is on. */
   const arch = archetypeFor(district);
   const brand = logo?.colour ?? null;
-  // tap the building itself and the avatar walks round to its door
+  // tap the building and you are inside it
   const tap = useMemo(
     () => {
-      const h = tapHandlers(() => ({ x: door.x, y: door.y }));
+      const h = tapHandlers(() => onEnter?.(building));
       return {
         onPointerDown: (e) => {
           e.stopPropagation();
@@ -580,7 +575,7 @@ function Shop({ building, compact }) {
         },
       };
     },
-    [door.x, door.y]
+    [onEnter, building]
   );
   const fascia = brand ?? arch.podium;
   const board = useMemo(
@@ -620,7 +615,12 @@ function Shop({ building, compact }) {
   const crown = useRef(null);
   const shaftMat = useRef(null);
   const roofMat = useRef(null);
-  const current = useRef(BUILDING_HEIGHT);
+  /* A tower that was not in the city a moment ago starts at the ground and
+     rises; one that was there when the city loaded stands at full height from
+     the first frame. The difference is the whole ceremony of building. */
+  const current = useRef(building.fresh ? 0.3 : BUILDING_HEIGHT);
+  const crane = useRef(null);
+  const craneTex = useMemo(() => emojiTexture('🏗️'), []);
 
   // one texture per sector; the repeat is per-material, not per-texture, so a
   // shared map still gives each building its own number of storeys
@@ -634,8 +634,14 @@ function Shop({ building, compact }) {
   useFrame(() => {
     const tower = building.symbol ? towerFor(building.symbol) : null;
     const want = tower?.height ?? BUILDING_HEIGHT;
-    current.current += (want - current.current) * 0.08;
+    // construction is slower than a price move: a building goes up, a number ticks
+    const rising = want - current.current > 0.6;
+    current.current += (want - current.current) * (rising ? 0.025 : 0.08);
     const tall = current.current;
+    if (crane.current) {
+      crane.current.visible = rising;
+      crane.current.position.y = tall + 1.6 + Math.sin(performance.now() / 300) * 0.1;
+    }
 
     if (shaft.current) {
       shaft.current.scale.y = tall / BUILDING_HEIGHT;
@@ -699,6 +705,9 @@ function Shop({ building, compact }) {
         <boxGeometry args={[w + 0.1, 0.22, h + 0.1]} />
         <meshLambertMaterial ref={roofMat} color={color} />
       </mesh>
+      <sprite ref={crane} position={[x + w / 2, BUILDING_HEIGHT + 1.6, y + h / 2]} scale={[1.3, 1.3, 1]} visible={false}>
+        <spriteMaterial map={craneTex} transparent depthTest={false} />
+      </sprite>
       <group ref={crown} position={[x + w / 2, BUILDING_HEIGHT + 0.19, y + h / 2]}>
         <Crown kind={arch.crown} w={w} h={h} trim={arch.trim} />
         {/* the board on the roof: the mark, facing the street the door is on,
@@ -753,11 +762,11 @@ function Shop({ building, compact }) {
 }
 
 
-export function Shops({ compact = false }) {
+export function Shops({ compact = false, onEnter }) {
   return (
     <group>
       {getBuildings().map((b) => (
-        <Shop key={b.id} building={b} compact={compact} />
+        <Shop key={b.id} building={b} compact={compact} onEnter={onEnter} />
       ))}
     </group>
   );

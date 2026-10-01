@@ -1,7 +1,11 @@
 # Stock City — Claude Code notes
 
 ## What this is
-A 3D city you walk around in, in daylight, where **every tower is a stock you hold**. Its height is
+A game that teaches how the stock market works, played the way a builder's game is played. You
+start with **$100,000 of play money**, buy and sell real stocks at real (delayed) prices, and look
+down on a 3D city in daylight where **every tower is a stock you hold**: tap a vacant lot to build
+(buy), watch the tower go up, tap it to go in. There is no avatar and no joystick — you are the
+mayor, not a pedestrian. Drag to pan, pinch or scroll to zoom. Its height is
 what the position is worth, its roof is green when the stock is up today and red when it is down,
 and the facade is bright when you are in profit and dark and cold when you are not. What the tower
 is *made of* is its sector: stone and columns for the banks, curtain glass and a mast for the chip
@@ -10,13 +14,16 @@ get that holding's numbers: shares, price, what you paid, profit and loss.
 
 Prices are live, free and keyless. Hebrew first, English as a toggle.
 
-The city machinery — streets, joystick, doorway magnetism, minimap, voxel walker — has survived
-three products now (a town of mini-games, a portfolio of projects, this). The map is the part that
-changes.
+The city machinery — streets, minimap, the generated map and its reachability check — has survived
+four products now (a town of mini-games, a portfolio of projects, a city you walked, this). The
+walker, the joystick and tap-to-walk were removed when it became a builder's game; `Npcs` still
+walk the kerbs because a city with nobody in it is a model.
 
 ## The chain
 `portfolio → prices → arithmetic → skyline → streets`, and `stocks/CityContext.jsx` owns all of it.
-Everything downstream reads the finished article.
+Everything downstream reads the finished article. The game sits on the same chain: a trade is
+priced from the live quote and its dollar rate, settled in `store.js`, and the score is
+`summary.valueUsd + cash`.
 
 ## Four pages
 Vite is an MPA (`build.rollupOptions.input`); the pages share the build and the Tailwind tokens and
@@ -38,7 +45,11 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   arithmetic), `market.js` (live prices, published outside React), `towers.js` (what each tower
   should look like), `CityContext.jsx` (the chain), `PickerScreen.jsx`, `HoldingScreen.jsx`.
   The game layer: `achievements.js` (the badges and their tests), `progress.js` (what the city
-  remembers between visits — badges, streak, records), `BadgesScreen.jsx`.
+  remembers between visits — badges, streak, records, lessons read, missions done),
+  `BadgesScreen.jsx`, `TradeSheet.jsx` (the order ticket).
+- `src/learn/` — what the city teaches: `content.js` (LESSONS that fire on the moment they are
+  about, MISSIONS in order, the GLOSSARY — all bilingual beside their data), `LessonSheet.jsx`
+  (one lesson or finished mission at a time), `LearnScreen.jsx` (the classroom).
 - `api/quotes.js`, `api/search.js`, `api/logo.js` — the only server-side code, and it holds no
   key: the upstreams send no CORS headers, so the browser cannot call them directly. `logo.js`
   asks two public favicon caches for a company's mark and sends on the larger. `vite.config.js`
@@ -52,7 +63,8 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   mark and its colour, loaded once), `models.js` + `Kit.jsx` (the kit models: loader, cache,
   fit-to-plot) with `kenney-bounds.json` (every model's footprint, measured from the files),
   `nav.js` (tap to walk), `VoxelPerson.jsx`, `Player.jsx`, `Npcs.jsx`, `Joystick.jsx`,
-  `MiniMap.jsx`, `controls.js`, `textures.js`, `playerPos.js`.
+  `CameraRig.jsx` (drag to pan, pinch to zoom, fly to what asks) with `focus.js`, `MiniMap.jsx`,
+  `textures.js`, `playerPos.js` (now the camera's point of attention).
 - `public/models/` — Kenney's CC0 city kits (commercial, suburban, industrial, and the ready-made
   samples from modular), GLB plus each kit's `Textures/colormap.png`. The GLBs reference that
   colormap by relative path, so a kit folder is copied whole or not at all.
@@ -75,14 +87,6 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   dependency and is the whole mechanism.
 - Tower height is the **square root** of the holding's share of the portfolio. Linear scaling makes
   a normal portfolio one skyscraper beside a row of doorsteps, which cannot be read.
-- The camera sits behind the player on the **+z** side, so what fills the screen is whatever has a
-  smaller z. `getSpawn()` therefore puts the player *south* of the first tower whichever way its
-  door faces; stepping "back" out of a north-facing door put the tower behind the camera.
-- `getSpawn()` must also avoid door tiles. A door is walkable and standing on one enters that
-  building, so a spawn that landed on a neighbour's doorstep opened its screen instantly.
-- The city is relaid whenever a holding is added or sold, so the tile the avatar stands on can
-  become the inside of a new tower. `Player` moves the avatar when `startTile` changes rather than
-  only placing it on mount.
 - **A badge is earned, never lost, and never earned from a half-priced portfolio.** Every test in
   `achievements.js` is decided from what is on screen — holdings, prices, streak — and the ones that
   depend on a price only run when `ready` is true: the market is not loading, something has been
@@ -97,9 +101,8 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
 - **Every plot is built on.** The plots no holding occupies get a filler — an apartment block, an
   office, a shop with an awning, a townhouse — with no door and nothing behind it. Three towers in
   a field are a chart; three towers among a street of ordinary buildings are a city with three
-  places that matter. Fillers are blocked tiles like any building, so `unreachableDoors()` covers
-  them, and the spawn has to find a road tile with nothing in the three tiles behind it, because
-  the camera is twelve tiles further south and a filler there hides the avatar.
+  places that matter. Fillers are blocked tiles like any building, so `unreachableDoors()` still
+  covers them: nobody walks now, but a door facing a wall is still a layout bug, and the NPCs do.
 - **A holding's tower starts above the tallest filler's roof.** Fillers are two to four storeys of
   1.1; `towers.js` `MIN_H` is 5. Raise one and raise the other, or a token holding disappears into
   the street it is supposed to be the landmark of.
@@ -108,14 +111,6 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   building — and cars keep to the middle of their lanes to leave that strip free. Past the kerb,
   `Surrounds` puts blocks first and towers further out, so the fog holds a skyline rather than a
   tree line.
-- **Tap to walk is the phone's control; the joystick is the desktop's.** A tap on the street
-  routes the avatar there and a tap on a tower routes it to that tower's door, over a route from
-  `findPath()` — breadth-first on the walkable grid, door tiles allowed only as the destination,
-  so a route never cuts through someone else's lobby. The route lives in `controls.js` beside the
-  stick and `Player` follows it from `useFrame`; touching the stick drops it, and so does a city
-  relayout. A tap is a press that neither moved (0.6 world units) nor lingered (450 ms); anything
-  else is a drag and sends nobody anywhere. The tower's handlers stop propagation so the ground
-  under it does not also get the tap.
 - A phone held upright gets a wider lens: `AdaptiveFov` in `World3D` opens the vertical angle as
   the viewport gets taller (38° landscape, up to 60° portrait), a lower pixel-ratio cap and a
   2048 shadow map. Without it a portrait screen showed one tower and a kerb and read as crowded
@@ -138,6 +133,47 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
 - A model that fails to load is an empty plot, not a broken city: `loadModel` resolves null and
   `Kit` renders nothing. Clones share geometry and material, so a street of the same block is one
   geometry and a `Kit` per plot is cheap.
+- **The purse is in dollars, whatever the display currency.** A game needs one scoreboard, so
+  `store.js` keeps `cash` in USD, every trade converts the stock's price to dollars at the live rate
+  (`tradeQuote` in `money.js`), and `market.js` always fetches the dollar rate for every currency
+  it meets — a shekel stock cannot be bought without knowing what a shekel costs. The cost basis
+  stays in the stock's own currency, as before; `realised` on a sell trade is in dollars.
+- **A trade is shown in full before the button.** The ticket prices the order from the live quote:
+  price, fee (0.1%, a dollar at least — small enough never to matter to the score, present enough
+  to teach that trading is not free), total and cash after. `buy`/`sell` in `store.js` are pure
+  and return an `error` code rather than throwing; the UI puts the code into words. Never settle a
+  trade whose currency has no dollar rate yet.
+- **A trade is executed against the quote on screen.** `ensureQuote` fetches a quote on demand for
+  a stock you do not hold yet; the board shows a live price beside every name for the same reason
+  — a board with prices is a market, one without is a list of company names.
+- **Lessons fire once, on the moment they are about.** The rules live in `CityContext` (first buy,
+  first fee, first shekel trade, a day's move over 1%, two in one sector, an index fund, a sale,
+  one holding over half, a red day, three days running). Missions complete in order — only the
+  first open one is tested — and each opens its lesson. Both are queued and shown one at a time;
+  reading a lesson is what marks it read. The welcome lesson is the first thing in the queue.
+- The history is one point per local day of total and cash, with a `start` point at the purse so
+  the line always begins somewhere; the same day overwrites. `snapshot` only runs once the score
+  is real (every holding priced). The share link carries the purse and the start date but not the
+  history or the trades.
+- Nothing in the lessons is advice, and the screens say so (`learn.notAdvice`). Keep it that way:
+  the content explains how the machine works, with play money and delayed prices.
+- **The camera is the player.** `CameraRig` keeps its target and distance in refs and applies
+  them in `useFrame`; a drag never re-renders anything. It publishes the point it looks at through
+  `setPlayerPos`, which is what the minimap marker, the district chip and the signs that fade with
+  distance read — so nothing downstream had to learn that the walker was gone. `focus.js` is how
+  something asks to be looked at: a new tower sets it, the rig flies there and clears it, and a
+  hand on the city clears it first.
+- **A tap is measured on the screen, not in the world.** While the city is being dragged the world
+  point under the finger hardly moves, so a world-space tap test read every drag as a tap on
+  wherever it ended. `nav.js` compares `clientX/Y` (10 px, 500 ms). Lots and towers stop
+  propagation so the ground does not also get the tap.
+- **The first empty block is the lots.** `map-data` themes it `lot`; `Streets` draws a fenced plot
+  with a build-here sign that opens the board. A builder's city always has somewhere to build.
+- **A new tower rises.** `map-data` flags a building `fresh` when its symbol was not in the previous
+  layout (and the previous layout was not empty, so a reload does not rebuild the whole skyline);
+  `Shop` starts a fresh tower at the ground and eases it up slowly under a crane sprite, and
+  `World3D` flies the camera to it. The city is relaid during render (`useMemo` in `CityContext`),
+  not in an effect, so the first frame after a buy already has the tower.
 - **The map is generated, so it is checked.** `unreachableDoors()` flood-fills from the plaza and
   must return empty, for every portfolio size from 0 to 24.
 - Sectors keep their name and colour; **which block they occupy adapts** so the occupied ones crowd
@@ -169,14 +205,9 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   an element that did not exist.
 - `t()` localises object parameters too, so `t('achv.unlocked', { name: a.name })` works with a
   bilingual name straight from the data file.
-- Door tiles are walkable holes inside a blocked building footprint. The opening is one tile and
-  the player's collider is 0.6 wide, so `Player.jsx` steers the avatar towards the door centre when
-  it is walking into one — without that magnetism you scrape the wall and never get in.
 - Anything that moves every frame (position, facing, walk cycle, camera) is driven through refs
   inside `useFrame`, never through React state: `VoxelPerson` takes a `motion` ref for exactly this
   reason. A prop set once per render would freeze mid-walk.
-- `Player.jsx` walks a long frame in sub-steps rather than clamping the delta — clamping makes the
-  avatar crawl on a slow device, and no clamp at all tunnels through walls.
 - ESLint's `react/no-unknown-property` is off for `src/world3d/**`: those JSX elements are three.js
   objects, not DOM nodes.
 - The page direction is not fixed: `ltr` by default, `rtl` while Hebrew is on, flipped by
@@ -220,11 +251,9 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   forty metres of it with copses, hedges and fields, densest at the kerb. Without them, walking to
   the southern pavement fills half the screen with nothing. The river runs the length of the apron
   for the same reason — one that stopped at the boundary gave the whole trick away.
-- `world3d/playerPos.js` publishes the player position outside React, the way `controls.js` does
-  for input. The minimap reads it in its own animation frame and the header samples it every
-  400ms — neither re-renders while you walk.
-- The venue sheet sets `--dock` to its own measured height; the joystick and the rail lift by that
-  amount so an open sheet never buries the controls. Never hard-code that offset.
+- `world3d/playerPos.js` publishes the camera's point of attention outside React. The minimap
+  reads it in its own animation frame and the header samples it every 400ms — neither re-renders
+  while you drag.
 - Chrome that must mirror with the language uses `start-*`/`end-*`, never `left-*`/`right-*`.
 - `src/tour/generate.js` places furniture and then *verifies* it: each piece is added only if every
   room is still reachable from the front door by flood fill. That is why the generator cannot emit a

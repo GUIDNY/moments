@@ -151,7 +151,7 @@ function buildGrid(buildings, props) {
  * with nowhere to stand would vanish and the city would quietly stop matching
  * the portfolio.
  */
-export function rebuild(holdings = []) {
+export function rebuild(holdings = [], fresh = new Set()) {
   const bySector = new Map(SECTORS.map((s) => [s.id, []]));
   const spill = [];
   for (const h of holdings) {
@@ -189,6 +189,9 @@ export function rebuild(holdings = []) {
         // the company's mark lives at its domain; a symbol found by search has
         // none and keeps the sector's sign
         domain: BOARD_BY_SYMBOL[holding.symbol]?.domain ?? null,
+        // new since the caller last laid the city out: it rises from the
+        // ground instead of standing there, and the camera flies to it
+        fresh: fresh.has(holding.symbol),
       });
     });
   }
@@ -202,7 +205,9 @@ export function rebuild(holdings = []) {
      a character of their own, in order of distance from the plaza: the
      nearest empty block is the market, the next the park, and the rest are
      the suburbs. A block with a tower in it is downtown whatever its rank. */
-  const THEMES = ['market', 'park', 'suburb', 'suburb', 'suburb', 'suburb'];
+  /* The first empty block is the lots — vacant plots with a sign, where the
+     next tower goes up. A builder's city always has somewhere to build. */
+  const THEMES = ['lot', 'market', 'park', 'suburb', 'suburb', 'suburb'];
   let quiet = 0;
   const themeOf = new Map();
   for (const block of BLOCKS_BY_DISTANCE) {
@@ -242,8 +247,12 @@ export function rebuild(holdings = []) {
   city.props = RAW_PROPS.filter((p) => !onBuilding(p.x, p.y));
   city.grid = buildGrid(footprints, city.props);
   city.version++;
-  // handy from the console, and what the phone test aims its taps with
-  if (typeof window !== 'undefined') window.__doors = buildings.map((b) => ({ id: b.id, ...b.door }));
+  // handy from the console, and what the browser tests aim their taps with
+  if (typeof window !== 'undefined') {
+    window.__doors = buildings.map((b) => ({ id: b.id, ...b.door }));
+    window.__lots = fillers.filter((f) => f.theme === 'lot').map((f) => ({ x: f.x + f.w / 2, z: f.y + f.h / 2 }));
+    window.__towers3d = buildings.map((b) => ({ symbol: b.symbol, x: b.x + b.w / 2, z: b.y + b.h / 2 }));
+  }
   return city;
 }
 

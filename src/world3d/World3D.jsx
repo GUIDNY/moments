@@ -1,15 +1,13 @@
-import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { EffectComposer, N8AO, SMAA } from '@react-three/postprocessing';
-import { skinFor } from './skins';
-import { attachKeyboard } from './controls';
-import Joystick from './Joystick';
+import CameraRig from './CameraRig';
+import { lookAt } from './focus';
 import MiniMap from './MiniMap';
 import Npcs from './Npcs';
-import Player from './Player';
 import { Ground, PlazaScreen, Props, River, Shops, Surrounds, Waterfront } from './Scenery';
 import Streets from './Streets';
-import { getSpawn } from '../world/map-data';
+import { getBuildings } from '../world/map-data';
 import { useCity } from '../stocks/CityContext';
 import { useI18n } from '../i18n/I18nContext';
 import { formatMoney, formatPct } from '../stocks/money';
@@ -53,23 +51,35 @@ function useIsCompact() {
   return compact;
 }
 
-/** The town, in three dimensions. DOM chrome floats over the canvas. */
-export default function World3D({ onEnter, onOpenDirectory }) {
-  const { positionOf, summary, display, holdings } = useCity();
-  const { t, loc } = useI18n();
+/**
+ * The city, in three dimensions, seen by its builder. There is no avatar: you
+ * look down on the whole thing, drag it under your thumb, tap a vacant lot to
+ * build and tap a tower to go in. DOM chrome floats over the canvas.
+ */
+export default function World3D({ onEnter, onOpenDirectory, onBuild }) {
+  const { summary, holdings, totalUsd } = useCity();
+  const { t } = useI18n();
   const compact = useIsCompact();
-  const [near, setNear] = useState(null);
   const [reaction, setReaction] = useState(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
 
   const rootRef = useRef(null);
   const cardRef = useRef(null);
+  const near = null;
 
-  // recomputed whenever the city is relaid: a remembered tile can end up inside
-  // a tower that did not exist a moment ago
-  const startTile = useMemo(() => getSpawn(), [holdings.length]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => attachKeyboard(), []);
+  /* A new tower is the event of the game: the camera flies to it and the
+     building goes up in front of you. The map flags a tower `fresh` when its
+     symbol was not in the previous layout, and that flag — not this
+     component's memory — is what says there is something to fly to: a buy
+     closes the board and mounts the city anew, so anything remembered here
+     was forgotten with it. The flag is cleared once flown to, so coming back
+     from the tower's own screen does not fly there again. */
+  useEffect(() => {
+    const b = getBuildings().find((x) => x.fresh);
+    if (!b) return;
+    b.fresh = false;
+    lookAt(b.x + b.w / 2, b.y + b.h / 2 + 1, compact ? 24 : 20);
+  }, [holdings, compact]);
 
   useEffect(() => {
     if (!reaction) return undefined;
@@ -99,7 +109,6 @@ export default function World3D({ onEnter, onOpenDirectory }) {
 
   const handleEnter = useCallback((building) => onEnter(building), [onEnter]);
 
-  const nearPosition = near ? positionOf(near.symbol) : null;
   const dockOffset = {
     bottom: near
       ? 'calc(var(--dock, 0px) + 1rem + env(safe-area-inset-bottom, 0px))'
@@ -137,29 +146,23 @@ export default function World3D({ onEnter, onOpenDirectory }) {
           shadow-bias={-0.0008}
         />
 
+        <CameraRig compact={compact} />
         <Suspense fallback={null}>
           <Ground />
           <Surrounds />
           <River />
-          <Streets />
+          <Streets onBuild={onBuild} />
           <Waterfront />
-          <Shops compact={compact} />
+          <Shops compact={compact} onEnter={handleEnter} />
           <Props />
           <PlazaScreen
             title={t('app.name')}
-            tagline={holdings.length ? formatMoney(summary.value, display, true) : t('app.tagline')}
+            tagline={totalUsd != null ? formatMoney(totalUsd, 'USD', true) : t('app.tagline')}
             coins={holdings.length ? `${formatPct(summary.dayPct)} ${t('city.today')}` : ''}
             accent={holdings.length ? moveColor(summary.dayPct) : '#6b7a90'}
             compact={compact}
           />
           <Npcs />
-          <Player
-            avatarSkin={skinFor('default')}
-            label={t('app.name')}
-            startTile={startTile}
-            onEnterDoor={handleEnter}
-            onNearDoor={setNear}
-          />
         </Suspense>
 
         {/* Ambient occlusion is most of what separates a rendered model from
@@ -177,8 +180,6 @@ export default function World3D({ onEnter, onOpenDirectory }) {
       <div className="absolute z-20 start-3 top-[calc(3.75rem+env(safe-area-inset-top,0px))] md:start-4 md:top-[5.25rem]">
         <MiniMap onOpen={onOpenDirectory} className="w-[62px] h-[62px] md:w-20 md:h-20" />
       </div>
-
-      <Joystick raised={Boolean(near)} />
 
       {/* reactions float up from the middle of the screen */}
       {reaction && (
@@ -234,65 +235,8 @@ export default function World3D({ onEnter, onOpenDirectory }) {
         </button>
       </div>
 
-      {/* the venue you are standing at — a sheet on phones, a card on desktop */}
-      {near && (
-        <div
-          ref={cardRef}
-          className="ui-layer absolute z-30 inset-x-0 bottom-0 md:inset-x-auto md:bottom-6 md:start-1/2 md:-translate-x-1/2 md:w-[420px]
-            bg-white text-ink-900 rounded-t-[26px] md:rounded-3xl shadow-card-lg
-            px-4 pt-2 pb-[calc(0.875rem+env(safe-area-inset-bottom,0px))] md:pb-4
-            animate-sheet-up md:animate-pop-in"
-        >
-          <div className="md:hidden flex justify-center pb-2">
-            <span className="h-1.5 w-10 rounded-full bg-paper-200" />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <span
-              className="w-11 h-11 shrink-0 rounded-2xl grid place-items-center text-2xl"
-              style={{ background: `${near.color}22` }}
-            >
-              {near.emoji}
-            </span>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <span
-                  className="w-1.5 h-1.5 rounded-full shrink-0"
-                  style={{ background: near.color }}
-                />
-                <h2 className="text-[15px] font-black truncate">{loc(near.name)}</h2>
-              </div>
-              {/* the two numbers that say whether this tower is worth entering */}
-              <p className="text-[12px] text-paper-muted truncate">
-                {nearPosition && !nearPosition.missing
-                  ? `${nearPosition.qty.toLocaleString()} × ${formatMoney(nearPosition.price, nearPosition.currency)}`
-                  : t('hud.doorHint')}
-              </p>
-              {nearPosition && !nearPosition.missing && (
-                <p className="text-[13px] font-black mt-0.5 truncate tabular-nums">
-                  {formatMoney(nearPosition.value, nearPosition.currency, true)}{' '}
-                  <span style={{ color: moveColor(nearPosition.dayPct) }}>
-                    {formatPct(nearPosition.dayPct)}
-                  </span>
-                </p>
-              )}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => handleEnter(near)}
-              className="shrink-0 h-11 px-5 rounded-2xl bg-brand text-white font-bold text-sm
-                shadow-fab active:scale-95 transition-transform"
-            >
-              {t('common.enter')}
-            </button>
-          </div>
-        </div>
-      )}
-
-      <p className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[11px] text-ink-900/35 pointer-events-none hidden md:block">
-        {t('hud.hint')}
+      <p className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[11px] text-ink-900/35 pointer-events-none hidden md:block whitespace-nowrap">
+        {t('build.hint')}
       </p>
     </div>
   );

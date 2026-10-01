@@ -20,6 +20,8 @@ const EMPTY = {
   bestDayPct: null,  // the best single day the portfolio has had while open
   worstDayPct: null,
   peak: 0,           // the highest the portfolio has ever been worth
+  lessons: [],       // lesson ids read, in the order they were read
+  missions: [],      // mission ids completed, in order
 };
 
 /** Local midnight, not UTC: a streak is about the user's day, not the server's. */
@@ -41,6 +43,8 @@ export function load() {
       ...EMPTY,
       ...raw,
       unlocked: Array.isArray(raw.unlocked) ? raw.unlocked.filter((id) => typeof id === 'string') : [],
+      lessons: Array.isArray(raw.lessons) ? raw.lessons.filter((id) => typeof id === 'string') : [],
+      missions: Array.isArray(raw.missions) ? raw.missions.filter((id) => typeof id === 'string') : [],
     };
   } catch {
     return { ...EMPTY };
@@ -91,4 +95,13 @@ export const has = (progress, id) => progress.unlocked.includes(id);
 export function unlock(progress, ids) {
   const fresh = ids.filter((id) => !progress.unlocked.includes(id));
   return fresh.length ? { ...progress, unlocked: [...progress.unlocked, ...fresh] } : progress;
+}
+
+/** A lesson read stays read; a mission done stays done. Same object when nothing is new. */
+export const seeLesson = (progress, id) =>
+  progress.lessons.includes(id) ? progress : { ...progress, lessons: [...progress.lessons, id] };
+
+export function completeMissions(progress, ids) {
+  const fresh = ids.filter((id) => !progress.missions.includes(id));
+  return fresh.length ? { ...progress, missions: [...progress.missions, ...fresh] } : progress;
 }

@@ -25,18 +25,28 @@ async function quoteOne(symbol) {
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
     const res = await fetch(
-      `${UPSTREAM}/${encodeURIComponent(symbol)}?interval=1d&range=5d`,
+      `${UPSTREAM}/${encodeURIComponent(symbol)}?interval=1d&range=3mo`,
       {
         signal: controller.signal,
         headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' },
       }
     );
     if (!res.ok) return { symbol, error: `http-${res.status}` };
-    const meta = (await res.json())?.chart?.result?.[0]?.meta;
+    const result = (await res.json())?.chart?.result?.[0];
+    const meta = result?.meta;
     if (!meta || typeof meta.regularMarketPrice !== 'number') {
       return { symbol, error: 'no-data' };
     }
+    /* Three months of daily closes, for the sparkline and for teaching: a
+       price is a number, a line is a story. Nulls are days the exchange was
+       shut; they are dropped rather than drawn as zero. */
+    const closes = (result.indicators?.quote?.[0]?.close || [])
+      .filter((v) => typeof v === 'number')
+      .slice(-66);
     return {
+      closes,
+      high52: meta.fiftyTwoWeekHigh ?? null,
+      low52: meta.fiftyTwoWeekLow ?? null,
       symbol: meta.symbol || symbol,
       name: meta.longName || meta.shortName || symbol,
       price: meta.regularMarketPrice,

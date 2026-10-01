@@ -2,6 +2,9 @@ import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { H_ROADS, MAP_H, MAP_W, V_ROADS, getFillers, getVersion } from '../world/map-data';
 import Kit from './Kit';
+import { tapHandlers } from './nav';
+import { signTexture } from './textures';
+import { useI18n } from '../i18n/I18nContext';
 
 /**
  * Everything that makes the streets streets and the blocks blocks, none of
@@ -103,6 +106,56 @@ function Market({ b }) {
       ))}
       <Kit model="suburban/planter" fit={[0.6, 0.6]} position={[cx - 1.25, 0, cz]} />
       <Kit model="suburban/planter" fit={[0.6, 0.6]} position={[cx + 1.25, 0, cz]} />
+    </group>
+  );
+}
+
+/**
+ * A vacant lot: bare earth inside the kit's fence, a path to the street and a
+ * sign that says build here. Tapping it opens the market — the next tower in
+ * the city starts with this tap.
+ */
+function Lot({ b, onBuild }) {
+  const { x, y, w, h, facing } = b;
+  const { t, dir } = useI18n();
+  const cx = x + w / 2;
+  const cz = y + h / 2;
+  const front = facing === -1 ? y : y + h;
+  const sign = useMemo(() => signTexture('🏗️', t('build.here'), '#ff6b1a', dir), [t, dir]);
+  const tap = useMemo(() => {
+    const h2 = tapHandlers(() => onBuild?.());
+    return {
+      onPointerDown: (e) => {
+        e.stopPropagation();
+        h2.onPointerDown(e);
+      },
+      onPointerUp: (e) => {
+        e.stopPropagation();
+        h2.onPointerUp(e);
+      },
+    };
+  }, [onBuild]);
+  return (
+    <group {...tap}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, 0.012, cz]} receiveShadow>
+        <planeGeometry args={[w - 0.2, h - 0.2]} />
+        <meshLambertMaterial color="#d8cfbd" />
+      </mesh>
+      {/* a flat, invisible-ish slab so a tap anywhere on the lot lands */}
+      <mesh position={[cx, 0.15, cz]}>
+        <boxGeometry args={[w - 0.2, 0.3, h - 0.2]} />
+        <meshLambertMaterial color="#d8cfbd" transparent opacity={0.001} depthWrite={false} />
+      </mesh>
+      <Kit model="suburban/fence-3x2" fit={[w - 0.3, h - 0.3]} maxScale={2.2} position={[cx, 0, cz]} />
+      <Kit model="suburban/path-short" fit={[0.7, 0.8]} position={[cx, 0.02, front - facing * 0.45]} />
+      <mesh position={[cx, 1.25, front - facing * 0.15]} rotation={[0, facing === -1 ? Math.PI : 0, 0]}>
+        <planeGeometry args={[Math.min(w, 2.4), 0.75]} />
+        <meshBasicMaterial map={sign} toneMapped={false} transparent />
+      </mesh>
+      <mesh position={[cx, 0.45, front - facing * 0.15]} castShadow>
+        <boxGeometry args={[0.08, 0.9, 0.08]} />
+        <meshLambertMaterial color="#8d99a4" />
+      </mesh>
     </group>
   );
 }
@@ -301,7 +354,7 @@ function Traffic() {
   );
 }
 
-export default function Streets() {
+export default function Streets({ onBuild }) {
   // the fillers change with every relayout, the furniture never does
   const version = getVersion();
   const fillers = useMemo(() => getFillers(), [version]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -309,6 +362,7 @@ export default function Streets() {
     <group>
       {/* each empty block has a character; downtown keeps a park on one plot in four */}
       {fillers.map((b) => {
+        if (b.theme === 'lot') return <Lot key={b.id} b={b} onBuild={onBuild} />;
         if (b.theme === 'park') return <Park key={b.id} b={b} />;
         if (b.theme === 'market') return <Market key={b.id} b={b} />;
         if (b.theme === 'suburb') return <Suburb key={b.id} b={b} />;

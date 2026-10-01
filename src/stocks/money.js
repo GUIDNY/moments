@@ -99,9 +99,15 @@ export function priceHolding(holding, quote, display, rates) {
   };
 }
 
-/** The whole portfolio, in the display currency. */
-export function summarise(positions, display) {
+/**
+ * The whole portfolio, in the display currency — and in dollars, because the
+ * game's purse is in dollars and the score has to add cash to holdings in
+ * one unit. `rates` is optional; without it `valueUsd` is only right when
+ * every holding already trades in dollars.
+ */
+export function summarise(positions, display, rates = {}) {
   let value = 0;
+  let valueUsd = 0;
   let day = 0;
   let gain = 0;
   let cost = 0;
@@ -119,11 +125,14 @@ export function summarise(positions, display) {
       gain += p.convertedGain;
       cost += p.converted - p.convertedGain;
     }
+    const toUsd = rateBetween(p.currency, 'USD', rates);
+    if (toUsd != null) valueUsd += p.value * toUsd;
   }
 
   return {
     display,
     value,
+    valueUsd,
     day,
     dayPct: value - day === 0 ? 0 : (day / (value - day)) * 100,
     gain,
@@ -131,6 +140,21 @@ export function summarise(positions, display) {
     unconverted,
     counted: positions.filter((p) => !p.missing && p.converted != null).length,
   };
+}
+
+/**
+ * What a trade of `qty` shares of this quote would cost or fetch, in dollars.
+ * Null when the stock's currency has no dollar rate yet — a trade whose price
+ * is a guess is not a trade this game will settle.
+ */
+export function tradeQuote(quote, qty, rates) {
+  if (!quote || quote.error || !Number.isFinite(quote.price)) return null;
+  const { price, currency } = toMajor(quote.price, quote.currency);
+  const rate = rateBetween(currency, 'USD', rates);
+  if (rate == null || !(price > 0)) return null;
+  const n = Number(qty) || 0;
+  const valueUsd = n * price * rate;
+  return { price, currency, rate, qty: n, valueUsd, priceUsd: price * rate };
 }
 
 /** Readable money, in the currency's own habits. */

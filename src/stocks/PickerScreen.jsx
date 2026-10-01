@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '../i18n/I18nContext';
 import { BOARD, MARKETS, SECTOR_BY_ID, sectorFor } from './catalog';
 import { useCity } from './CityContext';
 import { searchSymbols } from './market';
-import { formatMoney, formatPct } from './money';
+import { formatMoney, formatPct, toMajor } from './money';
 import { moveColor } from './towers';
+import TradeSheet from './TradeSheet';
 
 /**
  * The board you build a city from.
@@ -15,7 +16,9 @@ import { moveColor } from './towers';
  * market — it just is not what anyone reaches for first.
  */
 
-function Row({ symbol, name, detail, held, onPick, position }) {
+function Row({ symbol, name, detail, held, onPick, quote }) {
+  const q = quote && !quote.error && Number.isFinite(quote.price) ? toMajor(quote.price, quote.currency) : null;
+  const dayPct = q && quote.prevClose ? ((quote.price - quote.prevClose) / quote.prevClose) * 100 : null;
   return (
     <button
       type="button"
@@ -33,17 +36,16 @@ function Row({ symbol, name, detail, held, onPick, position }) {
           {detail}
         </span>
       </span>
-      {position && !position.missing ? (
+      {q ? (
         <span className="shrink-0 text-end">
           <span className="block text-[12.5px] font-black tabular-nums text-ink-900">
-            {formatMoney(position.price, position.currency)}
+            {formatMoney(q.price, q.currency)}
           </span>
-          <span
-            className="block text-[11.5px] font-bold tabular-nums"
-            style={{ color: moveColor(position.dayPct) }}
-          >
-            {formatPct(position.dayPct)}
-          </span>
+          {dayPct != null && (
+            <span className="block text-[11.5px] font-bold tabular-nums" style={{ color: moveColor(dayPct) }}>
+              {formatPct(dayPct)}
+            </span>
+          )}
         </span>
       ) : (
         <span className="shrink-0 text-[18px] text-brand font-black">{held ? '✓' : '+'}</span>
@@ -52,77 +54,10 @@ function Row({ symbol, name, detail, held, onPick, position }) {
   );
 }
 
-/** Shares and, optionally, what they cost — two numbers and out. */
-function QuantitySheet({ pick, onAdd, onCancel, T }) {
-  const [qty, setQty] = useState('');
-  const [cost, setCost] = useState('');
-  const ref = useRef(null);
-  useEffect(() => ref.current?.focus(), []);
-
-  const n = Number(qty);
-  const valid = Number.isFinite(n) && n > 0;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/55 backdrop-blur-[2px]">
-      <div className="w-full md:max-w-sm bg-paper rounded-t-[26px] md:rounded-3xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] md:pb-4 animate-sheet-up">
-        <h2 className="text-[17px] font-black text-ink-900">{pick.name}</h2>
-        <p dir="ltr" className="text-[12px] text-paper-muted mb-4 text-start">{pick.symbol}</p>
-
-        <label className="block mb-3">
-          <span className="block text-[11.5px] font-bold text-paper-muted mb-1">{T.qty}</span>
-          <input
-            ref={ref}
-            type="number"
-            inputMode="decimal"
-            min="0"
-            step="any"
-            value={qty}
-            onChange={(e) => setQty(e.target.value)}
-            className="w-full h-12 px-3 rounded-xl bg-paper-50 border border-paper-200 text-ink-900
-              text-[16px] font-bold outline-none focus:border-brand focus:bg-paper transition-colors"
-          />
-        </label>
-
-        <label className="block mb-4">
-          <span className="block text-[11.5px] font-bold text-paper-muted mb-1">{T.cost}</span>
-          <input
-            type="number"
-            inputMode="decimal"
-            min="0"
-            step="any"
-            value={cost}
-            onChange={(e) => setCost(e.target.value)}
-            className="w-full h-12 px-3 rounded-xl bg-paper-50 border border-paper-200 text-ink-900
-              text-[16px] font-bold outline-none focus:border-brand focus:bg-paper transition-colors"
-          />
-          <span className="block text-[11px] text-paper-muted mt-1 leading-snug">{T.costHint}</span>
-        </label>
-
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="flex-1 h-12 rounded-2xl bg-paper-100 text-ink-900 font-bold text-[14px]"
-          >
-            {T.cancel}
-          </button>
-          <button
-            type="button"
-            disabled={!valid}
-            onClick={() => onAdd({ qty: n, cost: Number(cost) || null })}
-            className="flex-[2] h-12 rounded-2xl bg-brand text-white font-black text-[15px] shadow-fab disabled:opacity-40"
-          >
-            {T.addIt}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function PickerScreen({ onExit }) {
-  const { t, loc, lang } = useI18n();
-  const { holdings, add, positionOf } = useCity();
+  const { t, loc } = useI18n();
+  const { holdings, quoteOf, ensureQuote } = useCity();
+  const [, bump] = useState(0);
   const [market, setMarketFilter] = useState('il');
   const [query, setQuery] = useState('');
   const [found, setFound] = useState([]);
@@ -148,24 +83,25 @@ export default function PickerScreen({ onExit }) {
   }, [query]);
 
   const board = BOARD.filter((b) => b.market === market);
-  const T = {
-    qty: t('picker.qty'),
-    cost: t('picker.cost'),
-    costHint: t('picker.costHint'),
-    cancel: t('common.close'),
-    addIt: t('picker.addIt'),
-  };
 
-  const commit = ({ qty, cost }) => {
-    add({
-      symbol: pick.symbol,
-      qty,
-      cost,
-      sector: pick.sector || sectorFor(pick.symbol, pick),
-      name: pick.nameEntry || { he: pick.name, en: pick.name },
-    });
-    setPick(null);
-  };
+  /* the board shows a live price beside every name, held or not — a board
+     with prices is a market; one without is a list of company names */
+  useEffect(() => {
+    let live = true;
+    Promise.all(board.map((b) => ensureQuote(b.symbol))).then(() => live && bump((n) => n + 1));
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [market]);
+  useEffect(() => {
+    let live = true;
+    Promise.all(found.map((r) => ensureQuote(r.symbol))).then(() => live && bump((n) => n + 1));
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [found]);
 
   return (
     <div className="fixed inset-0 bg-paper overflow-y-auto">
@@ -213,8 +149,8 @@ export default function PickerScreen({ onExit }) {
                     name={r.name}
                     detail={`${r.symbol} · ${r.exchange}`}
                     held={held.has(r.symbol)}
-                    position={positionOf(r.symbol)}
-                    onPick={() => setPick({ symbol: r.symbol, name: r.name, kind: r.kind })}
+                    quote={quoteOf(r.symbol)}
+                    onPick={() => setPick({ symbol: r.symbol, name: { he: r.name, en: r.name }, sector: sectorFor(r.symbol, r) })}
                   />
                 ))}
               </ul>
@@ -247,15 +183,8 @@ export default function PickerScreen({ onExit }) {
                   name={loc(b.name)}
                   detail={`${b.symbol} · ${loc(SECTOR_BY_ID[b.sector].name)}`}
                   held={held.has(b.symbol)}
-                  position={positionOf(b.symbol)}
-                  onPick={() =>
-                    setPick({
-                      symbol: b.symbol,
-                      name: loc(b.name),
-                      nameEntry: b.name,
-                      sector: b.sector,
-                    })
-                  }
+                  quote={quoteOf(b.symbol)}
+                  onPick={() => setPick({ symbol: b.symbol, name: b.name, sector: b.sector })}
                 />
               ))}
             </ul>
@@ -266,12 +195,14 @@ export default function PickerScreen({ onExit }) {
       </div>
 
       {pick && (
-        <QuantitySheet
-          pick={pick}
-          T={T}
-          onAdd={commit}
-          onCancel={() => setPick(null)}
-          lang={lang}
+        <TradeSheet
+          symbol={pick.symbol}
+          side="buy"
+          meta={{ sector: pick.sector, name: pick.name }}
+          onClose={(bought) => {
+            setPick(null);
+            if (bought) onExit();
+          }}
         />
       )}
     </div>
