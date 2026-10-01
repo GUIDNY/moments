@@ -103,6 +103,18 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   building — and cars keep to the middle of their lanes to leave that strip free. Past the kerb,
   `Surrounds` puts blocks first and towers further out, so the fog holds a skyline rather than a
   tree line.
+- **Tap to walk is the phone's control; the joystick is the desktop's.** A tap on the street
+  routes the avatar there and a tap on a tower routes it to that tower's door, over a route from
+  `findPath()` — breadth-first on the walkable grid, door tiles allowed only as the destination,
+  so a route never cuts through someone else's lobby. The route lives in `controls.js` beside the
+  stick and `Player` follows it from `useFrame`; touching the stick drops it, and so does a city
+  relayout. A tap is a press that neither moved (0.6 world units) nor lingered (450 ms); anything
+  else is a drag and sends nobody anywhere. The tower's handlers stop propagation so the ground
+  under it does not also get the tap.
+- A phone held upright gets a wider lens: `AdaptiveFov` in `World3D` opens the vertical angle as
+  the viewport gets taller (38° landscape, up to 60° portrait), a lower pixel-ratio cap and a
+  2048 shadow map. Without it a portrait screen showed one tower and a kerb and read as crowded
+  for no reason but the aspect ratio.
 - **The pavement is paint.** `groundTexture` draws a kerb and a pavement on every tile beside a
   road, lane dashes down the centre of each two-lane street and nothing on a junction — all from
   the grid, none of it in the grid. The walker still sees grass. Do not add a pavement terrain.
@@ -165,9 +177,11 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   casts soft shadows from a 4096 map. That stack is `@react-three/postprocessing@2` — the 3.x line
   is for fiber 9, and this app is on fiber 8. Keep AO cheap (`halfRes`, `quality="performance"`):
   the test is a phone at sixty frames, not a desktop screenshot.
-- The city needs air as much as buildings: a quarter of the fillers are pocket parks, lamps stand
-  every six tiles, one or two cars per road, walkers on every other kerb. Density past that read as
-  a wall, and the user said so.
+- The city needs air as much as buildings. A block with a tower in it is downtown (`lively`):
+  two- and three-storey fillers, a quarter of them parks. A block without is the quiet end of
+  town: one and two storeys, half of them parks. Buildings sit inset in their plots so there is
+  sky between them, lamps stand every eight tiles, one car a road, a walker on one kerb in three.
+  Density past that read as a wall, and the user said so twice.
 - **The city is lit as a model on a table, so its chrome is white cards.** Floating controls over
   the city share one recipe: same size, same radius, `bg-white/92` + blur + `border-paper-200` +
   `shadow-card`, with `text-ink-900`. The orange FAB is the only exception, because it is the one

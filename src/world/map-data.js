@@ -200,10 +200,14 @@ export function rebuild(holdings = []) {
      read: the one with a sign is the one that is yours. */
   const fillers = [];
   for (const block of BLOCKS) {
+    // a block with a tower in it is downtown; one without is the quiet end
+    // of town, with lower buildings and more green between them
+    const lively = block.plots.some(([px, py]) => buildings.some((b) => b.x === px && b.y === py));
     block.plots.forEach(([x, y], i) => {
       if (buildings.some((b) => b.x === x && b.y === y)) return;
       const seed = (x * 73 + y * 151 + i * 17) % 97;
       fillers.push({
+        lively,
         id: `f-${x}-${y}`,
         kind: 'filler',
         x, y, w: W, h: H,
@@ -225,6 +229,8 @@ export function rebuild(holdings = []) {
   city.props = RAW_PROPS.filter((p) => !onBuilding(p.x, p.y));
   city.grid = buildGrid(footprints, city.props);
   city.version++;
+  // handy from the console, and what the phone test aims its taps with
+  if (typeof window !== 'undefined') window.__doors = buildings.map((b) => ({ id: b.id, ...b.door }));
   return city;
 }
 
@@ -337,6 +343,51 @@ export function unreachableDoors() {
     }
   }
   return city.buildings.filter((b) => !seen.has(`${b.door.x},${b.door.y}`)).map((b) => b.id);
+}
+
+/**
+ * The walk from one tile to another, for tap-to-walk: a breadth-first search
+ * over the walkable grid, four-connected, so the route follows the streets
+ * and turns corners rather than cutting through walls. Door tiles are
+ * walkable but entering one opens that building, so a door is only ever the
+ * last tile of a route, never a shortcut through someone else's lobby — the
+ * same rule `unreachableDoors()` applies. Returns the tiles after `from`, or
+ * null when there is no way there.
+ */
+export function findPath(from, to) {
+  const fx = Math.floor(from.x);
+  const fy = Math.floor(from.y);
+  const tx = Math.floor(to.x);
+  const ty = Math.floor(to.y);
+  if (!isWalkable(tx, ty)) return null;
+  if (fx === tx && fy === ty) return [];
+  const key = (x, y) => `${x},${y}`;
+  const prev = new Map([[key(fx, fy), null]]);
+  const queue = [[fx, fy]];
+  let head = 0;
+  while (head < queue.length) {
+    const [x, y] = queue[head++];
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = x + dx;
+      const ny = y + dy;
+      const k = key(nx, ny);
+      if (prev.has(k) || !isWalkable(nx, ny)) continue;
+      prev.set(k, key(x, y));
+      if (nx === tx && ny === ty) {
+        const path = [];
+        let cur = k;
+        while (cur && cur !== key(fx, fy)) {
+          const [cx, cy] = cur.split(',').map(Number);
+          path.push({ x: cx, y: cy });
+          cur = prev.get(cur);
+        }
+        return path.reverse();
+      }
+      // a door is a destination, not a corridor
+      if (!city.byDoor[k]) queue.push([nx, ny]);
+    }
+  }
+  return null;
 }
 
 /** Which sector a point belongs to — the nearest tower wins. */

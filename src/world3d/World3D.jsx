@@ -1,5 +1,5 @@
 import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { EffectComposer, N8AO, SMAA } from '@react-three/postprocessing';
 import { skinFor } from './skins';
 import { attachKeyboard } from './controls';
@@ -22,6 +22,22 @@ const RAIL_BUTTON =
   'ui-layer w-11 h-11 rounded-full grid place-items-center text-lg ' +
   'bg-white/92 backdrop-blur-md border border-paper-200 text-ink-900 shadow-card ' +
   'active:scale-90 transition-transform';
+
+/**
+ * A phone held upright sees a narrow slice of the world. Widening the
+ * vertical angle as the viewport gets taller keeps the same width of street
+ * in frame — without it a portrait screen shows one tower and a kerb, and
+ * the city reads as crowded for no reason but the aspect ratio.
+ */
+function AdaptiveFov() {
+  const { camera, size } = useThree();
+  useEffect(() => {
+    const aspect = size.width / Math.max(1, size.height);
+    camera.fov = Math.min(60, Math.max(38, 38 + (1.4 - aspect) * 22));
+    camera.updateProjectionMatrix();
+  }, [camera, size.width, size.height]);
+  return null;
+}
 
 /** Phones get smaller in-world signage and a bottom sheet instead of a panel. */
 function useIsCompact() {
@@ -94,10 +110,11 @@ export default function World3D({ onEnter, onOpenDirectory }) {
     <div ref={rootRef} className="absolute inset-0 bg-[#e9eef2] overflow-hidden touch-none">
       <Canvas
         shadows="soft"
-        dpr={[1, 1.75]}
+        dpr={[1, compact ? 1.5 : 1.75]}
         camera={{ fov: 38, near: 0.1, far: 160, position: [16.5, 21, 30] }}
         gl={{ antialias: true }}
       >
+        <AdaptiveFov />
         <color attach="background" args={['#e9eef2']} />
         <fog attach="fog" args={['#e9eef2', 48, 84]} />
 
@@ -111,7 +128,7 @@ export default function World3D({ onEnter, onOpenDirectory }) {
           intensity={1.25}
           color="#fffaf2"
           castShadow
-          shadow-mapSize={[4096, 4096]}
+          shadow-mapSize={compact ? [2048, 2048] : [4096, 4096]}
           shadow-camera-left={-24}
           shadow-camera-right={24}
           shadow-camera-top={20}

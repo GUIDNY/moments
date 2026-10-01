@@ -60,3 +60,21 @@ export function attachKeyboard() {
     blur();
   };
 }
+
+/* ── tap to walk ──────────────────────────────────────────────────────────
+   A phone has no arrow keys and a thumb on a joystick is a thing you do in a
+   game, not in a portfolio. Tapping where you want to go is what everyone
+   already knows. The route lives here, beside the stick, for the same
+   reason the stick does: the render loop reads it every frame and nothing
+   about walking should re-render the app. */
+export const nav = { path: null, target: null };
+// handy from the console, and what the phone test reads
+if (typeof window !== 'undefined') window.__nav = nav;
+
+/** `path` is the tiles still to visit, in order; empty or null clears it. */
+export function setPath(path) {
+  nav.path = path && path.length ? path : null;
+  nav.target = nav.path ? nav.path[nav.path.length - 1] : null;
+}
+
+export const clearPath = () => setPath(null);

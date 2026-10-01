@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { MAP_H, MAP_W, getBuildings, getVersion, isWalkable } from '../world/map-data';
 import VoxelPerson from './VoxelPerson';
 import { labelTexture } from './textures';
-import { input } from './controls';
+import { input, nav, setPath } from './controls';
 import { setPlayerPos } from './playerPos';
 
 const SPEED = 4.4; // tiles per second
@@ -46,9 +46,11 @@ export default function Player({ avatarSkin, label, startTile, onEnterDoor, onNe
     placedAt.current = startTile;
     pos.current.x = startTile.x + 0.5;
     pos.current.z = startTile.y + 0.5;
+    setPath(null); // the route was through streets that may no longer exist
   }
   const motion = useRef({ moving: false, facing: 0 });
   const group = useRef();
+  const ring = useRef();
   const enteredRef = useRef(false);
   const nearRef = useRef(null);
   const camReady = useRef(false);
@@ -77,11 +79,18 @@ export default function Player({ avatarSkin, label, startTile, onEnterDoor, onNe
 
     let vx = input.x;
     let vz = input.z;
-    const len = Math.hypot(vx, vz);
+    let len = Math.hypot(vx, vz);
     if (len > 1) {
       vx /= len;
       vz /= len;
     }
+
+    /* Tap-to-walk: with the stick idle, the avatar follows the route a tile
+       at a time, aiming at each tile's centre. Touching the stick drops the
+       route — a thumb always wins over a tap you made a moment ago. */
+    if (len > 0.08 && nav.path) setPath(null);
+    const routed = len <= 0.08 && Boolean(nav.path);
+    if (routed) len = 1;
     const isMoving = len > 0.08;
     motion.current.moving = isMoving;
 
@@ -105,7 +114,30 @@ export default function Player({ avatarSkin, label, startTile, onEnterDoor, onNe
       const heading = door && Math.sign(vz) === -door.facing && doorDist < MAGNET_RANGE;
 
       for (let i = 0; i < steps; i++) {
-        const step = SPEED * stepDelta;
+        let step = SPEED * stepDelta;
+        /* A routed walk is steered per sub-step, not per frame, and never
+           past the waypoint. On a slow device a frame is a quarter of a
+           second — more than a whole tile — and a direction fixed for the
+           frame overshot the tile's centre, turned round, overshot it again,
+           and the avatar stood vibrating on the spot. */
+        if (routed) {
+          const next = nav.path?.[0];
+          if (!next) break;
+          const dx = next.x + 0.5 - pos.current.x;
+          const dz = next.y + 0.5 - pos.current.z;
+          const dist = Math.hypot(dx, dz);
+          if (dist < 0.02) {
+            nav.path.shift();
+            if (!nav.path.length) {
+              setPath(null);
+              break;
+            }
+            continue;
+          }
+          vx = dx / dist;
+          vz = dz / dist;
+          step = Math.min(step, dist);
+        }
         const nx = pos.current.x + vx * step;
         const nz = pos.current.z + vz * step;
         // resolve each axis on its own so walls slide instead of sticking
@@ -123,7 +155,9 @@ export default function Player({ avatarSkin, label, startTile, onEnterDoor, onNe
 
       pos.current.x = Math.max(RADIUS, Math.min(MAP_W - RADIUS, pos.current.x));
       pos.current.z = Math.max(RADIUS, Math.min(MAP_H - RADIUS, pos.current.z));
-      motion.current.facing = Math.atan2(-vx, -vz);
+      if (vx || vz) motion.current.facing = Math.atan2(-vx, -vz);
+      // a routed walk that just ended leaves nothing to animate next frame
+      if (routed && !nav.path) motion.current.moving = false;
     }
 
     if (group.current) {
@@ -138,6 +172,17 @@ export default function Player({ avatarSkin, label, startTile, onEnterDoor, onNe
     camera.position.z += (pos.current.z + CAM_OFFSET[2] - camera.position.z) * k;
     camera.lookAt(pos.current.x, 0.9, pos.current.z - 2.2);
     camReady.current = true;
+
+    // the destination marker sits on the tapped tile until you arrive
+    if (ring.current) {
+      const t = nav.target;
+      ring.current.visible = Boolean(t);
+      if (t) {
+        ring.current.position.set(t.x + 0.5, 0.06, t.y + 0.5);
+        const pulse = 1 + Math.sin(performance.now() / 180) * 0.08;
+        ring.current.scale.set(pulse, pulse, 1);
+      }
+    }
 
     // published for the minimap and the district label, and handy from the console
     setPlayerPos(pos.current.x, pos.current.z);
@@ -162,11 +207,17 @@ export default function Player({ avatarSkin, label, startTile, onEnterDoor, onNe
   });
 
   return (
-    <group ref={group} position={[pos.current.x, 0, pos.current.z]}>
-      <VoxelPerson skin={avatarSkin} motion={motion} scale={1.15} />
-      <sprite position={[0, 2.1, 0]} scale={[1.5, 0.375, 1]}>
-        <spriteMaterial map={nameTag} transparent depthTest={false} />
-      </sprite>
-    </group>
+    <>
+      <group ref={group} position={[pos.current.x, 0, pos.current.z]}>
+        <VoxelPerson skin={avatarSkin} motion={motion} scale={1.15} />
+        <sprite position={[0, 2.1, 0]} scale={[1.5, 0.375, 1]}>
+          <spriteMaterial map={nameTag} transparent depthTest={false} />
+        </sprite>
+      </group>
+      <mesh ref={ring} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 0]} visible={false}>
+        <ringGeometry args={[0.3, 0.42, 28]} />
+        <meshBasicMaterial color="#ff6b1a" transparent opacity={0.85} />
+      </mesh>
+    </>
   );
 }

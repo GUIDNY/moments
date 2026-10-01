@@ -8,6 +8,7 @@ import { useI18n } from '../i18n/I18nContext';
 import { playerPos } from './playerPos';
 import { emojiTexture, facadeTexture, groundTexture, rooftopTexture, signTexture, billboardTexture } from './textures';
 import { loadLogo } from './logos';
+import { tapHandlers } from './nav';
 
 /* Lerping towards a colour needs a Color to lerp towards, and allocating two
    per building per frame is how a city of twenty towers starts stuttering. */
@@ -40,13 +41,18 @@ const APRON_COLOR = '#b1c9a7';
 
 export function Ground() {
   const tex = useMemo(() => groundTexture(getGrid(), GROUND_COLORS), []);
+  // a tap on the street walks you there; the apron past the kerb is not a place
+  const tap = useMemo(
+    () => tapHandlers((e) => ({ x: Math.floor(e.point.x), y: Math.floor(e.point.z) })),
+    []
+  );
   return (
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[MAP_W / 2, -0.02, MAP_H / 2]}>
         <planeGeometry args={[APRON, APRON]} />
         <meshLambertMaterial color={APRON_COLOR} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[MAP_W / 2, 0, MAP_H / 2]} receiveShadow>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[MAP_W / 2, 0, MAP_H / 2]} receiveShadow {...tap}>
         <planeGeometry args={[MAP_W, MAP_H]} />
         <meshLambertMaterial map={tex} />
       </mesh>
@@ -81,7 +87,7 @@ export function Surrounds() {
        the whole apron instead leaves the first few metres past the boundary —
        the part you are actually looking at — bare, which is the exact gap this
        is here to close. */
-    for (let i = 0; i < 4000 && out.length < 260; i++) {
+    for (let i = 0; i < 4000 && out.length < 170; i++) {
       const x = -RING + next() * (MAP_W + RING * 2);
       const z = -RING + next() * (MAP_H + RING * 2);
       // the town itself is already built; this is only what surrounds it
@@ -97,8 +103,8 @@ export function Surrounds() {
          Nothing out there is a place; it is the backdrop that makes the
          places inside feel like the centre of somewhere. */
       const kind =
-        d < 16 && r < 0.36 ? 'block'
-        : d >= 16 && d < 40 && r < 0.26 ? 'tower'
+        d < 14 && r < 0.26 ? 'block'
+        : d >= 16 && d < 40 && r < 0.2 ? 'tower'
         : r < 0.62 ? 'tree' : r < 0.8 ? 'pine' : r < 0.9 ? 'field' : 'hedge';
       out.push({
         x,
@@ -558,6 +564,23 @@ function Shop({ building, compact }) {
      the way a bank's branch is the bank's red whatever street it is on. */
   const arch = archetypeFor(district);
   const brand = logo?.colour ?? null;
+  // tap the building itself and the avatar walks round to its door
+  const tap = useMemo(
+    () => {
+      const h = tapHandlers(() => ({ x: door.x, y: door.y }));
+      return {
+        onPointerDown: (e) => {
+          e.stopPropagation();
+          h.onPointerDown(e);
+        },
+        onPointerUp: (e) => {
+          e.stopPropagation();
+          h.onPointerUp(e);
+        },
+      };
+    },
+    [door.x, door.y]
+  );
   const fascia = brand ?? arch.podium;
   const board = useMemo(
     () => (logo ? rooftopTexture(logo.image, label, brand ?? color) : null),
@@ -636,7 +659,7 @@ function Shop({ building, compact }) {
   return (
     <group>
       {/* the shaft: every block of the footprint except the doorway */}
-      <group ref={shaft} position={[0, BUILDING_HEIGHT / 2, 0]}>
+      <group ref={shaft} position={[0, BUILDING_HEIGHT / 2, 0]} {...tap}>
         {blocks.map(([bx, by]) => (
           <mesh key={`${bx}-${by}`} position={[bx + 0.5, 0, by + 0.5]} castShadow receiveShadow>
             <boxGeometry args={[1, BUILDING_HEIGHT, 1]} />

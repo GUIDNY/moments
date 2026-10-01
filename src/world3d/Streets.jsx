@@ -71,12 +71,15 @@ function Park({ b }) {
 }
 
 function Filler({ b }) {
-  const { x, y, w, h, seed, facing } = b;
+  const { x, y, w, h, seed, facing, lively } = b;
   const kind = seed % 5; // 0,1 flats, 2 office, 3 shop, 4 townhouse
   const wall = kind === 2 ? '#e8edf1' : pick(WALLS, seed);
-  // two to four floors: the shortest holding's tower starts above the tallest
-  // filler's roof, so the places that matter are the tallest on their street
-  const storeys = kind === 4 ? 2 : kind === 3 ? 2 : kind === 2 ? 3 + (seed % 2) : 2 + (seed % 3);
+  // two or three floors downtown, one or two at the quiet end: the shortest
+  // holding's tower starts above the tallest filler's roof, so the places
+  // that matter are the tallest on their street
+  const storeys = lively
+    ? kind === 4 ? 2 : kind === 3 ? 2 : kind === 2 ? 3 : 2 + (seed % 2)
+    : kind === 4 ? 1 : kind === 3 ? 1 : 2;
   const storey = 1.1;
   const tall = storeys * storey;
   const facade = useMemo(() => {
@@ -92,21 +95,21 @@ function Filler({ b }) {
   return (
     <group>
       <mesh position={[cx, tall / 2, cz]} castShadow receiveShadow>
-        <boxGeometry args={[w - 0.3, tall, h - 0.3]} />
+        <boxGeometry args={[w - 0.6, tall, h - 0.5]} />
         <meshLambertMaterial color={wall} map={facade} />
       </mesh>
 
       {kind === 4 ? (
         // a pitched roof on the townhouse
         <mesh position={[cx, tall + 0.42, cz]} rotation={[0, Math.PI / 2, 0]} castShadow>
-          <cylinderGeometry args={[0, (h - 0.3) * 0.72, 0.85, 4, 1]} />
+          <cylinderGeometry args={[0, (h - 0.5) * 0.74, 0.85, 4, 1]} />
           <meshLambertMaterial color={pick(ROOFS, seed, 2)} />
         </mesh>
       ) : (
         <>
           {/* parapet and the clutter every flat roof has: a tank, an AC unit */}
           <mesh position={[cx, tall + 0.08, cz]} castShadow>
-            <boxGeometry args={[w - 0.2, 0.16, h - 0.2]} />
+            <boxGeometry args={[w - 0.5, 0.16, h - 0.4]} />
             <meshLambertMaterial color={pick(ROOFS, seed, 3)} />
           </mesh>
           <mesh position={[cx - 0.6, tall + 0.42, cz + 0.3]} castShadow>
@@ -200,23 +203,19 @@ function Furniture() {
     const cars = [];
     H_ROADS.forEach((r, i) => {
       if (i % 2) return; // one of each pair of lanes carries the furniture
-      for (let x = r.x0 + 1; x <= r.x1; x += 6) {
+      for (let x = r.x0 + 1; x <= r.x1; x += 8) {
         lamps.push([x + 0.5, 0, r.y - 0.15]);          // pavement above the top lane
         lamps.push([x + 2.5, 0, r.y + 2.15]);          // pavement below the bottom lane
       }
-      for (let x = r.x0 + 2; x <= r.x1 - 1; x += 5) {
-        if ((x + r.y) % 3 === 0) cars.push({ at: [x + 0.5, 0, r.y + 0.62], along: 'x', c: (x * 7 + r.y) % CARS.length });
-      }
+
     });
     V_ROADS.forEach((r, i) => {
       if (i % 2) return;
-      for (let y = r.y0 + 2; y <= r.y1; y += 6) {
+      for (let y = r.y0 + 2; y <= r.y1; y += 8) {
         lamps.push([r.x - 0.15, 0, y + 0.5]);
         lamps.push([r.x + 2.15, 0, y + 2.5]);
       }
-      for (let y = r.y0 + 1; y <= r.y1 - 1; y += 5) {
-        if ((y + r.x) % 3 === 1) cars.push({ at: [r.x + 0.62, 0, y + 0.5], along: 'z', c: (y * 5 + r.x) % CARS.length });
-      }
+
     });
     const inside = ([x, , z]) => x > 0.2 && x < MAP_W - 0.2 && z > 0.2 && z < MAP_H - 0.2;
     return { lamps: lamps.filter(inside), cars: cars.filter((c) => inside(c.at)) };
@@ -283,8 +282,8 @@ function Traffic() {
   const cars = useMemo(() => {
     const out = [];
     LANES.forEach((road, i) => {
-      // one or two per road, spread out so they never bunch
-      const n = 1 + (i % 2);
+      // one car a road: traffic you notice, not traffic you sit in
+      const n = 1;
       for (let k = 0; k < n; k++) {
         out.push({ road, offset: ((k * 2) / n + i * 0.23) % 2, speed: 2.2 + ((i + k) % 3) * 0.5, colour: CARS[(i * 3 + k) % CARS.length] });
       }
@@ -306,8 +305,10 @@ export default function Streets() {
   const fillers = useMemo(() => getFillers(), [version]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <group>
-      {/* roughly one plot in four is a park rather than a building */}
-      {fillers.map((b) => (b.seed % 4 === 1 ? <Park key={b.id} b={b} /> : <Filler key={b.id} b={b} />))}
+      {/* a quarter of the plots downtown are parks; half of them at the quiet end */}
+      {fillers.map((b) =>
+        (b.lively ? b.seed % 4 === 1 : b.seed % 2 === 1) ? <Park key={b.id} b={b} /> : <Filler key={b.id} b={b} />
+      )}
       <Furniture />
       <Traffic />
     </group>

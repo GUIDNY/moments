@@ -66,8 +66,8 @@ export default function Npcs() {
           isWalkable(Math.floor(r.from[0]), Math.floor(r.from[1])) &&
           isWalkable(Math.floor(r.to[0]), Math.floor(r.to[1]))
       )
-        // every other kerb has walkers on it, not every kerb
-        .filter((_, i) => i % 2 === 0)
+        // one kerb in three has a walker on it
+        .filter((_, i) => i % 3 === 0)
         .map((route, i) => ({
         route,
         skin: NPC_SKINS[i % NPC_SKINS.length],
