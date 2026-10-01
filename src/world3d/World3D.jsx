@@ -1,5 +1,6 @@
 import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
+import { EffectComposer, N8AO, SMAA } from '@react-three/postprocessing';
 import { skinFor } from './skins';
 import { attachKeyboard } from './controls';
 import Joystick from './Joystick';
@@ -92,13 +93,13 @@ export default function World3D({ onEnter, onOpenDirectory }) {
   return (
     <div ref={rootRef} className="absolute inset-0 bg-[#e9eef2] overflow-hidden touch-none">
       <Canvas
-        shadows
+        shadows="soft"
         dpr={[1, 1.75]}
-        camera={{ fov: 46, near: 0.1, far: 140, position: [16.5, 13, 26] }}
+        camera={{ fov: 38, near: 0.1, far: 160, position: [16.5, 21, 30] }}
         gl={{ antialias: true }}
       >
         <color attach="background" args={['#e9eef2']} />
-        <fog attach="fog" args={['#e9eef2', 42, 72]} />
+        <fog attach="fog" args={['#e9eef2', 48, 84]} />
 
         {/* A model on a table in daylight: a lot of flat fill so nothing is
             ever in the dark, and one soft sun for the shadows that give the
@@ -110,7 +111,7 @@ export default function World3D({ onEnter, onOpenDirectory }) {
           intensity={1.25}
           color="#fffaf2"
           castShadow
-          shadow-mapSize={[2048, 2048]}
+          shadow-mapSize={[4096, 4096]}
           shadow-camera-left={-24}
           shadow-camera-right={24}
           shadow-camera-top={20}
@@ -142,6 +143,16 @@ export default function World3D({ onEnter, onOpenDirectory }) {
             onNearDoor={setNear}
           />
         </Suspense>
+
+        {/* Ambient occlusion is most of what separates a rendered model from
+            a drawn one: the dark seam where a building meets its pavement, the
+            shade between two towers, the underside of an awning. One pass of
+            it, and anti-aliasing on top so the voxel edges stay crisp at any
+            pixel ratio. Half resolution keeps a phone at sixty frames. */}
+        <EffectComposer multisampling={0} enableNormalPass={false}>
+          <N8AO aoRadius={1.6} intensity={2.4} distanceFalloff={1} halfRes quality="performance" />
+          <SMAA />
+        </EffectComposer>
       </Canvas>
 
       {/* minimap, tucked under the header on the reading side */}

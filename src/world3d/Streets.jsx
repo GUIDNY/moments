@@ -31,6 +31,45 @@ function pick(list, seed, salt = 0) {
  * The towers that matter are still the tallest things on their street,
  * because a holding's tower starts above a filler's roof.
  */
+/**
+ * A pocket park where a block would have been: a lawn, a path, a bench and a
+ * couple of trees. A city that is building on every single plot is a wall;
+ * the parks are what give the eye somewhere to rest and the streets air.
+ */
+function Park({ b }) {
+  const { x, y, w, h, seed } = b;
+  const cx = x + w / 2;
+  const cz = y + h / 2;
+  return (
+    <group>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, 0.015, cz]} receiveShadow>
+        <planeGeometry args={[w - 0.2, h - 0.2]} />
+        <meshLambertMaterial color="#b6d2a8" />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, 0.02, cz]}>
+        <planeGeometry args={[w - 0.2, 0.5]} />
+        <meshLambertMaterial color="#e2dfd4" />
+      </mesh>
+      {[[-0.9, -0.55], [0.95, 0.5], [0.1, -0.6]].map(([ox, oz], i) => (
+        <group key={i} position={[cx + ox, 0, cz + oz]} scale={0.8 + ((seed + i) % 3) * 0.15}>
+          <mesh position={[0, 0.35, 0]} castShadow>
+            <boxGeometry args={[0.18, 0.7, 0.18]} />
+            <meshLambertMaterial color="#6b4a2f" />
+          </mesh>
+          <mesh position={[0, 1.05, 0]} castShadow>
+            <icosahedronGeometry args={[0.55, 1]} />
+            <meshLambertMaterial color={i % 2 ? '#3f9a63' : '#56ad72'} flatShading />
+          </mesh>
+        </group>
+      ))}
+      <mesh position={[cx - 0.2, 0.26, cz + 0.45]} castShadow>
+        <boxGeometry args={[0.8, 0.1, 0.3]} />
+        <meshLambertMaterial color="#8d6b4a" />
+      </mesh>
+    </group>
+  );
+}
+
 function Filler({ b }) {
   const { x, y, w, h, seed, facing } = b;
   const kind = seed % 5; // 0,1 flats, 2 office, 3 shop, 4 townhouse
@@ -161,7 +200,7 @@ function Furniture() {
     const cars = [];
     H_ROADS.forEach((r, i) => {
       if (i % 2) return; // one of each pair of lanes carries the furniture
-      for (let x = r.x0 + 1; x <= r.x1; x += 4) {
+      for (let x = r.x0 + 1; x <= r.x1; x += 6) {
         lamps.push([x + 0.5, 0, r.y - 0.15]);          // pavement above the top lane
         lamps.push([x + 2.5, 0, r.y + 2.15]);          // pavement below the bottom lane
       }
@@ -171,7 +210,7 @@ function Furniture() {
     });
     V_ROADS.forEach((r, i) => {
       if (i % 2) return;
-      for (let y = r.y0 + 2; y <= r.y1; y += 4) {
+      for (let y = r.y0 + 2; y <= r.y1; y += 6) {
         lamps.push([r.x - 0.15, 0, y + 0.5]);
         lamps.push([r.x + 2.15, 0, y + 2.5]);
       }
@@ -244,8 +283,8 @@ function Traffic() {
   const cars = useMemo(() => {
     const out = [];
     LANES.forEach((road, i) => {
-      // two or three per road, spread out so they never bunch
-      const n = 2 + (i % 2);
+      // one or two per road, spread out so they never bunch
+      const n = 1 + (i % 2);
       for (let k = 0; k < n; k++) {
         out.push({ road, offset: ((k * 2) / n + i * 0.23) % 2, speed: 2.2 + ((i + k) % 3) * 0.5, colour: CARS[(i * 3 + k) % CARS.length] });
       }
@@ -267,9 +306,8 @@ export default function Streets() {
   const fillers = useMemo(() => getFillers(), [version]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <group>
-      {fillers.map((b) => (
-        <Filler key={b.id} b={b} />
-      ))}
+      {/* roughly one plot in four is a park rather than a building */}
+      {fillers.map((b) => (b.seed % 4 === 1 ? <Park key={b.id} b={b} /> : <Filler key={b.id} b={b} />))}
       <Furniture />
       <Traffic />
     </group>

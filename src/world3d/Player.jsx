@@ -9,7 +9,10 @@ import { setPlayerPos } from './playerPos';
 const SPEED = 4.4; // tiles per second
 const RADIUS = 0.3;
 const MAX_STEP = 0.03; // seconds per collision sub-step
-const CAM_OFFSET = [0, 15, 14.5];
+/* Higher and further back than before, and looking down more steeply: a
+   diorama is seen from above, and at this distance a street is a street
+   rather than three buildings and a kerb. */
+const CAM_OFFSET = [0, 21, 17];
 const PROMPT_RANGE = 1.7;
 const ENTER_RANGE = 0.5;
 const MAGNET_RANGE = 1.5;
@@ -133,7 +136,7 @@ export default function Player({ avatarSkin, label, startTile, onEnterDoor, onNe
     camera.position.x += (pos.current.x + CAM_OFFSET[0] - camera.position.x) * k;
     camera.position.y += (CAM_OFFSET[1] - camera.position.y) * k;
     camera.position.z += (pos.current.z + CAM_OFFSET[2] - camera.position.z) * k;
-    camera.lookAt(pos.current.x, 0.9, pos.current.z - 1.2);
+    camera.lookAt(pos.current.x, 0.9, pos.current.z - 2.2);
     camReady.current = true;
 
     // published for the minimap and the district label, and handy from the console

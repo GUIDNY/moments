@@ -81,7 +81,7 @@ export function Surrounds() {
        the whole apron instead leaves the first few metres past the boundary —
        the part you are actually looking at — bare, which is the exact gap this
        is here to close. */
-    for (let i = 0; i < 4000 && out.length < 420; i++) {
+    for (let i = 0; i < 4000 && out.length < 260; i++) {
       const x = -RING + next() * (MAP_W + RING * 2);
       const z = -RING + next() * (MAP_H + RING * 2);
       // the town itself is already built; this is only what surrounds it
@@ -97,8 +97,8 @@ export function Surrounds() {
          Nothing out there is a place; it is the backdrop that makes the
          places inside feel like the centre of somewhere. */
       const kind =
-        d < 16 && r < 0.5 ? 'block'
-        : d >= 16 && d < 40 && r < 0.34 ? 'tower'
+        d < 16 && r < 0.36 ? 'block'
+        : d >= 16 && d < 40 && r < 0.26 ? 'tower'
         : r < 0.62 ? 'tree' : r < 0.8 ? 'pine' : r < 0.9 ? 'field' : 'hedge';
       out.push({
         x,

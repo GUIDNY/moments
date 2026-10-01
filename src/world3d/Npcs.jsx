@@ -65,7 +65,10 @@ export default function Npcs() {
         (r) =>
           isWalkable(Math.floor(r.from[0]), Math.floor(r.from[1])) &&
           isWalkable(Math.floor(r.to[0]), Math.floor(r.to[1]))
-      ).map((route, i) => ({
+      )
+        // every other kerb has walkers on it, not every kerb
+        .filter((_, i) => i % 2 === 0)
+        .map((route, i) => ({
         route,
         skin: NPC_SKINS[i % NPC_SKINS.length],
         speed: 0.05 + (i % 3) * 0.018,

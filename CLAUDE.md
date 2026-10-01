@@ -160,6 +160,14 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
 - The chrome over the game has its own small palette — `brand` (orange), `ink` (dark blue-greys)
   and `paper` (white/greys). The world keeps its district colours for wayfinding; do not mix the
   two sets.
+- **Ambient occlusion is most of the difference between a rendered model and a drawn one.** The
+  canvas ends with an `EffectComposer` running `N8AO` at half resolution and `SMAA`, and the sun
+  casts soft shadows from a 4096 map. That stack is `@react-three/postprocessing@2` — the 3.x line
+  is for fiber 9, and this app is on fiber 8. Keep AO cheap (`halfRes`, `quality="performance"`):
+  the test is a phone at sixty frames, not a desktop screenshot.
+- The city needs air as much as buildings: a quarter of the fillers are pocket parks, lamps stand
+  every six tiles, one or two cars per road, walkers on every other kerb. Density past that read as
+  a wall, and the user said so.
 - **The city is lit as a model on a table, so its chrome is white cards.** Floating controls over
   the city share one recipe: same size, same radius, `bg-white/92` + blur + `border-paper-200` +
   `shadow-card`, with `text-ink-900`. The orange FAB is the only exception, because it is the one
@@ -275,6 +283,10 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   once, rather than failing one file at a time.
 
 ## Commands
+`npm run preview` must be started as a *background* process in a Claude Code session — a server
+started inside a foreground call dies when the call returns, and the browser tests then fail with
+`ERR_CONNECTION_REFUSED` and nothing else wrong.
+
 No keys anywhere. `api/quotes.js` and `api/search.js` proxy a free public endpoint and hold no
 secret; `api/analyse.js` is an optional upgrade for the estate-agent product and nothing calls it.
 
