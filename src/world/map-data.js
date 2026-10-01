@@ -1,22 +1,24 @@
-import { OWNER, PROJECTS, ZONES, projectsIn } from '../portfolio/projects';
+import { SECTORS, SECTOR_BY_ID } from '../stocks/catalog';
 
 /**
- * The town, generated from the portfolio.
+ * The city, rebuilt from the portfolio.
  *
- * Nothing here is hand-placed. Each zone owns four plots on the grid, and the
- * projects in that zone fill them in order — so adding a project is an entry in
- * `portfolio/projects.js` and never an edit to this file. A zone with two
- * projects simply has two empty plots, which reads as a quiet street rather
- * than a bug.
+ * This file used to export a map computed once when the module loaded, which
+ * was right when the town was fixed. A portfolio is not: holdings get added and
+ * sold while the page is open, and every one of them is a tower. So the map is
+ * a live object that `rebuild()` replaces, and the pieces that draw it read it
+ * through the accessors rather than importing a frozen array.
  *
- * Terrain is generated too: grass everywhere, roads carved on top, then props
- * scattered in whatever is left. Buildings are blocking rectangles with exactly
- * one walkable door tile inside their own footprint, and that tile touches a
- * road — so you enter a place only by deliberately stepping off the street.
+ * The streets themselves never move. They are the part that was carefully made
+ * walkable — every plot's door touches a road and the whole grid is reachable
+ * from the plaza — so the towers change and the city's bones do not.
  */
 
 export const MAP_W = 34;
 export const MAP_H = 24;
+
+/** The plaza, used when there is nothing built yet. */
+export const SPAWN = { x: 16, y: 14 };
 
 export const TERRAIN = {
   GRASS: 0,
@@ -45,92 +47,57 @@ const V_ROADS = [
 ];
 
 /**
- * Four plots per zone, and which edge of a plot its door faces.
+ * Four plots per block, and which edge of a plot its door faces.
  *
  * `doorRow` is 'top' or 'bottom': a door has to touch a road, and whether the
  * road is above or below the plot depends on where in the grid the plot sits.
- * Getting this wrong gives a building you can see and never enter, which is why
- * the reachability test at the bottom of this file exists.
+ * Getting this wrong gives a tower you can see and never enter, which is what
+ * `unreachableDoors()` is here to catch.
  */
-const PLOTS = {
-  //            ┌ north strip, under the y=4 road
-  business:  { doorRow: 'bottom', at: { x: 11, y: 1 }, plots: [[6, 2], [11, 2], [19, 2], [24, 2]] },
-  //            ┌ north-west block
-  automation:{ doorRow: 'split',  at: { x: 10, y: 8 }, plots: [[6, 6], [11, 6], [6, 9], [11, 9]] },
-  web:       { doorRow: 'split',  at: { x: 23, y: 8 }, plots: [[19, 6], [24, 6], [19, 9], [24, 9]] },
-  bots:      { doorRow: 'split',  at: { x: 10, y: 15 }, plots: [[6, 13], [11, 13], [6, 16], [11, 16]] },
-  apps:      { doorRow: 'split',  at: { x: 23, y: 15 }, plots: [[19, 13], [24, 13], [19, 16], [24, 16]] },
-  //            └ south strip, over the y=19 road
-  studio:    { doorRow: 'top',    at: { x: 16, y: 21 }, plots: [[6, 20], [11, 20], [19, 20], [24, 20]] },
-};
+const BLOCKS = [
+  { id: 'north',     doorRow: 'bottom', at: { x: 11, y: 1 },  plots: [[6, 2], [11, 2], [19, 2], [24, 2]] },
+  { id: 'northwest', doorRow: 'split',  at: { x: 10, y: 8 },  plots: [[6, 6], [11, 6], [6, 9], [11, 9]] },
+  { id: 'northeast', doorRow: 'split',  at: { x: 23, y: 8 },  plots: [[19, 6], [24, 6], [19, 9], [24, 9]] },
+  { id: 'southwest', doorRow: 'split',  at: { x: 10, y: 15 }, plots: [[6, 13], [11, 13], [6, 16], [11, 16]] },
+  { id: 'southeast', doorRow: 'split',  at: { x: 23, y: 15 }, plots: [[19, 13], [24, 13], [19, 16], [24, 16]] },
+  { id: 'south',     doorRow: 'top',    at: { x: 16, y: 21 }, plots: [[6, 20], [11, 20], [19, 20], [24, 20]] },
+];
 
+/* Nearest the plaza first. A portfolio of three stocks scattered across six
+   fixed quarters is a city you spawn in the middle of and cannot see a single
+   tower from — correct, and useless. */
+const BLOCKS_BY_DISTANCE = [...BLOCKS].sort(
+  (a, b) =>
+    (a.at.x - SPAWN.x) ** 2 + (a.at.y - SPAWN.y) ** 2 -
+    ((b.at.x - SPAWN.x) ** 2 + (b.at.y - SPAWN.y) ** 2)
+);
+
+const PLOTS_PER_BLOCK = 4;
 const W = 3;
 const H = 2;
 
-/** Where the door goes for a plot, given which road it can reach. */
+export const MAX_TOWERS = BLOCKS.length * PLOTS_PER_BLOCK;
+
 function doorFor(x, y, doorRow) {
   const mid = x + 1;
   if (doorRow === 'top') return { x: mid, y };
   if (doorRow === 'bottom') return { x: mid, y: y + H - 1 };
-  // 'split': the blocks between two roads — the upper row opens upward, the
-  // lower row opens downward, so both reach the street they are nearest
+  // the blocks between two roads: the upper row opens upward, the lower
+  // row downward, so each reaches the street it is nearest
   return y <= 7 || (y >= 13 && y <= 14) ? { x: mid, y } : { x: mid, y: y + H - 1 };
 }
 
-/* The two fixed doors of the studio: they are not projects, but they are
-   places you walk into, so they are buildings like any other. */
-const FIXED = [
-  { id: 'about', target: 'about', emoji: '👋', name: { he: 'עליי', en: 'About me' } },
-  { id: 'contact', target: 'contact', emoji: '✉️', name: { he: 'דברו איתי', en: 'Get in touch' } },
-];
+/* The live city. Everything that draws reads through the accessors below. */
+const city = {
+  placement: new Map(),
+  buildings: [],
+  byDoor: {},
+  props: [],
+  grid: null,
+  version: 0,
+};
 
-function buildBuildings() {
-  const out = [];
-  for (const zone of ZONES) {
-    const layout = PLOTS[zone.id];
-    if (!layout) continue;
-
-    const occupants =
-      zone.id === 'studio'
-        ? FIXED
-        : projectsIn(zone.id).map((p) => ({
-            id: p.id,
-            target: p.id,
-            emoji: p.emoji,
-            name: p.name,
-          }));
-
-    occupants.slice(0, layout.plots.length).forEach((occupant, i) => {
-      const [x, y] = layout.plots[i];
-      out.push({
-        id: `b-${occupant.id}`,
-        target: occupant.target,
-        kind: zone.id === 'studio' ? 'screen' : 'project',
-        district: zone.id,
-        x, y, w: W, h: H,
-        door: doorFor(x, y, layout.doorRow),
-        emoji: occupant.emoji,
-        name: occupant.name,
-        color: zone.color,
-      });
-    });
-  }
-  return out;
-}
-
-export const BUILDINGS = buildBuildings();
-
-export const DISTRICTS = ZONES.map((z) => ({
-  id: z.id,
-  at: PLOTS[z.id]?.at ?? { x: 16, y: 12 },
-  color: z.color,
-}));
-
-export const BUILDING_BY_DOOR = Object.fromEntries(
-  BUILDINGS.map((b) => [`${b.door.x},${b.door.y}`, b])
-);
-
-/** Static scenery. Anything that would land on a building is dropped below. */
+/** Static scenery. Anything that would land on a tower is dropped. */
 const RAW_PROPS = [
   { x: 20, y: 8, emoji: '🌳', blocked: true },
   { x: 14, y: 7, emoji: '🌳', blocked: true },
@@ -153,71 +120,156 @@ const RAW_PROPS = [
   { x: 31, y: 3, emoji: '🌲', blocked: true },
 ];
 
-const onBuilding = (x, y) =>
-  BUILDINGS.some((b) => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h);
-
-export const PROPS = RAW_PROPS.filter((p) => !onBuilding(p.x, p.y));
-
-function buildTerrain() {
+function buildGrid(buildings, props) {
   const grid = Array.from({ length: MAP_H }, () => new Array(MAP_W).fill(TERRAIN.GRASS));
 
-  // a river frames the west edge
   for (let y = 0; y < MAP_H; y++) {
     grid[y][0] = TERRAIN.WATER;
     grid[y][1] = TERRAIN.WATER;
   }
+  for (const r of H_ROADS) for (let x = r.x0; x <= r.x1; x++) grid[r.y][x] = TERRAIN.ROAD;
+  for (const r of V_ROADS) for (let y = r.y0; y <= r.y1; y++) grid[y][r.x] = TERRAIN.ROAD;
+  for (let y = 11; y <= 12; y++) for (let x = 16; x <= 17; x++) grid[y][x] = TERRAIN.PLAZA;
 
-  for (const r of H_ROADS) {
-    for (let x = r.x0; x <= r.x1; x++) grid[r.y][x] = TERRAIN.ROAD;
-  }
-  for (const r of V_ROADS) {
-    for (let y = r.y0; y <= r.y1; y++) grid[y][r.x] = TERRAIN.ROAD;
-  }
-
-  // the crossroads in the middle of town reads as a plaza
-  for (let y = 11; y <= 12; y++) {
-    for (let x = 16; x <= 17; x++) grid[y][x] = TERRAIN.PLAZA;
-  }
-
-  for (const b of BUILDINGS) {
+  for (const b of buildings) {
     for (let y = b.y; y < b.y + b.h; y++) {
       for (let x = b.x; x < b.x + b.w; x++) grid[y][x] = TERRAIN.BLOCKED;
     }
   }
-
-  for (const p of PROPS) {
-    if (p.blocked) grid[p.y][p.x] = TERRAIN.BLOCKED;
-  }
-
+  for (const p of props) if (p.blocked) grid[p.y][p.x] = TERRAIN.BLOCKED;
   return grid;
 }
 
-export const TERRAIN_GRID = buildTerrain();
+/**
+ * Lay the holdings out as towers, grouped by sector.
+ *
+ * Sectors keep their name and their colour; which block they occupy adapts to
+ * how much of the city is built, so the occupied ones crowd the plaza instead
+ * of sitting one each in six empty quarters. A sector with more holdings than
+ * a block has plots spills into whichever block still has room, because a tower
+ * with nowhere to stand would vanish and the city would quietly stop matching
+ * the portfolio.
+ */
+export function rebuild(holdings = []) {
+  const bySector = new Map(SECTORS.map((s) => [s.id, []]));
+  const spill = [];
+  for (const h of holdings) {
+    const list = bySector.get(h.sector) || bySector.get('other');
+    if (list.length < PLOTS_PER_BLOCK) list.push(h);
+    else spill.push(h);
+  }
+  for (const h of spill) {
+    const room = SECTORS.find((s) => bySector.get(s.id).length < PLOTS_PER_BLOCK);
+    if (room) bySector.get(room.id).push(h);
+  }
+
+  const placement = new Map();
+  SECTORS.filter((s) => bySector.get(s.id).length > 0).forEach((sector, i) => {
+    if (BLOCKS_BY_DISTANCE[i]) placement.set(sector.id, BLOCKS_BY_DISTANCE[i]);
+  });
+
+  const buildings = [];
+  for (const sector of SECTORS) {
+    const block = placement.get(sector.id);
+    if (!block) continue;
+    bySector.get(sector.id).forEach((holding, i) => {
+      const [x, y] = block.plots[i];
+      buildings.push({
+        id: `t-${holding.symbol}`,
+        target: holding.symbol,
+        kind: 'holding',
+        district: sector.id,
+        symbol: holding.symbol,
+        x, y, w: W, h: H,
+        door: doorFor(x, y, block.doorRow),
+        emoji: SECTOR_BY_ID[sector.id]?.emoji ?? '🏢',
+        name: holding.name || { he: holding.symbol, en: holding.symbol },
+        color: sector.color,
+      });
+    });
+  }
+
+  const onBuilding = (x, y) =>
+    buildings.some((b) => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h);
+
+  city.placement = placement;
+  city.buildings = buildings;
+  city.byDoor = Object.fromEntries(buildings.map((b) => [`${b.door.x},${b.door.y}`, b]));
+  city.props = RAW_PROPS.filter((p) => !onBuilding(p.x, p.y));
+  city.grid = buildGrid(buildings, city.props);
+  city.version++;
+  return city;
+}
+
+rebuild([]);
+
+/* ── what the renderers read ──────────────────────────────────────────────── */
+
+export const getBuildings = () => city.buildings;
+export const getProps = () => city.props;
+export const getGrid = () => city.grid;
+export const getVersion = () => city.version;
+
+/** Where each sector ended up this time round. */
+export const getDistricts = () =>
+  SECTORS.map((s) => ({
+    id: s.id,
+    at: city.placement.get(s.id)?.at ?? { x: 16, y: 12 },
+    color: s.color,
+  }));
+
+/** Colours only — the positions move, so anything needing those calls above. */
+export const DISTRICTS = SECTORS.map((s) => ({ id: s.id, at: { x: 16, y: 12 }, color: s.color }));
 
 export const inBounds = (x, y) => x >= 0 && y >= 0 && x < MAP_W && y < MAP_H;
 
-/** Door tiles punch back through their building's blocked footprint. */
+/** Door tiles punch back through their tower's blocked footprint. */
 export function isWalkable(x, y) {
   if (!inBounds(x, y)) return false;
-  if (BUILDING_BY_DOOR[`${x},${y}`]) return true;
-  return TERRAIN_GRID[y][x] !== TERRAIN.BLOCKED && TERRAIN_GRID[y][x] !== TERRAIN.WATER;
+  if (city.byDoor[`${x},${y}`]) return true;
+  const tile = city.grid[y][x];
+  return tile !== TERRAIN.BLOCKED && tile !== TERRAIN.WATER;
 }
 
-export const SPAWN = { x: 16, y: 14 };
-
 /**
- * Every door you can actually walk to from the spawn point.
+ * Where to put someone when the city opens.
  *
- * A generated town can put a door against a wall as easily as against a street,
- * and the failure is silent — the building is there, the sign is over it, and
- * you simply cannot get in. So it is checked rather than assumed, and the check
- * runs in the test suite against the real map.
+ * Not the plaza: with three holdings it is nowhere near any of them, and you
+ * arrive in your own city unable to see a single tower. You start on the street
+ * outside the first one instead — and a few steps back down that street, because
+ * standing in the doorway puts the camera against the facade and one tower
+ * fills the screen.
  */
+export function getSpawn() {
+  const first = city.buildings[0];
+  if (!first) return SPAWN;
+
+  /* The camera sits behind the player on the +z side, so anything at a smaller
+     z than the player is what fills the screen. Stepping "back" out of a door
+     that faces north therefore puts the tower *behind the camera* — you spawn
+     looking at an empty street with your own building out of shot. The player
+     goes to the south of the tower whatever side its door is on; walking round
+     to the door is three seconds and seeing the thing is the point. */
+  const southEdge = first.y + first.h;
+  const x = first.x + 1;
+  let best = null;
+  for (let step = 3; step <= 8; step++) {
+    const tile = { x, y: southEdge + step };
+    if (!inBounds(tile.x, tile.y)) break;
+    // a door tile is walkable, and standing on one enters that building —
+    // spawning on another tower's doorstep opened its screen instantly
+    if (city.byDoor[`${tile.x},${tile.y}`]) continue;
+    if (!isWalkable(tile.x, tile.y)) continue;
+    best = tile;
+    if (step >= 5) break;
+  }
+  return best ?? SPAWN;
+}
+
+/** Every door reachable on foot from the plaza. Checked, never assumed. */
 export function unreachableDoors() {
-  const seen = new Set();
-  const start = `${SPAWN.x},${SPAWN.y}`;
+  const seen = new Set([`${SPAWN.x},${SPAWN.y}`]);
   const queue = [[SPAWN.x, SPAWN.y]];
-  seen.add(start);
   while (queue.length) {
     const [x, y] = queue.pop();
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
@@ -226,18 +278,17 @@ export function unreachableDoors() {
       const key = `${nx},${ny}`;
       if (seen.has(key) || !isWalkable(nx, ny)) continue;
       seen.add(key);
-      // a door is where you stop, not a way through to the next street
-      if (!BUILDING_BY_DOOR[key]) queue.push([nx, ny]);
+      if (!city.byDoor[key]) queue.push([nx, ny]);
     }
   }
-  return BUILDINGS.filter((b) => !seen.has(`${b.door.x},${b.door.y}`)).map((b) => b.id);
+  return city.buildings.filter((b) => !seen.has(`${b.door.x},${b.door.y}`)).map((b) => b.id);
 }
 
-/** Which zone a point belongs to — the nearest venue wins. */
+/** Which sector a point belongs to — the nearest tower wins. */
 export function districtAt(x, y) {
   let best = null;
   let bestDist = Infinity;
-  for (const b of BUILDINGS) {
+  for (const b of city.buildings) {
     const dx = x - (b.x + b.w / 2);
     const dy = y - (b.y + b.h / 2);
     const dist = dx * dx + dy * dy;
@@ -248,5 +299,3 @@ export function districtAt(x, y) {
   }
   return best?.district ?? DISTRICTS[0].id;
 }
-
-export { OWNER, PROJECTS };

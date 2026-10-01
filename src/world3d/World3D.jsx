@@ -7,10 +7,11 @@ import MiniMap from './MiniMap';
 import Npcs from './Npcs';
 import Player from './Player';
 import { Ground, PlazaScreen, Props, River, Shops } from './Scenery';
-import { SPAWN, isWalkable } from '../world/map-data';
-import { useVisit } from '../portfolio/VisitContext';
+import { getSpawn } from '../world/map-data';
+import { useCity } from '../stocks/CityContext';
 import { useI18n } from '../i18n/I18nContext';
-import { OWNER, PROJECTS_BY_ID } from '../portfolio/projects';
+import { formatMoney, formatPct } from '../stocks/money';
+import { moveColor } from '../stocks/towers';
 
 const REACTIONS = ['👍', '🔥', '😂', '🤑', '👋'];
 
@@ -36,7 +37,7 @@ function useIsCompact() {
 
 /** The town, in three dimensions. DOM chrome floats over the canvas. */
 export default function World3D({ onEnter, onOpenDirectory }) {
-  const { spawn: savedSpawn, rememberSpawn } = useVisit();
+  const { positionOf, summary, display, holdings } = useCity();
   const { t, loc } = useI18n();
   const compact = useIsCompact();
   const [near, setNear] = useState(null);
@@ -46,12 +47,9 @@ export default function World3D({ onEnter, onOpenDirectory }) {
   const rootRef = useRef(null);
   const cardRef = useRef(null);
 
-  const startTile = useMemo(() => {
-    const saved = savedSpawn;
-    return saved && isWalkable(saved.x, saved.y) ? saved : SPAWN;
-    // only on mount: the player keeps walking from wherever they came out
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // recomputed whenever the city is relaid: a remembered tile can end up inside
+  // a tower that did not exist a moment ago
+  const startTile = useMemo(() => getSpawn(), [holdings.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => attachKeyboard(), []);
 
@@ -83,7 +81,7 @@ export default function World3D({ onEnter, onOpenDirectory }) {
 
   const handleEnter = useCallback((building) => onEnter(building), [onEnter]);
 
-  const nearProject = near ? PROJECTS_BY_ID[near.target] : null;
+  const nearPosition = near ? positionOf(near.symbol) : null;
   const dockOffset = {
     bottom: near
       ? 'calc(var(--dock, 0px) + 1rem + env(safe-area-inset-bottom, 0px))'
@@ -95,7 +93,7 @@ export default function World3D({ onEnter, onOpenDirectory }) {
       <Canvas
         shadows
         dpr={[1, 1.75]}
-        camera={{ fov: 42, near: 0.1, far: 140, position: [16.5, 11.5, 26] }}
+        camera={{ fov: 46, near: 0.1, far: 140, position: [16.5, 13, 26] }}
         gl={{ antialias: true }}
       >
         <color attach="background" args={['#101a2b']} />
@@ -123,19 +121,18 @@ export default function World3D({ onEnter, onOpenDirectory }) {
           <Shops compact={compact} />
           <Props />
           <PlazaScreen
-            title={loc(OWNER.name)}
-            tagline={loc(OWNER.role)}
-            coins={t('app.tagline')}
+            title={t('app.name')}
+            tagline={holdings.length ? formatMoney(summary.value, display, true) : t('app.tagline')}
+            coins={holdings.length ? `${formatPct(summary.dayPct)} ${t('city.today')}` : ''}
             compact={compact}
           />
           <Npcs />
           <Player
             avatarSkin={skinFor('default')}
-            label={loc(OWNER.name)}
+            label={t('app.name')}
             startTile={startTile}
             onEnterDoor={handleEnter}
             onNearDoor={setNear}
-            onMove={rememberSpawn}
           />
         </Suspense>
       </Canvas>
@@ -230,13 +227,18 @@ export default function World3D({ onEnter, onOpenDirectory }) {
                 />
                 <h2 className="text-[15px] font-black truncate">{loc(near.name)}</h2>
               </div>
-              {/* the result is the hook: it is the reason to step inside */}
+              {/* the two numbers that say whether this tower is worth entering */}
               <p className="text-[12px] text-paper-muted truncate">
-                {nearProject?.client ? loc(nearProject.client) : t('hud.doorHint')}
+                {nearPosition && !nearPosition.missing
+                  ? `${nearPosition.qty.toLocaleString()} × ${formatMoney(nearPosition.price, nearPosition.currency)}`
+                  : t('hud.doorHint')}
               </p>
-              {nearProject?.result && (
-                <p className="text-[13px] font-bold text-brand-deep mt-0.5 truncate">
-                  {loc(nearProject.result)}
+              {nearPosition && !nearPosition.missing && (
+                <p className="text-[13px] font-black mt-0.5 truncate tabular-nums">
+                  {formatMoney(nearPosition.value, nearPosition.currency, true)}{' '}
+                  <span style={{ color: moveColor(nearPosition.dayPct) }}>
+                    {formatPct(nearPosition.dayPct)}
+                  </span>
                 </p>
               )}
             </div>

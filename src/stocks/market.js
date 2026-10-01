@@ -1,0 +1,104 @@
+import { fxSymbol, toMajor } from './money';
+
+/**
+ * Live prices, published outside React.
+ *
+ * The towers change height every frame as prices ease towards their new value,
+ * and a React state update per tick would re-render the whole city sixty times
+ * a second. So the latest numbers live in a plain object that `useFrame` reads
+ * directly — the same trick `playerPos.js` uses for the player, for the same
+ * reason. Components that need to *re-render* on an update subscribe instead.
+ */
+
+export const market = {
+  /** symbol -> quote */
+  bySymbol: {},
+  /** fx symbol -> rate, in the shape `rateBetween` wants */
+  rates: {},
+  at: 0,
+  loading: false,
+  error: null,
+  delayed: true,
+};
+
+const listeners = new Set();
+export function onMarket(fn) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+const announce = () => listeners.forEach((fn) => fn(market));
+
+/** Currencies we may need a rate for, once the quotes say what they are. */
+function neededRates(quotes, display) {
+  const wanted = new Set();
+  for (const q of Object.values(quotes)) {
+    if (!q || q.error) continue;
+    const { currency } = toMajor(q.price, q.currency);
+    if (currency && currency !== display) wanted.add(fxSymbol(currency, display));
+  }
+  return [...wanted];
+}
+
+async function fetchQuotes(symbols) {
+  if (!symbols.length) return {};
+  const res = await fetch(`/api/quotes?symbols=${encodeURIComponent(symbols.join(','))}`);
+  if (!res.ok) throw new Error(`http-${res.status}`);
+  const body = await res.json();
+  market.delayed = body.delayed !== false;
+  const out = {};
+  for (const q of body.quotes || []) out[q.symbol] = q;
+  return out;
+}
+
+/**
+ * Refresh every symbol, then whatever exchange rates those turned out to need.
+ *
+ * Two round trips rather than one, because which rates matter is not knowable
+ * until the quotes come back and say what currency each stock trades in.
+ */
+export async function refresh(symbols, display) {
+  if (!symbols.length) {
+    market.bySymbol = {};
+    market.at = Date.now();
+    announce();
+    return;
+  }
+  market.loading = true;
+  announce();
+  try {
+    const quotes = await fetchQuotes(symbols);
+    // keep the last good price for anything that failed this time round, so a
+    // blip empties a tower rather than the whole skyline
+    market.bySymbol = { ...market.bySymbol, ...quotes };
+
+    const rateSymbols = neededRates(market.bySymbol, display);
+    if (rateSymbols.length) {
+      const fx = await fetchQuotes(rateSymbols);
+      for (const [sym, q] of Object.entries(fx)) {
+        if (!q.error && Number.isFinite(q.price)) market.rates[sym] = q.price;
+      }
+    }
+    market.at = Date.now();
+    market.error = null;
+  } catch (err) {
+    market.error = err.message || 'failed';
+  } finally {
+    market.loading = false;
+    announce();
+  }
+}
+
+/** How often to ask again. Quiet markets do not need a poll every few seconds. */
+export const REFRESH_MS = 60000;
+
+export async function searchSymbols(query) {
+  const q = query.trim();
+  if (q.length < 1) return [];
+  try {
+    const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+    if (!res.ok) return [];
+    return (await res.json()).results || [];
+  } catch {
+    return [];
+  }
+}

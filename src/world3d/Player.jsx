@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { BUILDINGS, MAP_H, MAP_W, isWalkable } from '../world/map-data';
+import { MAP_H, MAP_W, getBuildings, getVersion, isWalkable } from '../world/map-data';
 import VoxelPerson from './VoxelPerson';
 import { labelTexture } from './textures';
 import { input } from './controls';
@@ -9,7 +9,7 @@ import { setPlayerPos } from './playerPos';
 const SPEED = 4.4; // tiles per second
 const RADIUS = 0.3;
 const MAX_STEP = 0.03; // seconds per collision sub-step
-const CAM_OFFSET = [0, 11.5, 11.5];
+const CAM_OFFSET = [0, 15, 14.5];
 const PROMPT_RANGE = 1.7;
 const ENTER_RANGE = 0.5;
 const MAGNET_RANGE = 1.5;
@@ -27,15 +27,6 @@ function canStand(x, z) {
   return true;
 }
 
-/** Doorways are one tile wide, so each door carries the side it opens onto. */
-const DOORS = BUILDINGS.map((b) => ({
-  building: b,
-  cx: b.door.x + 0.5,
-  cz: b.door.y + 0.5,
-  // -1 when the entrance faces north (towards smaller z), +1 when it faces south
-  facing: b.door.y === b.y ? -1 : 1,
-}));
-
 /**
  * Drives the avatar from the shared input, slides along walls, steers into
  * doorways, follows with the camera and reports which venue is underfoot.
@@ -43,12 +34,38 @@ const DOORS = BUILDINGS.map((b) => ({
 export default function Player({ avatarSkin, label, startTile, onEnterDoor, onNearDoor, onMove }) {
   const { camera } = useThree();
   const pos = useRef({ x: startTile.x + 0.5, z: startTile.y + 0.5 });
+
+  /* The city is relaid whenever a holding is added or sold, and the tile the
+     avatar is standing on can become the inside of a new tower. A changed
+     start tile therefore moves them, rather than only placing them once. */
+  const placedAt = useRef(startTile);
+  if (placedAt.current !== startTile) {
+    placedAt.current = startTile;
+    pos.current.x = startTile.x + 0.5;
+    pos.current.z = startTile.y + 0.5;
+  }
   const motion = useRef({ moving: false, facing: 0 });
   const group = useRef();
   const enteredRef = useRef(false);
   const nearRef = useRef(null);
   const camReady = useRef(false);
   const nameTag = useMemo(() => labelTexture(label), [label]);
+
+  /* Doorways are one tile wide, so each door carries the side it opens onto.
+     The city is rebuilt whenever the portfolio changes, so this is recomputed
+     against the live map rather than frozen when the module loaded. */
+  const doors = useMemo(
+    () =>
+      getBuildings().map((b) => ({
+        building: b,
+        cx: b.door.x + 0.5,
+        cz: b.door.y + 0.5,
+        // -1 when the entrance faces north (towards smaller z), +1 when south
+        facing: b.door.y === b.y ? -1 : 1,
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [getVersion()]
+  );
 
   useFrame((_, rawDelta) => {
     // a long frame is walked in small sub-steps: capping it outright would make
@@ -68,7 +85,7 @@ export default function Player({ avatarSkin, label, startTile, onEnterDoor, onNe
     // nearest doorway, measured before moving so we can steer towards it
     let door = null;
     let doorDist = Infinity;
-    for (const d of DOORS) {
+    for (const d of doors) {
       const dist = Math.hypot(pos.current.x - d.cx, pos.current.z - d.cz);
       if (dist < doorDist) {
         doorDist = dist;

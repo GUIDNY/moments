@@ -1,11 +1,7 @@
 /**
- * Two languages, one flat dictionary.
- *
- * Hebrew is the default here: the work is for Israeli businesses and most
- * visitors will arrive in Hebrew. English is a toggle, and everything in the
- * town — the signs over the doors, the case studies, the zone names — comes
- * from `portfolio/projects.js` through `loc()` rather than from this file, so
- * adding a project never means adding a translation key.
+ * Two languages, one flat dictionary. Hebrew is the default — the markets this
+ * is aimed at are Tel Aviv first — and company names come from the catalogue
+ * through `loc()` rather than from here.
  */
 
 export const LANGUAGES = {
@@ -17,94 +13,126 @@ export const DEFAULT_LANG = 'he';
 
 export const STRINGS = {
   he: {
-    'app.name': 'תיק העבודות',
-    'app.tagline': 'תסתובבו ותיכנסו',
+    'app.name': 'עיר המניות',
+    'app.tagline': 'התיק שלכם, כעיר',
 
     'common.exit': '← יציאה',
     'common.back': 'חזרה',
-    'common.close': 'סגירה',
+    'common.close': 'ביטול',
     'common.enter': 'כניסה',
+    'common.save': 'שמירה',
 
     'hud.hint': 'הזיזו את הג׳ויסטיק כדי ללכת',
     'hud.doorHint': 'עמדו בפתח כדי להיכנס',
-    'hud.guide': 'מפת האזורים',
-    'hud.seen': '{n} מתוך {total}',
+    'hud.guide': 'התיק שלי',
+    'hud.add': 'הוספת מניה',
+    'hud.empty': 'העיר ריקה',
 
-    'directory.title': 'מה יש בעיר',
-    'directory.sub': 'הקישו על פרויקט כדי להגיע אליו',
-    'directory.services': 'עליי ויצירת קשר',
-    'directory.empty': 'האזור הזה עוד מחכה לפרויקט',
+    'city.value': 'שווי התיק',
+    'city.today': 'היום',
+    'city.gain': 'רווח כולל',
+    'city.delayed': 'המחירים מתעדכנים בהשהיה של כ-15 דקות ואינם מיועדים למסחר.',
+    'city.updated': 'עודכן {time}',
+    'city.offline': 'לא הצלחתי להביא מחירים כרגע.',
+    'city.unconverted': '{n} אחזקות לא נכללות בסכום — אין שער המרה.',
 
-    'welcome.title': 'ברוכים הבאים',
-    'welcome.body':
-      'כל בניין בעיר הוא פרויקט אמיתי. תסתובבו עם הג׳ויסטיק, תיכנסו לדלת שמעניינת אתכם, ותקראו מה נבנה שם ומה זה עשה.',
-    'welcome.cta': 'יאללה',
+    'directory.title': 'התיק שלי',
+    'directory.sub': 'הקישו על אחזקה כדי להגיע למגדל שלה',
+    'directory.empty': 'עוד לא הוספתם מניות',
+    'directory.add': 'הוספת מניה',
+    'directory.share': 'שיתוף התיק',
+    'directory.copied': 'הקישור הועתק',
+    'directory.shared': 'אתם צופים בתיק משותף. שינויים לא יישמרו.',
 
-    'project.result': 'מה זה עשה',
-    'project.problem': 'מה היה לפני',
-    'project.built': 'מה נבנה',
-    'project.stack': 'עם מה',
-    'project.live': 'לראות את זה חי',
+    'picker.title': 'הוספת מניה',
+    'picker.search': 'חיפוש חברה או סמל…',
+    'picker.searching': 'מחפש…',
+    'picker.results': 'תוצאות',
+    'picker.nothing': 'לא נמצא. נסו את הסמל באנגלית.',
+    'picker.qty': 'כמה מניות',
+    'picker.cost': 'מחיר קנייה למניה (לא חובה)',
+    'picker.costHint': 'באותן יחידות שהבורסה מציגה. בתל אביב זה באגורות.',
+    'picker.addIt': 'בנו את המגדל',
+    'picker.note': 'הנתונים לצורך תצוגה בלבד, לא ייעוץ ולא המלצה.',
+
+    'holding.value': 'שווי האחזקה',
+    'holding.today': 'היום',
+    'holding.price': 'מחיר',
+    'holding.qty': 'כמות',
+    'holding.cost': 'מחיר קנייה',
+    'holding.gain': 'רווח/הפסד',
+    'holding.inDisplay': 'בשווי ב-{c}',
+    'holding.noPrice': 'אין כרגע מחיר לסמל הזה. ייתכן שהוא שגוי או שהשוק סגור.',
+    'holding.edit': 'עריכת כמות ומחיר',
+    'holding.sell': 'הסרה מהתיק',
+
     'project.backToTown': 'חזרה לעיר',
-    'project.visited': 'כבר ביקרתם כאן',
 
-    'about.title': 'עליי',
-    'about.zones': 'האזורים בעיר',
-    'about.count': '{n} פרויקטים',
-
-    'contact.title': 'יצירת קשר',
-    'contact.heading': 'יש לכם משהו שכדאי לאטמט?',
-    'contact.sub': 'ספרו לי מה גוזל לכם הכי הרבה זמן ואני אגיד לכם אם אפשר לבנות את זה.',
-    'contact.greeting': 'היי, ראיתי את תיק העבודות שלך',
-    'contact.whatsapp': 'וואטסאפ',
-    'contact.email': 'אימייל',
-    'contact.site': 'האתר',
-    'contact.empty': 'פרטי הקשר עוד לא מולאו. הם נמצאים בקובץ אחד: src/portfolio/projects.js, בתוך OWNER.',
+    'welcome.title': 'ברוכים הבאים לעיר שלכם',
+    'welcome.body':
+      'כל מניה בתיק היא מגדל. הגובה הוא השווי שלה, הגג ירוק כשהיא עולה ואדום כשהיא יורדת, והבניין מבריק כשאתם ברווח ומתעמעם כשלא. הוסיפו מניה והמגדל הראשון יעלה.',
+    'welcome.cta': 'בואו נתחיל',
   },
 
   en: {
-    'app.name': 'The portfolio',
-    'app.tagline': 'Walk around and step in',
+    'app.name': 'Stock City',
+    'app.tagline': 'Your portfolio, as a city',
 
     'common.exit': '← Exit',
     'common.back': 'Back',
-    'common.close': 'Close',
+    'common.close': 'Cancel',
     'common.enter': 'Enter',
+    'common.save': 'Save',
 
     'hud.hint': 'Use the joystick to walk',
     'hud.doorHint': 'Stand in the doorway to go in',
-    'hud.guide': 'Map of the zones',
-    'hud.seen': '{n} of {total}',
+    'hud.guide': 'My portfolio',
+    'hud.add': 'Add a stock',
+    'hud.empty': 'The city is empty',
 
-    'directory.title': "What's in town",
-    'directory.sub': 'Tap a project to walk to it',
-    'directory.services': 'About & contact',
-    'directory.empty': 'This zone is still waiting for a project',
+    'city.value': 'Portfolio value',
+    'city.today': 'Today',
+    'city.gain': 'Total gain',
+    'city.delayed': 'Prices are delayed by about 15 minutes and are not for trading.',
+    'city.updated': 'Updated {time}',
+    'city.offline': 'Could not fetch prices just now.',
+    'city.unconverted': '{n} holdings are left out of the total — no exchange rate.',
 
-    'welcome.title': 'Welcome',
+    'directory.title': 'My portfolio',
+    'directory.sub': 'Tap a holding to walk to its tower',
+    'directory.empty': 'No stocks added yet',
+    'directory.add': 'Add a stock',
+    'directory.share': 'Share this portfolio',
+    'directory.copied': 'Link copied',
+    'directory.shared': 'You are viewing a shared portfolio. Changes will not be saved.',
+
+    'picker.title': 'Add a stock',
+    'picker.search': 'Search a company or symbol…',
+    'picker.searching': 'Searching…',
+    'picker.results': 'Results',
+    'picker.nothing': 'Nothing found. Try the symbol instead.',
+    'picker.qty': 'How many shares',
+    'picker.cost': 'Price paid per share (optional)',
+    'picker.costHint': 'In the units the exchange shows. Tel Aviv quotes in agorot.',
+    'picker.addIt': 'Put up the tower',
+    'picker.note': 'For display only — not advice and not a recommendation.',
+
+    'holding.value': 'Position value',
+    'holding.today': 'today',
+    'holding.price': 'Price',
+    'holding.qty': 'Shares',
+    'holding.cost': 'Paid',
+    'holding.gain': 'Gain / loss',
+    'holding.inDisplay': 'Worth in {c}',
+    'holding.noPrice': 'No price for that symbol right now. It may be wrong, or the market may be closed.',
+    'holding.edit': 'Edit shares and price',
+    'holding.sell': 'Remove from portfolio',
+
+    'project.backToTown': 'Back to the city',
+
+    'welcome.title': 'Welcome to your city',
     'welcome.body':
-      'Every building here is a real project. Walk around with the joystick, step into whichever door interests you, and read what was built and what it changed.',
+      'Every stock you hold is a tower. Its height is what the position is worth, its roof is green when the stock is up and red when it is down, and the building gleams when you are in profit and dims when you are not. Add a stock and the first tower goes up.',
     'welcome.cta': "Let's go",
-
-    'project.result': 'What it changed',
-    'project.problem': 'What it was like before',
-    'project.built': 'What was built',
-    'project.stack': 'Built with',
-    'project.live': 'See it live',
-    'project.backToTown': 'Back to town',
-    'project.visited': 'You have been here',
-
-    'about.title': 'About',
-    'about.zones': 'The zones',
-    'about.count': '{n} projects',
-
-    'contact.title': 'Get in touch',
-    'contact.heading': 'Got something worth automating?',
-    'contact.sub': 'Tell me what eats the most of your time and I will tell you whether it can be built.',
-    'contact.greeting': 'Hi, I saw your portfolio',
-    'contact.whatsapp': 'WhatsApp',
-    'contact.email': 'Email',
-    'contact.site': 'Website',
-    'contact.empty': 'Contact details are not filled in yet. They live in one file: src/portfolio/projects.js, under OWNER.',
   },
 };

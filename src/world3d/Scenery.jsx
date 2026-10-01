@@ -1,9 +1,15 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { BUILDINGS, MAP_H, MAP_W, PROPS, TERRAIN, TERRAIN_GRID } from '../world/map-data';
+import * as THREE from 'three';
+import { MAP_H, MAP_W, TERRAIN, getBuildings, getGrid, getProps } from '../world/map-data'
+import { towerFor } from '../stocks/towers';
 import { useI18n } from '../i18n/I18nContext';
 import { playerPos } from './playerPos';
 import { emojiTexture, groundTexture, signTexture, billboardTexture } from './textures';
+
+/* Lerping towards a colour needs a Color to lerp towards, and allocating two
+   per building per frame is how a city of twenty towers starts stuttering. */
+const SCRATCH = new THREE.Color();
 
 /** tile (x, y) -> the centre of that tile in world space */
 export const tileToWorld = (x, y) => [x + 0.5, 0, y + 0.5];
@@ -17,7 +23,7 @@ const GROUND_COLORS = {
 };
 
 export function Ground() {
-  const tex = useMemo(() => groundTexture(TERRAIN_GRID, GROUND_COLORS), []);
+  const tex = useMemo(() => groundTexture(getGrid(), GROUND_COLORS), []);
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[MAP_W / 2, 0, MAP_H / 2]} receiveShadow>
       <planeGeometry args={[MAP_W, MAP_H]} />
@@ -133,7 +139,7 @@ function Billboard({ emoji, position, height = 0.8 }) {
 export function Props() {
   return (
     <group>
-      {PROPS.map((p) => {
+      {getProps().map((p) => {
         const pos = tileToWorld(p.x, p.y);
         switch (p.emoji) {
           case '🌳':
@@ -204,14 +210,44 @@ function Shop({ building, compact }) {
     }
   }
 
+  /* The tower is one tall box scaled from its base rather than a stack, so a
+     holding that doubles grows smoothly instead of popping a new storey into
+     existence. Height, facade and roof all ease towards their targets in
+     `useFrame`; nothing here re-renders when a price moves. */
+  const shaft = useRef(null);
+  const roof = useRef(null);
+  const shaftMat = useRef(null);
+  const roofMat = useRef(null);
+  const current = useRef(BUILDING_HEIGHT);
+
+  useFrame(() => {
+    const tower = building.symbol ? towerFor(building.symbol) : null;
+    const target = tower?.height ?? BUILDING_HEIGHT;
+    current.current += (target - current.current) * 0.08;
+    const tall = current.current;
+
+    if (shaft.current) {
+      shaft.current.scale.y = tall / BUILDING_HEIGHT;
+      shaft.current.position.y = tall / 2;
+    }
+    if (roof.current) roof.current.position.y = tall + 0.1;
+    if (tower) {
+      shaftMat.current?.color.lerp(SCRATCH.set(tower.body), 0.08);
+      roofMat.current?.color.lerp(SCRATCH.set(tower.roof), 0.08);
+    }
+  });
+
   return (
     <group>
-      {blocks.map(([bx, by]) => (
-        <mesh key={`${bx}-${by}`} position={[bx + 0.5, BUILDING_HEIGHT / 2, by + 0.5]} castShadow receiveShadow>
-          <boxGeometry args={[1, BUILDING_HEIGHT, 1]} />
-          <meshLambertMaterial color={WALL_COLOR} />
-        </mesh>
-      ))}
+      {/* the shaft: every block of the footprint except the doorway */}
+      <group ref={shaft} position={[0, BUILDING_HEIGHT / 2, 0]}>
+        {blocks.map(([bx, by]) => (
+          <mesh key={`${bx}-${by}`} position={[bx + 0.5, 0, by + 0.5]} castShadow receiveShadow>
+            <boxGeometry args={[1, BUILDING_HEIGHT, 1]} />
+            <meshLambertMaterial ref={shaftMat} color={WALL_COLOR} />
+          </mesh>
+        ))}
+      </group>
 
       {/* lintel over the open doorway keeps the facade unbroken */}
       <mesh position={[door.x + 0.5, 2.1, door.y + 0.5]} castShadow>
@@ -219,10 +255,10 @@ function Shop({ building, compact }) {
         <meshLambertMaterial color={WALL_COLOR} />
       </mesh>
 
-      {/* roof band in the district colour, flush so it does not overhang the street */}
-      <mesh position={[x + w / 2, BUILDING_HEIGHT + 0.1, y + h / 2]} castShadow>
+      {/* roof band: the district colour normally, today's move on a tower */}
+      <mesh ref={roof} position={[x + w / 2, BUILDING_HEIGHT + 0.1, y + h / 2]} castShadow>
         <boxGeometry args={[w, 0.2, h]} />
-        <meshLambertMaterial color={color} />
+        <meshLambertMaterial ref={roofMat} color={color} />
       </mesh>
 
       {/* lit doorway */}
@@ -251,7 +287,7 @@ function Shop({ building, compact }) {
 export function Shops({ compact = false }) {
   return (
     <group>
-      {BUILDINGS.map((b) => (
+      {getBuildings().map((b) => (
         <Shop key={b.id} building={b} compact={compact} />
       ))}
     </group>

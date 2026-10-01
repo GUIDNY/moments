@@ -1,0 +1,152 @@
+/**
+ * The arithmetic of a portfolio, and the two places it goes wrong.
+ *
+ * **Minor units.** Tel Aviv quotes in agorot and London in pence — a hundredth
+ * of a shekel and of a pound. The currency code says so (`ILA`, `GBp`) and
+ * nothing else does, so a reader who takes the number at face value reports a
+ * holding as a hundred times its worth. This is the single most dangerous line
+ * in the whole app, because the result looks plausible: a ₪7,726 bank share
+ * instead of ₪77.26.
+ *
+ * **Mixed currencies.** Holding Apple and Bank Hapoalim means a total that is
+ * meaningless without a rate. Everything is converted into one display currency
+ * and the rates are fetched like any other quote.
+ */
+
+/** Currencies quoted in a minor unit, with what they are really worth. */
+const MINOR = {
+  ILA: { major: 'ILS', per: 100 },
+  ILS_AGOROT: { major: 'ILS', per: 100 },
+  GBp: { major: 'GBP', per: 100 },
+  ZAc: { major: 'ZAR', per: 100 },
+};
+
+/** A price and its currency, both in the major unit. */
+export function toMajor(price, currency) {
+  const minor = MINOR[currency];
+  if (!minor || !Number.isFinite(price)) return { price, currency: currency || 'USD' };
+  return { price: price / minor.per, currency: minor.major };
+}
+
+/** The symbol that quotes one currency in another. */
+export const fxSymbol = (from, to) => `${from}${to}=X`;
+
+/**
+ * How much one unit of `from` is worth in `to`.
+ * `rates` is keyed by fx symbol, as it comes back from the quote endpoint.
+ */
+export function rateBetween(from, to, rates) {
+  if (from === to) return 1;
+  const direct = rates[fxSymbol(from, to)];
+  if (Number.isFinite(direct)) return direct;
+  const inverse = rates[fxSymbol(to, from)];
+  if (Number.isFinite(inverse) && inverse !== 0) return 1 / inverse;
+  // via the dollar, which every pair we are likely to want goes through
+  if (from !== 'USD' && to !== 'USD') {
+    const fromUsd = rateBetween(from, 'USD', rates);
+    const usdTo = rateBetween('USD', to, rates);
+    if (fromUsd != null && usdTo != null) return fromUsd * usdTo;
+  }
+  return null;
+}
+
+/**
+ * One holding, priced.
+ *
+ * `cost` is what was paid per share, in whatever unit the market quotes — an
+ * agent types 7726 for a bank share because that is what the screen said — so
+ * it goes through exactly the same conversion as the live price. Converting one
+ * and not the other is how a flat position shows a 9,900% gain.
+ */
+export function priceHolding(holding, quote, display, rates) {
+  if (!quote || quote.error || !Number.isFinite(quote.price)) {
+    return { symbol: holding.symbol, missing: true };
+  }
+
+  const now = toMajor(quote.price, quote.currency);
+  const prev = toMajor(quote.prevClose ?? quote.price, quote.currency);
+  const cost = Number.isFinite(holding.cost) ? toMajor(holding.cost, quote.currency).price : null;
+
+  const qty = Number(holding.qty) || 0;
+  const rate = rateBetween(now.currency, display, rates);
+
+  const value = qty * now.price;
+  const dayChange = qty * (now.price - prev.price);
+  const gain = cost == null ? null : qty * (now.price - cost);
+  const gainPct = cost == null || cost === 0 ? null : ((now.price - cost) / cost) * 100;
+  const dayPct = prev.price === 0 ? 0 : ((now.price - prev.price) / prev.price) * 100;
+
+  return {
+    symbol: quote.symbol || holding.symbol,
+    name: quote.name || holding.symbol,
+    qty,
+    price: now.price,
+    prevClose: prev.price,
+    cost,
+    currency: now.currency,
+    exchange: quote.exchange || '',
+    value,
+    dayChange,
+    dayPct,
+    gain,
+    gainPct,
+    // null when no rate is available; the UI leaves such a holding out of the
+    // total rather than quietly adding shekels to dollars
+    converted: rate == null ? null : value * rate,
+    convertedDay: rate == null ? null : dayChange * rate,
+    convertedGain: rate == null || gain == null ? null : gain * rate,
+    rate,
+  };
+}
+
+/** The whole portfolio, in the display currency. */
+export function summarise(positions, display) {
+  let value = 0;
+  let day = 0;
+  let gain = 0;
+  let cost = 0;
+  let unconverted = 0;
+
+  for (const p of positions) {
+    if (p.missing) continue;
+    if (p.converted == null) {
+      unconverted++;
+      continue;
+    }
+    value += p.converted;
+    day += p.convertedDay ?? 0;
+    if (p.convertedGain != null) {
+      gain += p.convertedGain;
+      cost += p.converted - p.convertedGain;
+    }
+  }
+
+  return {
+    display,
+    value,
+    day,
+    dayPct: value - day === 0 ? 0 : (day / (value - day)) * 100,
+    gain,
+    gainPct: cost === 0 ? null : (gain / cost) * 100,
+    unconverted,
+    counted: positions.filter((p) => !p.missing && p.converted != null).length,
+  };
+}
+
+/** Readable money, in the currency's own habits. */
+export function formatMoney(amount, currency, compact = false) {
+  if (!Number.isFinite(amount)) return '—';
+  try {
+    return new Intl.NumberFormat('he-IL', {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: compact || Math.abs(amount) >= 1000 ? 0 : 2,
+      notation: compact && Math.abs(amount) >= 1e6 ? 'compact' : 'standard',
+    }).format(amount);
+  } catch {
+    return `${Math.round(amount).toLocaleString()} ${currency}`;
+  }
+}
+
+export const formatPct = (n) =>
+  Number.isFinite(n) ? `${n >= 0 ? '+' : ''}${n.toFixed(2)}%` : '—';

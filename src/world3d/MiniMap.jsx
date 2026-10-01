@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { BUILDINGS, MAP_H, MAP_W, TERRAIN, TERRAIN_GRID } from '../world/map-data';
+import { MAP_H, MAP_W, TERRAIN, getBuildings, getGrid } from '../world/map-data';
 import { playerPos } from './playerPos';
 
 /** Muted version of the ground palette — the minimap should read at a glance. */
@@ -19,7 +19,7 @@ function gridImage(tilePx = 6) {
   const ctx = canvas.getContext('2d');
   for (let y = 0; y < MAP_H; y++) {
     for (let x = 0; x < MAP_W; x++) {
-      ctx.fillStyle = MINI_COLORS[TERRAIN_GRID[y][x]] ?? MINI_COLORS[TERRAIN.GRASS];
+      ctx.fillStyle = MINI_COLORS[getGrid()[y][x]] ?? MINI_COLORS[TERRAIN.GRASS];
       ctx.fillRect(x * tilePx, y * tilePx, tilePx, tilePx);
     }
   }
@@ -61,7 +61,7 @@ export default function MiniMap({ onOpen, className = '' }) {
   // buildings never move, so their dots are positioned once in percentages
   const dots = useMemo(
     () =>
-      BUILDINGS.map((b) => ({
+      getBuildings().map((b) => ({
         id: b.id,
         color: b.color,
         left: ((b.x + b.w / 2) / MAP_W) * 100,

@@ -1,32 +1,29 @@
-# A 3D portfolio town — Claude Code notes
+# Stock City — Claude Code notes
 
 ## What this is
-A dark-mode 3D town you walk around in, where **every building is a real project**. Step into a
-lit doorway and you get that project's case study: what was wrong before, what got built, what it
-was built with, and what changed. The zones are the kinds of work — automations, websites, WhatsApp
-bots, apps, business systems — plus a studio block for "about" and "get in touch".
+A dark-mode 3D city you walk around in, where **every tower is a stock you hold**. Its height is
+what the position is worth, its roof is green when the stock is up today and red when it is down,
+and the facade gleams when you are in profit and dims when you are not. Step into a doorway and you
+get that holding's numbers: shares, price, what you paid, profit and loss.
 
-Hebrew first, English as a toggle. The look is third-person voxel.
+Prices are live, free and keyless. Hebrew first, English as a toggle.
 
-This began life as a town of mini-games and the bones were right, so the streets, the joystick, the
-doorway magnetism and the minimap all survived; the coins, the wallet and the games did not. A
-portfolio has nothing to spend.
+The city machinery — streets, joystick, doorway magnetism, minimap, voxel walker — has survived
+three products now (a town of mini-games, a portfolio of projects, this). The map is the part that
+changes.
 
-## The one file to edit
-`src/portfolio/projects.js` holds `ZONES`, `PROJECTS` and `OWNER`, and everything else reads from
-it — the districts, the buildings, the signs over the doors, the directory, the case studies and
-the counter in the header. **Adding a project is an entry in a list; it is never an edit to the
-map.** The projects shipped there are placeholders and say so.
+## The chain
+`portfolio → prices → arithmetic → skyline → streets`, and `stocks/CityContext.jsx` owns all of it.
+Everything downstream reads the finished article.
 
 ## Four pages
 Vite is an MPA (`build.rollupOptions.input`); the pages share the build and the Tailwind tokens and
 nothing else.
-- `index.html` — the portfolio town.
+- `index.html` — the stock city.
 - `apartment.html` — a hand-built first-person walkthrough of one ski studio, modelled from photos.
 - `landing.html` — the front door of the estate-agent product: it takes the photographs.
 - `studio.html` / `tour.html` — that product. Both load `src/tour/entry.jsx`, which shows the
-  **builder** when the URL has no `?p=`, and the **client tour** when it does. That is why the link
-  an agent generates is just this same page again, and works under any host.
+  **builder** when the URL has no `?p=`, and the **client tour** when it does.
 
 ## Stack
 Vite 6 + React 18 (JSX, no TypeScript) + Tailwind 3, with three.js through react-three-fiber for
@@ -34,36 +31,59 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
 `src/App.jsx`, and every label in the 3D scene is a canvas texture.
 
 ## Layout
-- `src/portfolio/` — **the product**: `projects.js` (the content), `VisitContext.jsx` (which
-  projects have been opened and where you were standing), `ProjectScreen.jsx` (a case study),
-  `AboutScreen.jsx`, `ContactScreen.jsx`.
-- `src/world/` — `map-data.js` (generates the whole town from `projects.js`), `CityHud.jsx`,
-  `Directory.jsx`.
+- `src/stocks/` — **the product**: `catalog.js` (the board you pick from, and the sectors that are
+  also the districts), `store.js` (holdings in localStorage plus the share link), `money.js` (the
+  arithmetic), `market.js` (live prices, published outside React), `towers.js` (what each tower
+  should look like), `CityContext.jsx` (the chain), `PickerScreen.jsx`, `HoldingScreen.jsx`.
+- `api/quotes.js`, `api/search.js` — the only server-side code, and it holds no key: the upstream
+  sends no CORS headers, so the browser cannot call it directly. `vite.config.js` mounts the same
+  handlers in dev and preview so a change can be tried without shipping it.
+- `src/world/` — `map-data.js` (lays the city out from the holdings), `CityHud.jsx`, `Directory.jsx`.
 - `src/world3d/` — `World3D.jsx` (canvas, lights, DOM chrome), `Scenery.jsx`, `VoxelPerson.jsx`,
   `Player.jsx`, `Npcs.jsx`, `Joystick.jsx`, `MiniMap.jsx`, `controls.js`, `textures.js`,
   `playerPos.js`.
-- `src/i18n/` — `strings.js` (flat he/en dictionary, Hebrew default) and `I18nContext.jsx`
-  (`t`, `loc`, `setLang`).
-- `src/apartment/` — the walkthrough: `plan.js` (metres, walls, solids, viewpoints and the
-  collision test), `materials.js` (every surface painted on a canvas), `Apartment.jsx` (geometry),
-  `Viewer.jsx` (camera), `controls.js`, `Stick.jsx`.
-- `src/tour/` — the estate-agent product. Two ways to get a flat: `fromPhotos.js` builds **the**
-  flat from a survey, and `generate.js` builds *a* flat from the builder's form for the preview.
-  `SurveyedHome.jsx` draws the first, `Home.jsx` the second, `surfaces.js` paints every surface from
-  the observed colours, `TourApp`/`StudioApp` are the two faces, `share.js` packs the property into
-  the URL, and `engine/` holds the first-person camera, joystick and adaptive field of view.
-- `src/lib/readPhoto.js` — reads a room off a photograph in a canvas. No model, no key, no network.
-- `src/tour/surveyFromPhotos.js` — those readings plus the agent's tags become a survey.
-- `api/analyse.js` — an *optional* upgrade, not the product: a Vercel function that sends the
-  photographs to Claude for a richer survey. Nothing in the UI calls it.
-- `src/landing/` — `LandingApp.jsx` and `RoomTagger.jsx`.
-- `src/upload/PhotoUploader.jsx` — the one place a photograph enters the product.
-- `src/ui/` — button, panel, modal, `Sheet` (bottom sheet on phones, dialog from md up), toasts.
+- `src/i18n/` — `strings.js` (flat he/en dictionary, Hebrew default) and `I18nContext.jsx`.
+- `src/apartment/`, `src/tour/`, `src/landing/`, `src/upload/`, `src/lib/` — the estate-agent
+  product and its photo reader, unchanged and independent of the city.
+- `src/ui/` — button, panel, modal, `Sheet`.
 
 ## Rules of the road
+- **Agorot.** Tel Aviv quotes in `ILA` and London in `GBp` — hundredths of a shekel and of a pound.
+  The currency code is the only thing that says so. `money.js` `toMajor()` is the single most
+  dangerous line in the app, because getting it wrong looks plausible: a ₪7,726 bank share instead
+  of ₪77.26. The **cost basis goes through the same conversion as the price** — converting one and
+  not the other turns a flat position into a 9,900% gain.
+- A holding whose currency has no exchange rate is left **out** of the total and counted in
+  `summary.unconverted`, never quietly added. Shekels plus dollars is not a number.
+- Prices, tower heights and the player position are all mutated outside React and read inside
+  `useFrame`. A price tick must never re-render the city. `CityContext` keeps a `tick` counter
+  purely so the *React* side knows the mutable `market` object changed — it looks like an unused
+  dependency and is the whole mechanism.
+- Tower height is the **square root** of the holding's share of the portfolio. Linear scaling makes
+  a normal portfolio one skyscraper beside a row of doorsteps, which cannot be read.
+- The camera sits behind the player on the **+z** side, so what fills the screen is whatever has a
+  smaller z. `getSpawn()` therefore puts the player *south* of the first tower whichever way its
+  door faces; stepping "back" out of a north-facing door put the tower behind the camera.
+- `getSpawn()` must also avoid door tiles. A door is walkable and standing on one enters that
+  building, so a spawn that landed on a neighbour's doorstep opened its screen instantly.
+- The city is relaid whenever a holding is added or sold, so the tile the avatar stands on can
+  become the inside of a new tower. `Player` moves the avatar when `startTile` changes rather than
+  only placing it on mount.
+- **The map is generated, so it is checked.** `unreachableDoors()` flood-fills from the plaza and
+  must return empty, for every portfolio size from 0 to 24.
+- Sectors keep their name and colour; **which block they occupy adapts** so the occupied ones crowd
+  the plaza. Six fixed quarters and three holdings is a city you spawn in the middle of and cannot
+  see a single tower from.
+- A sector with more holdings than its block has plots spills into whichever block has room. A
+  tower with nowhere to stand would vanish, and the city would stop matching the portfolio.
+- `api/*` validates every symbol against a pattern before passing it upstream. Symbols arrive from
+  links, pasted text and typing; the proxy must not become a way to make the server fetch anything.
+- The upstream is unofficial and delayed. The UI says so, from the endpoint's own `delayed` flag —
+  do not quietly present it as real-time, and do not present any of it as advice.
 - User-facing text goes through `t('key')` from the dictionary, or `loc(entry)` for `{ he, en }`
-  content that lives beside its data — every project name, zone name, case-study paragraph and the
-  owner's own details. No bare strings in components; a Hebrew literal in a component is a bug.
+  content that lives beside its data — company names, sector names. No bare strings in components;
+  a Hebrew literal in a component is a bug. A name we chose in Hebrew beats the exchange's own
+  ALL-CAPS English; a symbol found by search has no catalogue name, so the quote fills in.
 - **The town is generated, so it is also checked.** `map-data.js` lays out four plots per zone and
   fills them from `projects.js`; a generated door can face a wall as easily as a street and the
   failure is silent — the building is there, the sign is over it, and you simply cannot get in.
@@ -198,8 +218,8 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   once, rather than failing one file at a time.
 
 ## Commands
-The whole product runs with no keys and no server. `api/analyse.js` is optional and nothing calls
-it; give it `ANTHROPIC_API_KEY` only if you want to wire up the richer survey later.
+No keys anywhere. `api/quotes.js` and `api/search.js` proxy a free public endpoint and hold no
+secret; `api/analyse.js` is an optional upgrade for the estate-agent product and nothing calls it.
 
 ```bash
 npm run dev      # http://localhost:5173
