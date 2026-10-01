@@ -7,6 +7,7 @@ import MiniMap from './MiniMap';
 import Npcs from './Npcs';
 import Player from './Player';
 import { Ground, PlazaScreen, Props, River, Shops, Surrounds } from './Scenery';
+import Streets from './Streets';
 import { getSpawn } from '../world/map-data';
 import { useCity } from '../stocks/CityContext';
 import { useI18n } from '../i18n/I18nContext';
@@ -122,6 +123,7 @@ export default function World3D({ onEnter, onOpenDirectory }) {
           <Ground />
           <Surrounds />
           <River />
+          <Streets />
           <Shops compact={compact} />
           <Props />
           <PlazaScreen

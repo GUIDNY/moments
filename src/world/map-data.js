@@ -1,4 +1,4 @@
-import { SECTORS, SECTOR_BY_ID } from '../stocks/catalog';
+import { BOARD_BY_SYMBOL, SECTORS, SECTOR_BY_ID } from '../stocks/catalog';
 
 /**
  * The city, rebuilt from the portfolio.
@@ -28,7 +28,7 @@ export const TERRAIN = {
   PLAZA: 4,
 };
 
-const H_ROADS = [
+export const H_ROADS = [
   { y: 4, x0: 4, x1: 29 },
   { y: 5, x0: 4, x1: 29 },
   { y: 11, x0: 0, x1: MAP_W - 1 },
@@ -37,7 +37,7 @@ const H_ROADS = [
   { y: 19, x0: 4, x1: 29 },
 ];
 
-const V_ROADS = [
+export const V_ROADS = [
   { x: 4, y0: 2, y1: 21 },
   { x: 5, y0: 2, y1: 21 },
   { x: 16, y0: 0, y1: MAP_H - 1 },
@@ -91,6 +91,7 @@ function doorFor(x, y, doorRow) {
 const city = {
   placement: new Map(),
   buildings: [],
+  fillers: [],
   byDoor: {},
   props: [],
   grid: null,
@@ -185,18 +186,44 @@ export function rebuild(holdings = []) {
         emoji: SECTOR_BY_ID[sector.id]?.emoji ?? '🏢',
         name: holding.name || { he: holding.symbol, en: holding.symbol },
         color: sector.color,
+        // the company's mark lives at its domain; a symbol found by search has
+        // none and keeps the sector's sign
+        domain: BOARD_BY_SYMBOL[holding.symbol]?.domain ?? null,
       });
     });
   }
 
+  /* Every plot nobody's money is standing on still gets a building. Three
+     towers in a field are a chart; three towers among a hundred ordinary
+     buildings are a city with three places that matter in it. Fillers have
+     no door and nothing behind them, which is exactly what makes the towers
+     read: the one with a sign is the one that is yours. */
+  const fillers = [];
+  for (const block of BLOCKS) {
+    block.plots.forEach(([x, y], i) => {
+      if (buildings.some((b) => b.x === x && b.y === y)) return;
+      const seed = (x * 73 + y * 151 + i * 17) % 97;
+      fillers.push({
+        id: `f-${x}-${y}`,
+        kind: 'filler',
+        x, y, w: W, h: H,
+        // which street it fronts, so an awning or a stoop faces a road
+        facing: doorFor(x, y, block.doorRow).y === y ? -1 : 1,
+        seed,
+      });
+    });
+  }
+
+  const footprints = [...buildings, ...fillers];
   const onBuilding = (x, y) =>
-    buildings.some((b) => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h);
+    footprints.some((b) => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h);
 
   city.placement = placement;
   city.buildings = buildings;
+  city.fillers = fillers;
   city.byDoor = Object.fromEntries(buildings.map((b) => [`${b.door.x},${b.door.y}`, b]));
   city.props = RAW_PROPS.filter((p) => !onBuilding(p.x, p.y));
-  city.grid = buildGrid(buildings, city.props);
+  city.grid = buildGrid(footprints, city.props);
   city.version++;
   return city;
 }
@@ -206,6 +233,8 @@ rebuild([]);
 /* ── what the renderers read ──────────────────────────────────────────────── */
 
 export const getBuildings = () => city.buildings;
+/** The ordinary buildings on the plots no holding occupies — scenery, not venues. */
+export const getFillers = () => city.fillers;
 export const getProps = () => city.props;
 export const getGrid = () => city.grid;
 export const getVersion = () => city.version;
@@ -249,21 +278,47 @@ export function getSpawn() {
      that faces north therefore puts the tower *behind the camera* — you spawn
      looking at an empty street with your own building out of shot. The player
      goes to the south of the tower whatever side its door is on; walking round
-     to the door is three seconds and seeing the thing is the point. */
+     to the door is three seconds and seeing the thing is the point.
+
+     The street, not the verge: every block has a road to its south, and a lane
+     of that road is where you start, so the tower fills the top of the screen
+     and the city fills the rest. And a clear line of sight: the camera is a
+     dozen tiles further south, so a building in the first few tiles behind
+     the player stands between the lens and the avatar, and the city opens on
+     the back of a block with nobody in it. Now that every plot is built on,
+     that is most tiles — the spawn slides sideways to the gap between two
+     plots rather than standing where it cannot be seen. */
   const southEdge = first.y + first.h;
-  const x = first.x + 1;
+  const centre = first.x + 1;
+  const clearBehind = (x, y) => {
+    for (let k = 1; k <= 3; k++) {
+      if (!inBounds(x, y + k)) return true;
+      if (city.grid[y + k][x] === TERRAIN.BLOCKED) return false;
+    }
+    return true;
+  };
+
   let best = null;
-  for (let step = 3; step <= 8; step++) {
-    const tile = { x, y: southEdge + step };
-    if (!inBounds(tile.x, tile.y)) break;
-    // a door tile is walkable, and standing on one enters that building —
-    // spawning on another tower's doorstep opened its screen instantly
-    if (city.byDoor[`${tile.x},${tile.y}`]) continue;
-    if (!isWalkable(tile.x, tile.y)) continue;
-    best = tile;
-    if (step >= 5) break;
+  let bestScore = Infinity;
+  let fallback = null;
+  for (let x = first.x - 2; x <= first.x + first.w + 1; x++) {
+    for (let step = 1; step <= 8; step++) {
+      const y = southEdge + step;
+      if (!inBounds(x, y)) break;
+      // a door tile is walkable, and standing on one enters that building —
+      // spawning on another tower's doorstep opened its screen instantly
+      if (city.byDoor[`${x},${y}`]) continue;
+      if (!isWalkable(x, y)) continue;
+      if (step >= 3 && x === centre && !fallback) fallback = { x, y };
+      if (step < 2 || city.grid[y][x] !== TERRAIN.ROAD || !clearBehind(x, y)) continue;
+      const score = Math.abs(x - centre) + step * 0.1;
+      if (score < bestScore) {
+        bestScore = score;
+        best = { x, y };
+      }
+    }
   }
-  return best ?? SPAWN;
+  return best ?? fallback ?? SPAWN;
 }
 
 /** Every door reachable on foot from the plaza. Checked, never assumed. */

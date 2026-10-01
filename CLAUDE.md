@@ -39,13 +39,18 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   should look like), `CityContext.jsx` (the chain), `PickerScreen.jsx`, `HoldingScreen.jsx`.
   The game layer: `achievements.js` (the badges and their tests), `progress.js` (what the city
   remembers between visits — badges, streak, records), `BadgesScreen.jsx`.
-- `api/quotes.js`, `api/search.js` — the only server-side code, and it holds no key: the upstream
-  sends no CORS headers, so the browser cannot call it directly. `vite.config.js` mounts the same
-  handlers in dev and preview so a change can be tried without shipping it.
+- `api/quotes.js`, `api/search.js`, `api/logo.js` — the only server-side code, and it holds no
+  key: the upstreams send no CORS headers, so the browser cannot call them directly. `logo.js`
+  asks two public favicon caches for a company's mark and sends on the larger. `vite.config.js`
+  mounts the same handlers in dev and preview so a change can be tried without shipping it — but
+  it bundles the list of handler files when the server starts, so a *new* `api/*.js` needs the
+  preview server restarted before it exists there.
 - `src/world/` — `map-data.js` (lays the city out from the holdings), `CityHud.jsx`, `Directory.jsx`.
-- `src/world3d/` — `World3D.jsx` (canvas, lights, DOM chrome), `Scenery.jsx`, `architecture.js`
-  (what each sector's buildings are made of), `VoxelPerson.jsx`, `Player.jsx`, `Npcs.jsx`,
-  `Joystick.jsx`, `MiniMap.jsx`, `controls.js`, `textures.js`, `playerPos.js`.
+- `src/world3d/` — `World3D.jsx` (canvas, lights, DOM chrome), `Scenery.jsx` (ground, towers,
+  the country past the kerb), `Streets.jsx` (the ordinary buildings, lamps and cars that make it a
+  city), `architecture.js` (what each sector's buildings are made of), `logos.js` (a company's
+  mark and its colour, loaded once), `VoxelPerson.jsx`, `Player.jsx`, `Npcs.jsx`, `Joystick.jsx`,
+  `MiniMap.jsx`, `controls.js`, `textures.js`, `playerPos.js`.
 - `src/i18n/` — `strings.js` (flat he/en dictionary, Hebrew default) and `I18nContext.jsx`.
 - `src/apartment/`, `src/tour/`, `src/landing/`, `src/upload/`, `src/lib/` — the estate-agent
   product and its photo reader, unchanged and independent of the city.
@@ -84,6 +89,20 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   minute is one day and midnight is the user's, not the server's.
 - The in-world mover badge (🔥/🧊 over a roof) fires at ±3% on the day, read in `useFrame` from
   `towers`. Lower and it is noise over every roof; it is a flag you cross the city for.
+- **Every plot is built on.** The plots no holding occupies get a filler — an ordinary block, a
+  townhouse, a shop with an awning — with no door and nothing behind it. Three towers in a field
+  are a chart; three towers among a street of ordinary buildings are a city with three places that
+  matter. Fillers are blocked tiles like any building, so `unreachableDoors()` covers them, and the
+  spawn has to find a road tile with nothing in the three tiles behind it, because the camera is
+  twelve tiles further south and a filler there hides the avatar.
+- **The pavement is paint.** `groundTexture` draws a kerb and a pavement on every tile beside a
+  road, lane dashes down the centre of each two-lane street and nothing on a junction — all from
+  the grid, none of it in the grid. The walker still sees grass. Do not add a pavement terrain.
+- A company's mark comes from `api/logo.js` by the `domain` in the catalogue, same-origin, which is
+  what lets `logos.js` read its pixels for the brand colour — a cross-origin favicon can be shown
+  but never sampled. The colour goes on the fascia, the lintel and the frame of the board on the
+  roof, never on the walls (the sector's) or the parapet (the day's). A logo that never arrives
+  leaves the sector sign in place; the city is never blocked on a third party.
 - **The map is generated, so it is checked.** `unreachableDoors()` flood-fills from the plaza and
   must return empty, for every portfolio size from 0 to 24.
 - Sectors keep their name and colour; **which block they occupy adapts** so the occupied ones crowd

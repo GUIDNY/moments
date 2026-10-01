@@ -34,53 +34,188 @@ function fitFont(ctx, text, maxWidth, startPx, weight = 'bold') {
   return size;
 }
 
+/** A rounded rectangle path, because canvas has no rounded fill of its own. */
+function rounded(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/** The company's mark on a white tile, fitted inside a square, as a sign would carry it. */
+function drawMark(ctx, image, x, y, size, radius = size * 0.22) {
+  ctx.save();
+  ctx.fillStyle = '#ffffff';
+  rounded(ctx, x, y, size, size, radius);
+  ctx.fill();
+  ctx.clip();
+  const pad = size * 0.14;
+  const box = size - pad * 2;
+  const scale = Math.min(box / image.width, box / image.height);
+  const w = image.width * scale;
+  const h = image.height * scale;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(image, x + (size - w) / 2, y + (size - h) / 2, w, h);
+  ctx.restore();
+}
+
 /**
- * A shop sign: emoji, name, and a coloured bar top and bottom.
- * `dir` matters — canvas lays punctuation out by direction, and in RTL the icon
- * belongs on the other side of the name.
+ * A shop sign: the company's mark (or the sector's glyph when there is none),
+ * the name, and a coloured bar top and bottom. `dir` matters — canvas lays
+ * punctuation out by direction, and in RTL the icon belongs on the other side
+ * of the name.
  */
-export function signTexture(emoji, name, color, dir = 'ltr') {
+export function signTexture(emoji, name, color, dir = 'ltr', logo = null) {
   const c = canvas(512, 160);
   const ctx = c.getContext('2d');
   const rtl = dir === 'rtl';
 
-  ctx.fillStyle = '#0e1219';
+  // a white sign under daylight; the colour is the fascia, not the field
+  ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, 512, 160);
   ctx.fillStyle = color;
-  ctx.fillRect(0, 0, 512, 16);
-  ctx.fillRect(0, 144, 512, 16);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 10;
-  ctx.strokeRect(5, 5, 502, 150);
+  ctx.fillRect(0, 0, 512, 14);
+  ctx.fillRect(0, 146, 512, 14);
+  ctx.fillStyle = 'rgba(0,0,0,0.06)';
+  ctx.fillRect(0, 14, 512, 4);
 
+  const iconX = rtl ? 512 - 24 - 96 : 24;
+  if (logo) {
+    drawMark(ctx, logo, iconX, 32, 96);
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 2;
+    rounded(ctx, iconX, 32, 96, 96, 21);
+    ctx.stroke();
+  } else {
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.direction = 'ltr'; // the emoji is a glyph, not a sentence
+    ctx.font = `66px ${FONT}`;
+    ctx.fillText(emoji, iconX + 48, 82);
+  }
+
+  ctx.fillStyle = '#0b1220';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.direction = 'ltr'; // the emoji is a glyph, not a sentence
-  ctx.font = `72px ${FONT}`;
-  ctx.fillText(emoji, rtl ? 446 : 66, 82);
-
-  ctx.fillStyle = '#ffffff';
   ctx.direction = dir;
-  fitFont(ctx, name, 380, 58);
-  ctx.fillText(name, rtl ? 226 : 290, 80);
+  fitFont(ctx, name, 350, 56, '900');
+  ctx.fillText(name, rtl ? 196 : 316, 80);
 
   return finish(c);
 }
 
-/** The floor: one texture painted from the tile grid, so the whole city is a single draw call. */
-export function groundTexture(grid, colors, tilePx = 16) {
+/**
+ * The board on the roof: the mark, large, and the name under it. This is the
+ * sign you read from across the plaza, so it is mostly logo and very little
+ * else; a white panel in the brand's own frame.
+ */
+export function rooftopTexture(logo, name, brand = '#9aa5b1') {
+  const c = canvas(512, 320);
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = brand;
+  rounded(ctx, 0, 0, 512, 320, 34);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  rounded(ctx, 12, 12, 488, 296, 26);
+  ctx.fill();
+
+  drawMark(ctx, logo, 256 - 90, 30, 180, 36);
+
+  ctx.fillStyle = '#0b1220';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  fitFont(ctx, name, 440, 54, '900');
+  ctx.fillText(name, 256, 262);
+  return finish(c);
+}
+
+/**
+ * The floor: one texture painted from the tile grid, so the whole city is a
+ * single draw call.
+ *
+ * It is also where most of the "city" in the city comes from. Grass that runs
+ * straight up to the asphalt is a board game; a pavement with a kerb along
+ * every street, lane dashes down the middle of the road and no grid lines
+ * stamped on anything is a town. All of it is paint — the walkable grid is
+ * untouched, which is why a pavement can be drawn on a tile that is grass to
+ * the collision code.
+ */
+export function groundTexture(grid, colors, tilePx = 24) {
   const h = grid.length;
   const w = grid[0].length;
   const c = canvas(w * tilePx, h * tilePx);
   const ctx = c.getContext('2d');
+  const ROAD = 1;
+  const at = (x, y) => (y < 0 || y >= h || x < 0 || x >= w ? -1 : grid[y][x]);
+  const isRoad = (x, y) => at(x, y) === ROAD;
+  const pavement = colors.pavement ?? '#dcdcd6';
+  const kerb = colors.kerb ?? 'rgba(0,0,0,0.18)';
 
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      ctx.fillStyle = colors[grid[y][x]] ?? '#1b3226';
-      ctx.fillRect(x * tilePx, y * tilePx, tilePx, tilePx);
-      ctx.strokeStyle = 'rgba(0,0,0,0.16)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x * tilePx + 0.5, y * tilePx + 0.5, tilePx - 1, tilePx - 1);
+      const tile = grid[y][x];
+      const px = x * tilePx;
+      const py = y * tilePx;
+      // a non-road tile beside a road is pavement, whatever it is to the walker
+      const besideRoad =
+        tile !== ROAD && (isRoad(x - 1, y) || isRoad(x + 1, y) || isRoad(x, y - 1) || isRoad(x, y + 1));
+      ctx.fillStyle = besideRoad && tile !== 2 ? pavement : colors[tile] ?? '#1b3226';
+      ctx.fillRect(px, py, tilePx, tilePx);
+
+      if (besideRoad && tile !== 2) {
+        // paving joints, faint, and the kerb on the road side
+        ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(px + 0.5, py + 0.5, tilePx - 1, tilePx - 1);
+        ctx.fillStyle = kerb;
+        if (isRoad(x - 1, y)) ctx.fillRect(px, py, 2, tilePx);
+        if (isRoad(x + 1, y)) ctx.fillRect(px + tilePx - 2, py, 2, tilePx);
+        if (isRoad(x, y - 1)) ctx.fillRect(px, py, tilePx, 2);
+        if (isRoad(x, y + 1)) ctx.fillRect(px, py + tilePx - 2, tilePx, 2);
+      } else if (tile === ROAD) {
+        /* Lane dashes go on the edge shared by the two lanes: a road here is
+           two tiles wide, so an edge is a centre line when the tile across it
+           is road and the tile on this one's far side is not. A crossing of two
+           roads has road on every side and gets no lines, which is also what a
+           junction looks like. */
+        const dash = (x0, y0, x1, y1) => {
+          ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([tilePx * 0.28, tilePx * 0.22]);
+          ctx.beginPath();
+          ctx.moveTo(x0, y0);
+          ctx.lineTo(x1, y1);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        };
+        if (isRoad(x + 1, y) && !isRoad(x - 1, y) && !(isRoad(x, y - 1) && isRoad(x, y + 1)))
+          dash(px + tilePx, py, px + tilePx, py + tilePx);
+        if (isRoad(x, y + 1) && !isRoad(x, y - 1) && !(isRoad(x - 1, y) && isRoad(x + 1, y)))
+          dash(px, py + tilePx, px + tilePx, py + tilePx);
+        // the asphalt's grain, so a long street is not one flat grey
+        ctx.fillStyle = (x + y) % 2 ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.02)';
+        ctx.fillRect(px, py, tilePx, tilePx);
+      } else if (tile === 4) {
+        // the plaza is paved in a diagonal pattern
+        ctx.strokeStyle = 'rgba(0,0,0,0.07)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(px, py + tilePx);
+        ctx.lineTo(px + tilePx, py);
+        ctx.stroke();
+      } else if (tile === 2) {
+        // water: a couple of light ripples
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(px + 3, py + tilePx * 0.35 + (x % 3));
+        ctx.lineTo(px + tilePx - 4, py + tilePx * 0.35 + (x % 3));
+        ctx.stroke();
+      }
     }
   }
 

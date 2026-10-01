@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { MAP_H, MAP_W, TERRAIN, getBuildings, getGrid, getProps } from '../world/map-data'
@@ -6,7 +6,8 @@ import { towerFor } from '../stocks/towers';
 import { archetypeFor } from './architecture';
 import { useI18n } from '../i18n/I18nContext';
 import { playerPos } from './playerPos';
-import { emojiTexture, facadeTexture, groundTexture, signTexture, billboardTexture } from './textures';
+import { emojiTexture, facadeTexture, groundTexture, rooftopTexture, signTexture, billboardTexture } from './textures';
+import { loadLogo } from './logos';
 
 /* Lerping towards a colour needs a Color to lerp towards, and allocating two
    per building per frame is how a city of twenty towers starts stuttering. */
@@ -20,10 +21,12 @@ export const tileToWorld = (x, y) => [x + 0.5, 0, y + 0.5];
    thing that is meant to carry colour — whether a holding is up or down. */
 const GROUND_COLORS = {
   [TERRAIN.GRASS]: '#bdd3b4',
-  [TERRAIN.ROAD]: '#d6d7d1',
+  [TERRAIN.ROAD]: '#c9cbc7',
   [TERRAIN.WATER]: '#aecde0',
   [TERRAIN.BLOCKED]: '#bdd3b4',
   [TERRAIN.PLAZA]: '#e4e3dc',
+  pavement: '#e2e1da',
+  kerb: 'rgba(0,0,0,0.2)',
 };
 
 /* The camera sits behind and above the avatar, so standing anywhere near an
@@ -78,21 +81,28 @@ export function Surrounds() {
        the whole apron instead leaves the first few metres past the boundary —
        the part you are actually looking at — bare, which is the exact gap this
        is here to close. */
-    for (let i = 0; i < 2400 && out.length < 240; i++) {
+    for (let i = 0; i < 4000 && out.length < 420; i++) {
       const x = -RING + next() * (MAP_W + RING * 2);
       const z = -RING + next() * (MAP_H + RING * 2);
       // the town itself is already built; this is only what surrounds it
       if (x > -1.5 && x < MAP_W + 1.5 && z > -1.5 && z < MAP_H + 1.5) continue;
       const out_x = Math.max(0, -x, x - MAP_W);
       const out_z = Math.max(0, -z, z - MAP_H);
-      if (next() > 1 - Math.hypot(out_x, out_z) / RING) continue;
+      if (next() > (1 - Math.hypot(out_x, out_z) / RING) ** 2) continue;
       const r = next();
+      const near = Math.hypot(out_x, out_z) < 18;
+      // the first streets past the kerb are houses: a city does not stop at a
+      // line and become a forest, it thins out
+      const kind = near && r < 0.42
+        ? 'house'
+        : r < 0.6 ? 'tree' : r < 0.8 ? 'pine' : r < 0.91 ? 'field' : 'hedge';
       out.push({
         x,
         z,
-        kind: r < 0.54 ? 'tree' : r < 0.78 ? 'pine' : r < 0.9 ? 'field' : 'hedge',
+        kind,
         size: 0.7 + next() * 0.8,
         turn: next() * Math.PI,
+        hue: Math.floor(next() * 7),
       });
     }
     return out;
@@ -112,6 +122,30 @@ export function Surrounds() {
               <planeGeometry args={[6 * it.size, 4.5 * it.size]} />
               <meshLambertMaterial color={i % 2 ? '#a6c09b' : '#9bb891'} />
             </mesh>
+          );
+        }
+        if (it.kind === 'house') {
+          const wall = ['#f1e9dc', '#e9dfd0', '#e3e6e9', '#f3ecd9', '#ead9cf', '#e6ebe3', '#efe3dd'][it.hue];
+          const roof = ['#c96f5c', '#b5705e', '#9c8c7b', '#8f9ca8'][it.hue % 4];
+          const tall = 1.1 + (it.hue % 3) * 0.5;
+          return (
+            <group key={key} position={[it.x, 0, it.z]} rotation={[0, Math.round(it.turn / (Math.PI / 2)) * (Math.PI / 2), 0]}>
+              <mesh position={[0, tall / 2, 0]} castShadow receiveShadow>
+                <boxGeometry args={[2.2 * it.size, tall, 1.6 * it.size]} />
+                <meshLambertMaterial color={wall} />
+              </mesh>
+              {it.hue % 2 ? (
+                <mesh position={[0, tall + 0.35, 0]} rotation={[0, Math.PI / 2, 0]} castShadow>
+                  <cylinderGeometry args={[0, 1.25 * it.size, 0.7, 4, 1]} />
+                  <meshLambertMaterial color={roof} />
+                </mesh>
+              ) : (
+                <mesh position={[0, tall + 0.06, 0]} castShadow>
+                  <boxGeometry args={[2.3 * it.size, 0.12, 1.7 * it.size]} />
+                  <meshLambertMaterial color={roof} />
+                </mesh>
+              )}
+            </group>
           );
         }
         if (it.kind === 'hedge') {
@@ -163,10 +197,16 @@ function Tree({ position, tall }) {
           </mesh>
         </>
       ) : (
-        <mesh position={[0, 1.15, 0]} castShadow>
-          <boxGeometry args={[0.95, 0.95, 0.95]} />
-          <meshLambertMaterial color="#35915c" />
-        </mesh>
+        <>
+          <mesh position={[0, 1.1, 0]} castShadow>
+            <icosahedronGeometry args={[0.58, 1]} />
+            <meshLambertMaterial color="#3f9a63" flatShading />
+          </mesh>
+          <mesh position={[0.28, 1.38, 0.1]} castShadow>
+            <icosahedronGeometry args={[0.36, 1]} />
+            <meshLambertMaterial color="#56ad72" flatShading />
+          </mesh>
+        </>
       )}
     </group>
   );
@@ -465,19 +505,49 @@ function MoverBadge({ symbol }) {
   );
 }
 
+/**
+ * The company's own mark, once it has arrived. Nothing here is per-frame: a
+ * logo lands once, the sign and the fascia are repainted once, and the tower
+ * goes on being driven from `useFrame` exactly as before.
+ */
+function useLogo(domain) {
+  const [logo, setLogo] = useState(null);
+  useEffect(() => {
+    let live = true;
+    loadLogo(domain).then((got) => live && setLogo(got));
+    return () => {
+      live = false;
+    };
+  }, [domain]);
+  return logo;
+}
+
 function Shop({ building, compact }) {
-  const { x, y, w, h, door, emoji, name, color, district } = building;
+  const { x, y, w, h, door, emoji, name, color, district, domain } = building;
   const { loc, dir: textDir } = useI18n();
   const label = loc(name);
-  const sign = useMemo(() => signTexture(emoji, label, color, textDir), [emoji, label, color, textDir]);
+  const logo = useLogo(domain);
+  const sign = useMemo(
+    () => signTexture(emoji, label, color, textDir, logo?.image ?? null),
+    [emoji, label, color, textDir, logo]
+  );
   const doorOnTopRow = door.y === y;
   // sign and doorway face the street the door opens onto
   const faceZ = doorOnTopRow ? y : y + h;
   const dir = doorOnTopRow ? -1 : 1;
 
   /* What this building is made of, which is decided by the sector and never
-     changes; how tall it is and how the day has gone come from the price. */
+     changes; how tall it is and how the day has gone come from the price.
+     The company's colour is the one thing laid over the sector's material:
+     the fascia over the shopfront and the frame of the board on the roof,
+     the way a bank's branch is the bank's red whatever street it is on. */
   const arch = archetypeFor(district);
+  const brand = logo?.colour ?? null;
+  const fascia = brand ?? arch.podium;
+  const board = useMemo(
+    () => (logo ? rooftopTexture(logo.image, label, brand ?? color) : null),
+    [logo, label, brand, color]
+  );
 
   // distance fade: full strength close by, gone once the venue is well behind you
   const signMat = useRef(null);
@@ -566,6 +636,14 @@ function Shop({ building, compact }) {
         <boxGeometry args={[w + 0.04, 0.84, h + 0.04]} />
         <meshLambertMaterial color={arch.podium} />
       </mesh>
+      {/* the fascia: a band in the company's colour along the top of the
+          shopfront, on every side, so the brand reads from any street */}
+      {brand && (
+        <mesh position={[x + w / 2, 0.93, y + h / 2]} castShadow>
+          <boxGeometry args={[w + 0.1, 0.2, h + 0.1]} />
+          <meshLambertMaterial color={fascia} />
+        </mesh>
+      )}
 
       {arch.columns && (
         <Columns x={x} w={w} faceZ={faceZ} dir={dir} color={arch.podium} />
@@ -574,7 +652,7 @@ function Shop({ building, compact }) {
       {/* lintel over the open doorway keeps the facade unbroken */}
       <mesh position={[door.x + 0.5, 1.1, door.y + 0.5]} castShadow>
         <boxGeometry args={[1, 0.5, 1]} />
-        <meshLambertMaterial color={arch.podium} />
+        <meshLambertMaterial color={fascia} />
       </mesh>
 
       {/* parapet in today's colour, and the district's own roofwork above it */}
@@ -584,6 +662,31 @@ function Shop({ building, compact }) {
       </mesh>
       <group ref={crown} position={[x + w / 2, BUILDING_HEIGHT + 0.19, y + h / 2]}>
         <Crown kind={arch.crown} w={w} h={h} trim={arch.trim} />
+        {/* the board on the roof: the mark, facing the street the door is on,
+            on two slim posts so it reads as signage and not as a billboard
+            that fell on the building */}
+        {board && (
+          <group position={[0, 0, (h / 2) * dir * 0.55]} rotation={[0, doorOnTopRow ? Math.PI : 0, 0]}>
+            {[-0.7, 0.7].map((px) => (
+              <mesh key={px} position={[px * Math.min(w, 2.6) * 0.5, 0.45, 0]} castShadow>
+                <boxGeometry args={[0.08, 0.9, 0.08]} />
+                <meshLambertMaterial color="#8d99a4" />
+              </mesh>
+            ))}
+            <mesh position={[0, 1.35, 0]} castShadow>
+              <boxGeometry args={[Math.min(w, 2.6) + 0.1, 1.5, 0.1]} />
+              <meshLambertMaterial color={brand ?? color} />
+            </mesh>
+            <mesh position={[0, 1.35, 0.06]}>
+              <planeGeometry args={[Math.min(w, 2.6), 1.42]} />
+              <meshBasicMaterial map={board} toneMapped={false} />
+            </mesh>
+            <mesh position={[0, 1.35, -0.06]} rotation={[0, Math.PI, 0]}>
+              <planeGeometry args={[Math.min(w, 2.6), 1.42]} />
+              <meshBasicMaterial map={board} toneMapped={false} />
+            </mesh>
+          </group>
+        )}
         {building.symbol && <MoverBadge symbol={building.symbol} />}
       </group>
 
