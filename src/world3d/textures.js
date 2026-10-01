@@ -160,9 +160,13 @@ export function groundTexture(grid, colors, tilePx = 24) {
       const tile = grid[y][x];
       const px = x * tilePx;
       const py = y * tilePx;
-      // a non-road tile beside a road is pavement, whatever it is to the walker
+      // a non-road tile beside a road is pavement, whatever it is to the walker;
+      // so is the bank of the river, which is the promenade
+      const isWater = (wx, wy) => at(wx, wy) === 2;
       const besideRoad =
-        tile !== ROAD && (isRoad(x - 1, y) || isRoad(x + 1, y) || isRoad(x, y - 1) || isRoad(x, y + 1));
+        tile !== ROAD &&
+        (isRoad(x - 1, y) || isRoad(x + 1, y) || isRoad(x, y - 1) || isRoad(x, y + 1) ||
+          (tile !== 2 && isWater(x - 1, y)));
       ctx.fillStyle = besideRoad && tile !== 2 ? pavement : colors[tile] ?? '#1b3226';
       ctx.fillRect(px, py, tilePx, tilePx);
 

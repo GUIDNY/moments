@@ -23,58 +23,126 @@ function pick(list, seed, salt = 0) {
   return list[(seed + salt) % list.length];
 }
 
+/** A lawn under a plot, for everything that is not a building. */
+function Lawn({ x, y, w, h, colour = '#b6d2a8' }) {
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[x + w / 2, 0.015, y + h / 2]} receiveShadow>
+      <planeGeometry args={[w - 0.2, h - 0.2]} />
+      <meshLambertMaterial color={colour} />
+    </mesh>
+  );
+}
+
 /**
- * A pocket park where a block would have been: a lawn, a path, a bench and a
- * couple of trees. A city that is building on every single plot is a wall;
- * the parks are what give the eye somewhere to rest and the streets air.
+ * The park: a whole block of it. Paths, the kit's trees, planters, and a
+ * fountain on the first plot — somewhere to walk to that is not a shop.
  */
 function Park({ b }) {
-  const { x, y, w, h, seed } = b;
+  const { x, y, w, h, seed, slot } = b;
   const cx = x + w / 2;
   const cz = y + h / 2;
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, 0.015, cz]} receiveShadow>
-        <planeGeometry args={[w - 0.2, h - 0.2]} />
-        <meshLambertMaterial color="#b6d2a8" />
-      </mesh>
-      <Kit model="suburban/path-long" fit={[w - 0.6, 0.8]} position={[cx, 0.02, cz]} />
-      {[[-0.9, -0.55], [0.95, 0.5], [0.1, -0.6]].map(([ox, oz], i) => (
+      <Lawn x={x} y={y} w={w} h={h} />
+      <Kit model="suburban/path-stones-long" fit={[w - 0.6, 0.7]} position={[cx, 0.02, cz]} turn={slot % 2} />
+      {slot === 0 ? (
+        <group position={[cx, 0, cz]}>
+          <mesh position={[0, 0.12, 0]} receiveShadow>
+            <cylinderGeometry args={[0.7, 0.75, 0.24, 20]} />
+            <meshLambertMaterial color="#d9d6cc" />
+          </mesh>
+          <mesh position={[0, 0.25, 0]}>
+            <cylinderGeometry args={[0.58, 0.58, 0.06, 20]} />
+            <meshLambertMaterial color="#8fc3dc" />
+          </mesh>
+          <mesh position={[0, 0.55, 0]} castShadow>
+            <cylinderGeometry args={[0.08, 0.14, 0.6, 10]} />
+            <meshLambertMaterial color="#cfccc2" />
+          </mesh>
+        </group>
+      ) : (
+        [[-0.9, -0.5], [0.95, 0.45], [0.1, -0.55]].map(([ox, oz], i) => (
+          <Kit
+            key={i}
+            model={(seed + i) % 3 ? 'suburban/tree-large' : 'suburban/tree-small'}
+            fit={[0.9, 0.9]}
+            maxScale={4.2}
+            position={[cx + ox, 0, cz + oz]}
+            turn={(seed + i) % 4}
+          />
+        ))
+      )}
+      <Kit model="suburban/planter" fit={[0.7, 0.7]} position={[cx - 1.1, 0, cz + 0.6]} />
+      <Kit model="suburban/planter" fit={[0.7, 0.7]} position={[cx + 1.1, 0, cz - 0.6]} />
+    </group>
+  );
+}
+
+/**
+ * The market: rows of parasols over paving, awnings, planters between.
+ * A street with stalls on it is the one thing every city has and no
+ * building provides.
+ */
+function Market({ b }) {
+  const { x, y, w, h, seed } = b;
+  const cx = x + w / 2;
+  const cz = y + h / 2;
+  const stalls = [[-0.9, -0.45], [0, -0.45], [0.9, -0.45], [-0.9, 0.5], [0, 0.5], [0.9, 0.5]];
+  return (
+    <group>
+      <Lawn x={x} y={y} w={w} h={h} colour="#e4e1d6" />
+      {stalls.map(([ox, oz], i) => (
         <Kit
           key={i}
-          model={(seed + i) % 3 ? 'suburban/tree-large' : 'suburban/tree-small'}
-          fit={[0.8 + ((seed + i) % 3) * 0.15, 0.8 + ((seed + i) % 3) * 0.15]}
-          maxScale={4}
+          model={(seed + i) % 2 ? 'commercial/detail-parasol-a' : 'commercial/detail-parasol-b'}
+          fit={[0.8, 0.8]}
+          maxScale={2.4}
           position={[cx + ox, 0, cz + oz]}
           turn={(seed + i) % 4}
         />
       ))}
-      <Kit model="suburban/planter" fit={[0.7, 0.7]} position={[cx - 0.2, 0, cz + 0.45]} />
+      <Kit model="suburban/planter" fit={[0.6, 0.6]} position={[cx - 1.25, 0, cz]} />
+      <Kit model="suburban/planter" fit={[0.6, 0.6]} position={[cx + 1.25, 0, cz]} />
+    </group>
+  );
+}
+
+/** A house with its fence and drive: the suburb's plot, not just its building. */
+function Suburb({ b }) {
+  const { x, y, w, h, seed, facing } = b;
+  const cx = x + w / 2;
+  const cz = y + h / 2;
+  const front = facing === -1 ? y + 0.3 : y + h - 0.3;
+  const model = seed % 3 === 0 ? pick(TOWN, seed, 1) : pick(SUBURBAN, seed, 2);
+  return (
+    <group>
+      <Lawn x={x} y={y} w={w} h={h} />
+      <Kit model={model} fit={[w - 1.1, h - 0.7]} maxScale={2} position={[cx + 0.25, 0, cz]} turn={facing === 1 ? 0 : 2} />
+      <Kit model="suburban/driveway-short" fit={[0.7, 1.1]} position={[x + 0.5, 0.02, front - facing * 0.3]} turn={facing === 1 ? 0 : 2} />
+      <Kit model="suburban/fence-1x3" fit={[0.5, w - 0.4]} maxScale={2} position={[x + 0.12, 0, cz]} turn={0} />
+      {seed % 2 === 0 && (
+        <Kit model="suburban/tree-small" fit={[0.7, 0.7]} maxScale={4} position={[x + w - 0.4, 0, cz + (facing === 1 ? -0.5 : 0.5)]} />
+      )}
     </group>
   );
 }
 
 /**
  * One ordinary building, from the kits. Downtown blocks get the commercial
- * kit's offices and apartment blocks; the quiet end gets the suburban kit's
- * houses and the odd townhouse. Each is scaled to its plot and turned to face
- * the street its plot fronts, and that is all the choosing there is: the
- * variety is the kit's, not ours.
+ * kit's offices and apartment blocks, scaled to their plot and turned to
+ * face the street. The variety is the kit's, not ours.
  */
 function Filler({ b }) {
-  const { x, y, w, h, seed, facing, lively } = b;
+  const { x, y, w, h, seed, facing } = b;
   const cx = x + w / 2;
   const cz = y + h / 2;
-  const model = lively
-    ? pick(DOWNTOWN, seed)
-    : seed % 3 === 0 ? pick(TOWN, seed, 1) : pick(SUBURBAN, seed, 2);
   // the kits face +z; a plot that fronts the street to its north turns round
   const turn = facing === 1 ? 0 : 2;
   return (
     <Kit
-      model={model}
-      fit={[w - 0.5, h - 0.4]}
-      maxScale={lively ? 2.6 : 2.2}
+      model={pick(DOWNTOWN, seed)}
+      fit={[w - 0.6, h - 0.5]}
+      maxScale={2.2}
       position={[cx, 0, cz]}
       turn={turn}
     />
@@ -239,10 +307,13 @@ export default function Streets() {
   const fillers = useMemo(() => getFillers(), [version]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <group>
-      {/* a quarter of the plots downtown are parks; half of them at the quiet end */}
-      {fillers.map((b) =>
-        (b.lively ? b.seed % 4 === 1 : b.seed % 2 === 1) ? <Park key={b.id} b={b} /> : <Filler key={b.id} b={b} />
-      )}
+      {/* each empty block has a character; downtown keeps a park on one plot in four */}
+      {fillers.map((b) => {
+        if (b.theme === 'park') return <Park key={b.id} b={b} />;
+        if (b.theme === 'market') return <Market key={b.id} b={b} />;
+        if (b.theme === 'suburb') return <Suburb key={b.id} b={b} />;
+        return b.seed % 4 === 1 ? <Park key={b.id} b={b} /> : <Filler key={b.id} b={b} />;
+      })}
       <Furniture />
       <Traffic />
     </group>

@@ -174,6 +174,41 @@ export function Surrounds() {
   );
 }
 
+/**
+ * The edges of the map, which were grass. A promenade runs the river's bank
+ * with trees and benches; a small port with containers and a water tower
+ * sits where the river leaves town; windmills and a solar field stand on the
+ * southern margin. None of it is a place, all of it is why the place reads
+ * as somewhere real — a city has a waterfront, a working end and fields.
+ */
+export function Waterfront() {
+  const trees = [];
+  for (let y = 3; y <= MAP_H - 3; y += 3) trees.push(y + 0.5);
+  return (
+    <group>
+      {trees.map((z, i) => (
+        <Kit key={`t${i}`} model={i % 2 ? 'suburban/tree-large' : 'suburban/tree-small'} fit={[0.85, 0.85]} maxScale={4} position={[2.5, 0, z]} turn={i % 4} />
+      ))}
+      {trees.slice(0, -1).map((z, i) => (
+        <Bench key={`b${i}`} position={[2.6, 0, z + 1.5]} />
+      ))}
+      {/* the port, where the river leaves town */}
+      <Kit model="industrial/shipping-container-a" fit={[1.6, 0.8]} maxScale={2} position={[2.9, 0, 0.6]} turn={1} />
+      <Kit model="industrial/shipping-container-b" fit={[1.6, 0.8]} maxScale={2} position={[2.9, 0, 1.45]} turn={1} />
+      <Kit model="industrial/shipping-container-c" fit={[1.6, 0.8]} maxScale={2} position={[2.9, 0.7, 1.0]} turn={1} />
+      <Kit model="industrial/water-tower" fit={[1.6, 1.6]} maxScale={2.2} position={[31.5, 0, 1.0]} />
+      <Kit model="industrial/detail-tank-large" fit={[1.4, 1.4]} maxScale={2} position={[33.0, 0, 1.2]} />
+      {/* the farm on the southern margin */}
+      {/* the windmills stand in the far corners, where a windmill belongs —
+          one at a bank's back door read as a prop that had wandered off */}
+      <Kit model="industrial/windmill" fit={[1.6, 1.6]} maxScale={2.6} position={[2.6, 0, 22.9]} />
+      <Kit model="industrial/windmill" fit={[1.6, 1.6]} maxScale={2.6} position={[32.4, 0, 22.9]} turn={2} />
+      <Kit model="industrial/solar-panel-landscape-group" fit={[3.2, 1.6]} maxScale={2.4} position={[12.5, 0, 22.9]} />
+      <Kit model="industrial/solar-panel-landscape-group" fit={[3.2, 1.6]} maxScale={2.4} position={[21.5, 0, 22.9]} />
+    </group>
+  );
+}
+
 /** Water sits a hair above the floor so it reads as a surface, not a painted tile.
  *  It runs the length of the apron, not the map: a river that stops dead at the
  *  town boundary is the one thing that gives the edge away. */

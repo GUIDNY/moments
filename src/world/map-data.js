@@ -198,16 +198,29 @@ export function rebuild(holdings = []) {
      buildings are a city with three places that matter in it. Fillers have
      no door and nothing behind them, which is exactly what makes the towers
      read: the one with a sign is the one that is yours. */
+  /* A city is not only buildings. The blocks nobody's money is in each get
+     a character of their own, in order of distance from the plaza: the
+     nearest empty block is the market, the next the park, and the rest are
+     the suburbs. A block with a tower in it is downtown whatever its rank. */
+  const THEMES = ['market', 'park', 'suburb', 'suburb', 'suburb', 'suburb'];
+  let quiet = 0;
+  const themeOf = new Map();
+  for (const block of BLOCKS_BY_DISTANCE) {
+    const lively = block.plots.some(([px, py]) => buildings.some((b) => b.x === px && b.y === py));
+    themeOf.set(block.id, lively ? 'downtown' : THEMES[Math.min(quiet++, THEMES.length - 1)]);
+  }
+
   const fillers = [];
   for (const block of BLOCKS) {
-    // a block with a tower in it is downtown; one without is the quiet end
-    // of town, with lower buildings and more green between them
-    const lively = block.plots.some(([px, py]) => buildings.some((b) => b.x === px && b.y === py));
+    const theme = themeOf.get(block.id);
+    const lively = theme === 'downtown';
     block.plots.forEach(([x, y], i) => {
       if (buildings.some((b) => b.x === x && b.y === y)) return;
       const seed = (x * 73 + y * 151 + i * 17) % 97;
       fillers.push({
         lively,
+        theme,
+        slot: i,
         id: `f-${x}-${y}`,
         kind: 'filler',
         x, y, w: W, h: H,

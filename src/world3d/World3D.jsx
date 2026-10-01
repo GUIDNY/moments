@@ -7,7 +7,7 @@ import Joystick from './Joystick';
 import MiniMap from './MiniMap';
 import Npcs from './Npcs';
 import Player from './Player';
-import { Ground, PlazaScreen, Props, River, Shops, Surrounds } from './Scenery';
+import { Ground, PlazaScreen, Props, River, Shops, Surrounds, Waterfront } from './Scenery';
 import Streets from './Streets';
 import { getSpawn } from '../world/map-data';
 import { useCity } from '../stocks/CityContext';
@@ -142,6 +142,7 @@ export default function World3D({ onEnter, onOpenDirectory }) {
           <Surrounds />
           <River />
           <Streets />
+          <Waterfront />
           <Shops compact={compact} />
           <Props />
           <PlazaScreen

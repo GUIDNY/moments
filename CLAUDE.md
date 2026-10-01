@@ -192,11 +192,17 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   casts soft shadows from a 4096 map. That stack is `@react-three/postprocessing@2` — the 3.x line
   is for fiber 9, and this app is on fiber 8. Keep AO cheap (`halfRes`, `quality="performance"`):
   the test is a phone at sixty frames, not a desktop screenshot.
-- The city needs air as much as buildings. A block with a tower in it is downtown (`lively`):
-  two- and three-storey fillers, a quarter of them parks. A block without is the quiet end of
-  town: one and two storeys, half of them parks. Buildings sit inset in their plots so there is
-  sky between them, lamps stand every eight tiles, one car a road, a walker on one kerb in three.
-  Density past that read as a wall, and the user said so twice.
+- **A city is not only buildings.** Every empty block gets a character, by distance from the
+  plaza: the nearest is the *market* (parasols over paving, planters), the next the *park* (paths,
+  the kit's trees, a fountain on its first plot), the rest *suburbs* (a house with its fence and
+  drive). A block with a tower in it is *downtown*: the commercial kit's blocks, a park on one plot
+  in four. `map-data` assigns the theme (`filler.theme`), `Streets` draws it. The edges are places
+  too: `Waterfront` runs a promenade of trees and benches down the river bank (painted as pavement
+  by `groundTexture`), a small port where the river leaves town, a water tower and tank at the
+  other corner, windmills in the far corners and solar fields on the southern margin.
+- The city needs air as much as buildings: fillers stay under `maxScale` 2.2, lamps every eight
+  tiles, one car a road, a walker on one kerb in three. Density past that read as a wall, and the
+  user said so twice. Towers run 4 to 7.5: "not that height" — a mid-rise city, not a wall.
 - **The city is lit as a model on a table, so its chrome is white cards.** Floating controls over
   the city share one recipe: same size, same radius, `bg-white/92` + blur + `border-paper-200` +
   `shadow-card`, with `text-ink-900`. The orange FAB is the only exception, because it is the one
