@@ -37,6 +37,8 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   also the districts), `store.js` (holdings in localStorage plus the share link), `money.js` (the
   arithmetic), `market.js` (live prices, published outside React), `towers.js` (what each tower
   should look like), `CityContext.jsx` (the chain), `PickerScreen.jsx`, `HoldingScreen.jsx`.
+  The game layer: `achievements.js` (the badges and their tests), `progress.js` (what the city
+  remembers between visits — badges, streak, records), `BadgesScreen.jsx`.
 - `api/quotes.js`, `api/search.js` — the only server-side code, and it holds no key: the upstream
   sends no CORS headers, so the browser cannot call it directly. `vite.config.js` mounts the same
   handlers in dev and preview so a change can be tried without shipping it.
@@ -71,6 +73,17 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
 - The city is relaid whenever a holding is added or sold, so the tile the avatar stands on can
   become the inside of a new tower. `Player` moves the avatar when `startTile` changes rather than
   only placing it on mount.
+- **A badge is earned, never lost, and never earned from a half-priced portfolio.** Every test in
+  `achievements.js` is decided from what is on screen — holdings, prices, streak — and the ones that
+  depend on a price only run when `ready` is true: the market is not loading, something has been
+  priced, and *every* holding has an entry in `market.bySymbol`. Before that gate, the first tower
+  to be priced was read as the whole portfolio and the city gave out a medal for a two-percent
+  fall nobody had.
+- A shared link is somebody else's city: it neither grants badges nor counts a visit nor touches
+  the viewer's streak. `progress.js` is keyed on the local date, so opening the app twice in a
+  minute is one day and midnight is the user's, not the server's.
+- The in-world mover badge (🔥/🧊 over a roof) fires at ±3% on the day, read in `useFrame` from
+  `towers`. Lower and it is noise over every roof; it is a flag you cross the city for.
 - **The map is generated, so it is checked.** `unreachableDoors()` flood-fills from the plaza and
   must return empty, for every portfolio size from 0 to 24.
 - Sectors keep their name and colour; **which block they occupy adapts** so the occupied ones crowd

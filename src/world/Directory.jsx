@@ -4,6 +4,7 @@ import { SECTORS, SECTOR_BY_ID } from '../stocks/catalog';
 import { useCity } from '../stocks/CityContext';
 import { formatMoney, formatPct } from '../stocks/money';
 import { moveColor } from '../stocks/towers';
+import { ACHIEVEMENTS } from '../stocks/achievements';
 import Sheet from '../ui/Sheet';
 
 /**
@@ -53,9 +54,9 @@ function HoldingRow({ position, holding, onEnter, loc }) {
   );
 }
 
-export default function Directory({ open, onClose, onEnter, onAdd }) {
+export default function Directory({ open, onClose, onEnter, onAdd, onBadges }) {
   const { t, loc } = useI18n();
-  const { holdings, positionOf, summary, display, shareUrl, isShared, delayed, error } = useCity();
+  const { holdings, positionOf, summary, display, shareUrl, isShared, delayed, error, progress } = useCity();
   const [copied, setCopied] = useState(false);
 
   const share = () => {
@@ -100,6 +101,23 @@ export default function Directory({ open, onClose, onEnter, onAdd }) {
               )}
             </div>
           </div>
+
+          {/* the game, in one row: your streak and your shelf */}
+          {!isShared && (
+            <button
+              type="button"
+              onClick={onBadges}
+              className="w-full flex items-center gap-3 h-12 px-3.5 mb-4 rounded-2xl bg-white border border-paper-200 shadow-card text-start active:scale-[0.99] transition-transform"
+            >
+              <span className="text-xl leading-none">🔥</span>
+              <span className="flex-1 min-w-0 text-[13px] font-black text-ink-900 truncate">
+                {progress.streak > 1 ? t('badges.streak', { n: progress.streak }) : t('badges.streakOne')}
+              </span>
+              <span className="text-[12px] font-bold text-paper-muted tabular-nums">
+                🏆 {progress.unlocked.length}/{ACHIEVEMENTS.length}
+              </span>
+            </button>
+          )}
 
           <p className="text-[12.5px] text-paper-muted mb-2">{t('directory.sub')}</p>
 

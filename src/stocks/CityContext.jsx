@@ -3,6 +3,8 @@ import { rebuild } from '../world/map-data';
 import { REFRESH_MS, market, onMarket, refresh } from './market';
 import { priceHolding, summarise } from './money';
 import { computeTowers } from './towers';
+import { earned } from './achievements';
+import * as progressStore from './progress';
 import * as store from './store';
 
 /**
@@ -69,6 +71,52 @@ export function CityProvider({ children }) {
     computeTowers(positions, summary.value);
   }, [positions, summary.value]);
 
+  /* ── the game layer ──────────────────────────────────────────────────────
+     Badges, the visit streak and the records the city keeps. A shared link is
+     somebody else's city, so it neither grants badges nor touches the streak:
+     progress belongs to whoever is holding the phone. */
+  const [progress, setProgress] = useState(() =>
+    store.stateFromLocation() ? progressStore.load() : progressStore.visit(progressStore.load())
+  );
+  const [fresh, setFresh] = useState([]);   // badges unlocked this session, newest last
+  const shared = Boolean(store.stateFromLocation());
+
+  useEffect(() => {
+    if (shared) return;
+    progressStore.save(progress);
+  }, [progress, shared]);
+
+  useEffect(() => {
+    if (shared) return;
+    /* `ready` gates every badge that depends on a price, and it means every
+       holding has been asked about — not merely that some price has arrived.
+       Half a portfolio is a different portfolio: while the first tower was
+       priced and the rest still loading, the city handed out a medal for a
+       two-percent fall that one share had and the whole never did. A symbol
+       the market cannot price still counts as asked, so one dead ticker does
+       not switch the game off. */
+    const ready =
+      !market.loading &&
+      summary.counted > 0 &&
+      state.holdings.every((h) => market.bySymbol[h.symbol]);
+    const kept = ready
+      ? progressStore.record(progress, { dayPct: summary.dayPct, value: summary.value })
+      : progress;
+    const won = earned({ holdings: state.holdings, positions, summary, progress: kept, ready });
+    const next = progressStore.unlock(kept, won);
+    // both helpers hand back the same object when nothing changed, which is
+    // what stops this effect feeding itself
+    if (next === progress) return;
+    const added = next.unlocked.filter((id) => !progress.unlocked.includes(id));
+    if (added.length) setFresh((f) => [...f, ...added.filter((id) => !f.includes(id))]);
+    setProgress(next);
+  }, [state.holdings, positions, summary, shared, progress]);
+
+  const dismissBadge = useCallback(
+    (id) => setFresh((f) => f.filter((x) => x !== id)),
+    []
+  );
+
   const add = useCallback((entry) => {
     setState((s) => ({ ...s, holdings: store.addHolding(s.holdings, entry) }));
   }, []);
@@ -92,7 +140,10 @@ export function CityProvider({ children }) {
       error: market.error,
       updatedAt: market.at,
       delayed: market.delayed,
-      isShared: Boolean(store.stateFromLocation()),
+      isShared: shared,
+      progress,
+      freshBadges: fresh,
+      dismissBadge,
       shareUrl: () => store.shareUrl(state),
       add,
       remove,
@@ -101,7 +152,7 @@ export function CityProvider({ children }) {
       refreshNow: () => refresh(symbols, state.display),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state, positions, summary, tick, add, remove, update, setDisplay, symbols]
+    [state, positions, summary, tick, add, remove, update, setDisplay, symbols, progress, fresh, shared, dismissBadge]
   );
 
   return <CityContext.Provider value={value}>{children}</CityContext.Provider>;

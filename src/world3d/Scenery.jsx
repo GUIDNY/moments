@@ -427,6 +427,44 @@ function Columns({ x, w, faceZ, dir, color }) {
   );
 }
 
+/* The towers you cross the city for: anything that has moved this much today
+   gets a flag you can see from three streets away. Hot or cold, nothing in
+   between — a marker for a one-percent day is noise over every roof. */
+const MOVER_PCT = 3;
+
+/**
+ * Bobs above the roof of a holding that is having a day. It follows the tower's
+ * animated height, so it is mounted in the same moving group as the crown and
+ * only decides each frame whether it should be showing at all.
+ */
+function MoverBadge({ symbol }) {
+  const hot = useMemo(() => emojiTexture('🔥'), []);
+  const cold = useMemo(() => emojiTexture('🧊'), []);
+  const sprite = useRef(null);
+  const mat = useRef(null);
+  useFrame(({ clock }) => {
+    const sp = sprite.current;
+    const m = mat.current;
+    if (!sp || !m) return;
+    const tower = towerFor(symbol);
+    const pct = tower?.dayPct;
+    const show = Number.isFinite(pct) && Math.abs(pct) >= MOVER_PCT;
+    sp.visible = show;
+    if (!show) return;
+    const want = pct > 0 ? hot : cold;
+    if (m.map !== want) {
+      m.map = want;
+      m.needsUpdate = true;
+    }
+    sp.position.y = 1.9 + Math.sin(clock.elapsedTime * 2.2) * 0.12;
+  });
+  return (
+    <sprite ref={sprite} position={[0, 1.9, 0]} scale={[1.1, 1.1, 1]} visible={false}>
+      <spriteMaterial ref={mat} map={hot} transparent depthTest={false} />
+    </sprite>
+  );
+}
+
 function Shop({ building, compact }) {
   const { x, y, w, h, door, emoji, name, color, district } = building;
   const { loc, dir: textDir } = useI18n();
@@ -546,6 +584,7 @@ function Shop({ building, compact }) {
       </mesh>
       <group ref={crown} position={[x + w / 2, BUILDING_HEIGHT + 0.19, y + h / 2]}>
         <Crown kind={arch.crown} w={w} h={h} trim={arch.trim} />
+        {building.symbol && <MoverBadge symbol={building.symbol} />}
       </group>
 
       {/* lit doorway */}
