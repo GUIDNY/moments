@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { H_ROADS, MAP_H, MAP_W, V_ROADS, getFillers, getVersion } from '../world/map-data';
-import { facadeTexture } from './textures';
+import Kit from './Kit';
 
 /**
  * Everything that makes the streets streets and the blocks blocks, none of
@@ -13,24 +13,16 @@ import { facadeTexture } from './textures';
 
 export const tileToWorld = (x, y) => [x + 0.5, 0, y + 0.5];
 
-/* A small town's palette: render, stucco, brick, a pale blue, a warm stone.
-   Nothing saturated enough to argue with the brand on a tower's fascia. */
-const WALLS = ['#f1e9dc', '#e9dfd0', '#e3e6e9', '#f3ecd9', '#ead9cf', '#e6ebe3', '#efe3dd'];
-const GLASS = ['#9fb6c4', '#a8bcc6', '#97aec0'];
-const ROOFS = ['#c96f5c', '#b5705e', '#9c8c7b', '#8f9ca8'];
-const AWNINGS = ['#d9534f', '#3b7dd8', '#2f9e6f', '#e2a23b'];
+/* The commercial kit's blocks for downtown; the suburban kit's houses for
+   the quiet end. Letters, not adjectives: the kits are what they are. */
+const DOWNTOWN = 'abcdefghijklmn'.split('').map((c) => `commercial/building-${c}`);
+const SUBURBAN = 'abcdefghijklmnopqrstu'.split('').map((c) => `suburban/building-type-${c}`);
+const TOWN = ['modular/building-sample-house-a', 'modular/building-sample-house-b', 'modular/building-sample-house-c'];
 
 function pick(list, seed, salt = 0) {
   return list[(seed + salt) % list.length];
 }
 
-/**
- * One ordinary building. A city is mid-rise: apartment blocks of four to
- * seven floors, an office block in glass now and then, a shop with an awning
- * at the corner — and the odd townhouse so the skyline is not a bar chart.
- * The towers that matter are still the tallest things on their street,
- * because a holding's tower starts above a filler's roof.
- */
 /**
  * A pocket park where a block would have been: a lawn, a path, a bench and a
  * couple of trees. A city that is building on every single plot is a wall;
@@ -46,104 +38,46 @@ function Park({ b }) {
         <planeGeometry args={[w - 0.2, h - 0.2]} />
         <meshLambertMaterial color="#b6d2a8" />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cx, 0.02, cz]}>
-        <planeGeometry args={[w - 0.2, 0.5]} />
-        <meshLambertMaterial color="#e2dfd4" />
-      </mesh>
+      <Kit model="suburban/path-long" fit={[w - 0.6, 0.8]} position={[cx, 0.02, cz]} />
       {[[-0.9, -0.55], [0.95, 0.5], [0.1, -0.6]].map(([ox, oz], i) => (
-        <group key={i} position={[cx + ox, 0, cz + oz]} scale={0.8 + ((seed + i) % 3) * 0.15}>
-          <mesh position={[0, 0.35, 0]} castShadow>
-            <boxGeometry args={[0.18, 0.7, 0.18]} />
-            <meshLambertMaterial color="#6b4a2f" />
-          </mesh>
-          <mesh position={[0, 1.05, 0]} castShadow>
-            <icosahedronGeometry args={[0.55, 1]} />
-            <meshLambertMaterial color={i % 2 ? '#3f9a63' : '#56ad72'} flatShading />
-          </mesh>
-        </group>
+        <Kit
+          key={i}
+          model={(seed + i) % 3 ? 'suburban/tree-large' : 'suburban/tree-small'}
+          fit={[0.8 + ((seed + i) % 3) * 0.15, 0.8 + ((seed + i) % 3) * 0.15]}
+          maxScale={4}
+          position={[cx + ox, 0, cz + oz]}
+          turn={(seed + i) % 4}
+        />
       ))}
-      <mesh position={[cx - 0.2, 0.26, cz + 0.45]} castShadow>
-        <boxGeometry args={[0.8, 0.1, 0.3]} />
-        <meshLambertMaterial color="#8d6b4a" />
-      </mesh>
+      <Kit model="suburban/planter" fit={[0.7, 0.7]} position={[cx - 0.2, 0, cz + 0.45]} />
     </group>
   );
 }
 
+/**
+ * One ordinary building, from the kits. Downtown blocks get the commercial
+ * kit's offices and apartment blocks; the quiet end gets the suburban kit's
+ * houses and the odd townhouse. Each is scaled to its plot and turned to face
+ * the street its plot fronts, and that is all the choosing there is: the
+ * variety is the kit's, not ours.
+ */
 function Filler({ b }) {
   const { x, y, w, h, seed, facing, lively } = b;
-  const kind = seed % 5; // 0,1 flats, 2 office, 3 shop, 4 townhouse
-  const wall = kind === 2 ? '#e8edf1' : pick(WALLS, seed);
-  // two or three floors downtown, one or two at the quiet end: the shortest
-  // holding's tower starts above the tallest filler's roof, so the places
-  // that matter are the tallest on their street
-  const storeys = lively
-    ? kind === 4 ? 2 : kind === 3 ? 2 : kind === 2 ? 3 : 2 + (seed % 2)
-    : kind === 4 ? 1 : kind === 3 ? 1 : 2;
-  const storey = 1.1;
-  const tall = storeys * storey;
-  const facade = useMemo(() => {
-    const style = kind === 2 ? 'glass' : kind === 3 ? 'clinic' : 'window';
-    const t = facadeTexture(wall, kind === 2 ? '#86b1c6' : pick(GLASS, seed, 1), style).clone();
-    t.repeat.set(1, storeys);
-    return t;
-  }, [wall, seed, kind, storeys]);
   const cx = x + w / 2;
   const cz = y + h / 2;
-  const front = facing === -1 ? y : y + h;
-
+  const model = lively
+    ? pick(DOWNTOWN, seed)
+    : seed % 3 === 0 ? pick(TOWN, seed, 1) : pick(SUBURBAN, seed, 2);
+  // the kits face +z; a plot that fronts the street to its north turns round
+  const turn = facing === 1 ? 0 : 2;
   return (
-    <group>
-      <mesh position={[cx, tall / 2, cz]} castShadow receiveShadow>
-        <boxGeometry args={[w - 0.6, tall, h - 0.5]} />
-        <meshLambertMaterial color={wall} map={facade} />
-      </mesh>
-
-      {kind === 4 ? (
-        // a pitched roof on the townhouse
-        <mesh position={[cx, tall + 0.42, cz]} rotation={[0, Math.PI / 2, 0]} castShadow>
-          <cylinderGeometry args={[0, (h - 0.5) * 0.74, 0.85, 4, 1]} />
-          <meshLambertMaterial color={pick(ROOFS, seed, 2)} />
-        </mesh>
-      ) : (
-        <>
-          {/* parapet and the clutter every flat roof has: a tank, an AC unit */}
-          <mesh position={[cx, tall + 0.08, cz]} castShadow>
-            <boxGeometry args={[w - 0.5, 0.16, h - 0.4]} />
-            <meshLambertMaterial color={pick(ROOFS, seed, 3)} />
-          </mesh>
-          <mesh position={[cx - 0.6, tall + 0.42, cz + 0.3]} castShadow>
-            <cylinderGeometry args={[0.22, 0.22, 0.5, 10]} />
-            <meshLambertMaterial color="#e8e8e2" />
-          </mesh>
-          <mesh position={[cx + 0.7, tall + 0.3, cz - 0.3]} castShadow>
-            <boxGeometry args={[0.45, 0.3, 0.35]} />
-            <meshLambertMaterial color="#cfd3d6" />
-          </mesh>
-        </>
-      )}
-
-      {kind === 3 && (
-        // the shop's awning, out over the pavement on the street side
-        <mesh
-          position={[cx, 1.05, front + facing * 0.3]}
-          rotation={[facing * 0.35, 0, 0]}
-          castShadow
-        >
-          <boxGeometry args={[w - 0.6, 0.06, 0.7]} />
-          <meshLambertMaterial color={pick(AWNINGS, seed, 4)} />
-        </mesh>
-      )}
-
-      {kind <= 1 &&
-        // a balcony on every floor above the ground, on the street side
-        Array.from({ length: storeys - 1 }, (_, i) => (
-          <mesh key={i} position={[cx, storey * (i + 1), front + facing * 0.22]} castShadow>
-            <boxGeometry args={[w - 0.9, 0.07, 0.42]} />
-            <meshLambertMaterial color="#ffffff" />
-          </mesh>
-        ))}
-    </group>
+    <Kit
+      model={model}
+      fit={[w - 0.5, h - 0.4]}
+      maxScale={lively ? 2.6 : 2.2}
+      position={[cx, 0, cz]}
+      turn={turn}
+    />
   );
 }
 

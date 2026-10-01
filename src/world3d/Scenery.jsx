@@ -9,6 +9,7 @@ import { playerPos } from './playerPos';
 import { emojiTexture, facadeTexture, groundTexture, rooftopTexture, signTexture, billboardTexture } from './textures';
 import { loadLogo } from './logos';
 import { tapHandlers } from './nav';
+import Kit from './Kit';
 
 /* Lerping towards a colour needs a Color to lerp towards, and allocating two
    per building per frame is how a city of twenty towers starts stuttering. */
@@ -135,38 +136,24 @@ export function Surrounds() {
           );
         }
         if (it.kind === 'block' || it.kind === 'tower') {
-          const wall = ['#f1e9dc', '#e9dfd0', '#e3e6e9', '#f3ecd9', '#ead9cf', '#e6ebe3', '#efe3dd'][it.hue];
-          const roof = ['#c96f5c', '#b5705e', '#9c8c7b', '#8f9ca8'][it.hue % 4];
-          const tower = it.kind === 'tower';
-          const tall = tower ? 6 + (it.hue % 4) * 2.5 + it.size * 3 : 2.4 + (it.hue % 4) * 1.1;
-          const fw = (tower ? 2.6 : 2.6) * it.size;
-          const fd = (tower ? 2.6 : 1.9) * it.size;
+          /* Low-detail blocks from the commercial kit near the kerb and its
+             skyscrapers out in the fog: cheap meshes, and a skyline that is
+             the same architecture as the streets inside. */
+          const model = it.kind === 'tower'
+            ? `commercial/building-skyscraper-${'abcde'[it.hue % 5]}`
+            : it.hue % 3 === 0
+              ? `suburban/building-type-${'abcdefghijklmnopqrstu'[(it.hue * 5) % 21]}`
+              : `commercial/low-detail-building-${'abcdefghijklmn'[(it.hue * 3) % 14]}`;
+          const size = it.kind === 'tower' ? 3.2 * it.size : 2.4 * it.size;
           return (
-            <group key={key} position={[it.x, 0, it.z]} rotation={[0, Math.round(it.turn / (Math.PI / 2)) * (Math.PI / 2), 0]}>
-              <mesh position={[0, tall / 2, 0]} castShadow receiveShadow>
-                <boxGeometry args={[fw, tall, fd]} />
-                <meshLambertMaterial color={tower ? ['#dfe6ec', '#e9ecef', '#cfd9e2', '#e4e1da'][it.hue % 4] : wall} />
-              </mesh>
-              {/* window bands painted as thin dark strips, one per floor,
-                  which is all a facade needs to be at this distance */}
-              {Array.from({ length: Math.max(1, Math.floor(tall / 1.15)) }, (_, i) => (
-                <mesh key={i} position={[0, 0.75 + i * 1.15, fd / 2 + 0.01]}>
-                  <planeGeometry args={[fw * 0.8, 0.42]} />
-                  <meshLambertMaterial color={tower ? '#8fa9ba' : '#9db3c2'} />
-                </mesh>
-              ))}
-              {!tower && it.hue % 2 ? (
-                <mesh position={[0, tall + 0.35, 0]} rotation={[0, Math.PI / 2, 0]} castShadow>
-                  <cylinderGeometry args={[0, 1.45 * it.size, 0.7, 4, 1]} />
-                  <meshLambertMaterial color={roof} />
-                </mesh>
-              ) : (
-                <mesh position={[0, tall + 0.06, 0]} castShadow>
-                  <boxGeometry args={[fw + 0.1, 0.12, fd + 0.1]} />
-                  <meshLambertMaterial color={tower ? '#c9d2d9' : roof} />
-                </mesh>
-              )}
-            </group>
+            <Kit
+              key={key}
+              model={model}
+              fit={[size, size]}
+              maxScale={it.kind === 'tower' ? 3.4 : 2.6}
+              position={[it.x, 0, it.z]}
+              turn={Math.round(it.turn / (Math.PI / 2))}
+            />
           );
         }
         if (it.kind === 'hedge') {
@@ -179,7 +166,7 @@ export function Surrounds() {
         }
         return (
           <group key={key} scale={it.size}>
-            <Tree position={[it.x / it.size, 0, it.z / it.size]} tall={it.kind === 'pine'} />
+            <Tree position={[it.x / it.size, 0, it.z / it.size]} tall={it.kind === 'pine'} turn={Math.round(it.turn)} />
           </group>
         );
       })}
@@ -199,37 +186,16 @@ export function River() {
   );
 }
 
-function Tree({ position, tall }) {
+/** A tree from the suburban kit, scaled up: the kit's are built to a tiny tile. */
+function Tree({ position, tall, turn = 0 }) {
   return (
-    <group position={position}>
-      <mesh position={[0, 0.35, 0]} castShadow>
-        <boxGeometry args={[0.2, 0.7, 0.2]} />
-        <meshLambertMaterial color="#6b4a2f" />
-      </mesh>
-      {tall ? (
-        <>
-          <mesh position={[0, 1.15, 0]} castShadow>
-            <coneGeometry args={[0.55, 1.1, 5]} />
-            <meshLambertMaterial color="#2f7a4d" />
-          </mesh>
-          <mesh position={[0, 1.75, 0]} castShadow>
-            <coneGeometry args={[0.38, 0.8, 5]} />
-            <meshLambertMaterial color="#3d9c6a" />
-          </mesh>
-        </>
-      ) : (
-        <>
-          <mesh position={[0, 1.1, 0]} castShadow>
-            <icosahedronGeometry args={[0.58, 1]} />
-            <meshLambertMaterial color="#3f9a63" flatShading />
-          </mesh>
-          <mesh position={[0.28, 1.38, 0.1]} castShadow>
-            <icosahedronGeometry args={[0.36, 1]} />
-            <meshLambertMaterial color="#56ad72" flatShading />
-          </mesh>
-        </>
-      )}
-    </group>
+    <Kit
+      model={tall ? 'suburban/tree-large' : 'suburban/tree-small'}
+      fit={tall ? [0.9, 0.9] : [0.75, 0.75]}
+      maxScale={4.2}
+      position={position}
+      turn={turn}
+    />
   );
 }
 

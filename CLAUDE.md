@@ -49,8 +49,13 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
 - `src/world3d/` — `World3D.jsx` (canvas, lights, DOM chrome), `Scenery.jsx` (ground, towers,
   the country past the kerb), `Streets.jsx` (the ordinary buildings, lamps and cars that make it a
   city), `architecture.js` (what each sector's buildings are made of), `logos.js` (a company's
-  mark and its colour, loaded once), `VoxelPerson.jsx`, `Player.jsx`, `Npcs.jsx`, `Joystick.jsx`,
+  mark and its colour, loaded once), `models.js` + `Kit.jsx` (the kit models: loader, cache,
+  fit-to-plot) with `kenney-bounds.json` (every model's footprint, measured from the files),
+  `nav.js` (tap to walk), `VoxelPerson.jsx`, `Player.jsx`, `Npcs.jsx`, `Joystick.jsx`,
   `MiniMap.jsx`, `controls.js`, `textures.js`, `playerPos.js`.
+- `public/models/` — Kenney's CC0 city kits (commercial, suburban, industrial, and the ready-made
+  samples from modular), GLB plus each kit's `Textures/colormap.png`. The GLBs reference that
+  colormap by relative path, so a kit folder is copied whole or not at all.
 - `src/i18n/` — `strings.js` (flat he/en dictionary, Hebrew default) and `I18nContext.jsx`.
 - `src/apartment/`, `src/tour/`, `src/landing/`, `src/upload/`, `src/lib/` — the estate-agent
   product and its photo reader, unchanged and independent of the city.
@@ -123,6 +128,16 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   but never sampled. The colour goes on the fascia, the lintel and the frame of the board on the
   roof, never on the walls (the sector's) or the parapet (the day's). A logo that never arrives
   leaves the sector sign in place; the city is never blocked on a third party.
+- **The ordinary city is the kits'; the towers are ours.** Fillers, parks, trees and the country
+  past the kerb are Kenney models fitted to their plots by `Kit` — scaled uniformly to the tighter
+  of width and depth so a building keeps its proportions and merely grows. A holding's tower stays
+  procedural because it carries things no kit model can: the company's mark and colour, the
+  sector's material, and a height that animates with the price (stretching a GLB stretches its
+  windows). `kenney-bounds.json` is generated from the files' vertex ranges; regenerate it when a
+  model is added, never edit it.
+- A model that fails to load is an empty plot, not a broken city: `loadModel` resolves null and
+  `Kit` renders nothing. Clones share geometry and material, so a street of the same block is one
+  geometry and a `Kit` per plot is cheap.
 - **The map is generated, so it is checked.** `unreachableDoors()` flood-fills from the plaza and
   must return empty, for every portfolio size from 0 to 24.
 - Sectors keep their name and colour; **which block they occupy adapts** so the occupied ones crowd
