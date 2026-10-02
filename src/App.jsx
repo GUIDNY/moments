@@ -8,8 +8,8 @@ import LessonSheet from './learn/LessonSheet';
 import PickerScreen from './stocks/PickerScreen';
 import { cityLevel } from './city/tiers';
 import CityScene from './city/CityScene';
-import { zoomBy } from './world3d/focus';
-import { Hammer, Minus, Plus, Trophy, Users } from 'lucide-react';
+import { goHome, zoomBy } from './world3d/focus';
+import { Hammer, LocateFixed, Minus, Plus, Trophy, Users } from 'lucide-react';
 import Button from './ui/Button';
 import Sheet from './ui/Sheet';
 import Toast from './ui/Toast';
@@ -122,6 +122,7 @@ export default function App() {
         <div className="absolute z-30 end-3 md:end-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:bottom-24 flex flex-col gap-1.5">
           <button type="button" className={ZOOM_BTN} onClick={() => zoomBy(1.25)} aria-label="+"><Plus size={20} strokeWidth={2.6} aria-hidden="true" /></button>
           <button type="button" className={ZOOM_BTN} onClick={() => zoomBy(0.8)} aria-label="−"><Minus size={20} strokeWidth={2.6} aria-hidden="true" /></button>
+          <button type="button" className={ZOOM_BTN} onClick={goHome} aria-label={t('city.home')}><LocateFixed size={19} strokeWidth={2.4} aria-hidden="true" /></button>
         </div>
         {holdings.length === 0 && !welcome && (
           <div className="absolute inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] md:bottom-24 flex justify-center px-4 pointer-events-none">

@@ -171,9 +171,19 @@ the town, Lucide for icons and Motion for the chrome's springs. No backend, no r
   a class and visibly changes model. Never scale a model by value — a FarmVille city reads by
   classes. The HQ's level is `HQ_LEVELS` by `totalUsd`, with room for upgrades later.
 - **The camera is a board-game camera.** Orthographic, pitch 40°, yaw 45°, never rotates. Zoom is
-  `camera.zoom` (pixels per world unit); the first frame fits the whole board (desktop) or the
-  centre at a readable size (phone). Drag starts after an 8 px dead zone. `focus.js` carries fly-to
-  (`lookAt`) and `zoomBy`; a hand on the city cancels a flight.
+  `camera.zoom` (pixels per world unit). `focus.js` carries fly-to (`lookAt`), `zoomBy` and
+  `goHome` (the ⌖ button: the middle at the starting zoom); a hand on the city cancels a flight.
+- **The finger owns the camera.** `groundVec` in `CityCamera` is the one place screen pixels become
+  ground: screen right is ground (x − z), screen down is (x + z) foreshortened by sin(pitch),
+  because the camera sits on the +x+z side. Its signs were once rotated and a finger dragged right
+  moved the city *up* — the user called it "really, really uncomfortable" and was right. While a
+  finger is down the camera is 1:1 (no easing); on lift a flick keeps its momentum (velocity from
+  event timestamps, never frame time — a slow frame must not read as a pause) and dies away or
+  stops at the clamp; pinch and wheel zoom about the fingers (`zoomAt`) and two fingers also pan.
+  The clamp lets the board's tip travel to a third of the way in from the screen edge on either
+  axis — the old one pinned a phone's vertical drags and felt stuck. `dragfeel.mjs` checks the
+  direction, 1:1, home and the pinch anchor; momentum needs a real phone (the software-GL box
+  delivers a touch event every 650 ms).
 - **The day's move is never a painted building.** A glow disc at the foot (opacity by pulse,
   only past ±0.3%), a small cone over the roof, and the ticker with the percentage on a small
   dark pill over the roof (`tickerBadge`), always on — the user's reference had one on every
