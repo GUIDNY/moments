@@ -45,8 +45,10 @@ export default function CityCamera({ centre, size, compact }) {
 
   useEffect(() => {
     // a phone is too narrow for the whole board at once: start on the
-    // centre at a readable size and let the thumb take it from there
-    zoomRef.current = fitZoom() * (compact ? 2.2 : 1);
+    // centre close enough that the city fills the screen, and let the thumb
+    // take it from there. Desktop starts a touch past the fit for the same
+    // reason — the board should reach the edges, not float in the middle.
+    zoomRef.current = fitZoom() * (compact ? 2.8 : 1.3);
     const onResize = () => {
       const was = zoomRef.current;
       const fit = fitZoom();

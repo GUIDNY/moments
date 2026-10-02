@@ -234,9 +234,15 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   `shadow-card`, with `text-ink-900`. The orange FAB is the only exception, because it is the one
   call to action. The dark `bg-ink-800/85` + `shadow-chip` recipe still belongs to the estate-agent
   pages, which are dark — do not carry either one across.
-- The board has an edge on purpose: `CityGrid` draws a slab under the grid, a sandy shore round
-  it and the sea out past anything the camera can reach — an island city, not a tile on a desk. A
-  small, dense, finished board reads as a game; an endless plain read as a demo.
+- **The city fills the screen, whatever the screen.** Past the board's pale kerb the ground is
+  the same lawn a shade deeper, with fields and ~260 trees densest at the kerb (`CityGrid`
+  `FIELDS`, `Decor` `country`), out past anything the camera can reach. It was sea for a day and
+  the user read the sea as empty: "the city on the whole screen". The phone starts at 2.8× the
+  fitted zoom and desktop at 1.3×, so the board reaches the edges rather than floating in the
+  middle; the page behind the canvas is the country's colour so nothing flashes.
+- **The camera never moves by itself.** A new building rises where it stands under its crane; the
+  camera does not fly to it — the user asked twice for a city that does not move. `focus.js`
+  `lookAt` is still there for a tap on a portfolio row, nothing else calls it.
 - District names are small dark pills floating over each district's lane (`SectorDistrict`,
   `districtLabel`), only for districts with a building. Flat on the pavement they could not be
   read at the board-game pitch.

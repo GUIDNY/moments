@@ -5,10 +5,23 @@ import { GROUND, groundTexture } from './textures';
 
 /**
  * The ground: one textured plane for the whole grid, a base slab under it
- * so the city reads as a board with an edge, the sea around it, and a lake
- * that ripples. Drawn
+ * so the city reads as a board with an edge, the country around it, and a
+ * lake that ripples. Drawn
  * once per layout; nothing here is per-tile React.
  */
+/* Fields in the country round the board: offsets from the board's centre,
+   past its edge on every side, in two greens and a straw. Decided once. */
+const FIELDS = [
+  { x: -24, z: -6, w: 9, h: 14, c: '#b7cf92' },
+  { x: -22, z: 12, w: 7, h: 9, c: '#c9c98f' },
+  { x: 24, z: -10, w: 8, h: 12, c: '#b7cf92' },
+  { x: 25, z: 8, w: 10, h: 10, c: '#c9c98f' },
+  { x: -6, z: -24, w: 14, h: 8, c: '#9dbb86' },
+  { x: 12, z: -25, w: 9, h: 9, c: '#c9c98f' },
+  { x: 4, z: 25, w: 12, h: 9, c: '#b7cf92' },
+  { x: -14, z: 24, w: 8, h: 7, c: '#9dbb86' },
+];
+
 export default function CityGrid({ plan }) {
   const { grid, size } = plan;
   const tex = useMemo(() => groundTexture(grid, TILE), [grid]);
@@ -23,24 +36,23 @@ export default function CityGrid({ plan }) {
   });
   return (
     <group>
-      {/* the sea the board sits in, out past anything the camera can reach,
-          and a sandy shore round the slab: an island city, not a tile on a desk */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[size / 2, -0.7, size / 2]} receiveShadow>
+      {/* the country past the board, out past anything the camera can reach:
+          the same lawn, a shade deeper, with fields in it — so the city fills
+          every screen and never floats on a blank. A pale kerb marks where the
+          plan ends. */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[size / 2, -0.02, size / 2]} receiveShadow>
         <planeGeometry args={[size * 8, size * 8]} />
-        <meshLambertMaterial color="#86c3e4" />
+        <meshLambertMaterial color="#a7c48e" />
       </mesh>
-      <mesh position={[size / 2, -0.62, size / 2]}>
-        <boxGeometry args={[size + 3.2, 0.14, size + 3.2]} />
-        <meshLambertMaterial color="#e5dab8" />
-      </mesh>
-      {/* the board's edge: a slab a little larger than the grid, in the lawn's colour */}
-      <mesh position={[size / 2, -0.3, size / 2]} receiveShadow>
-        <boxGeometry args={[size + 1.2, 0.6, size + 1.2]} />
-        <meshLambertMaterial color="#a9c391" />
-      </mesh>
-      <mesh position={[size / 2, -0.62, size / 2]}>
-        <boxGeometry args={[size + 1.2, 0.08, size + 1.2]} />
-        <meshLambertMaterial color="#8fa97a" />
+      {FIELDS.map((f, i) => (
+        <mesh key={`f${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[size / 2 + f.x, -0.01, size / 2 + f.z]} receiveShadow>
+          <planeGeometry args={[f.w, f.h]} />
+          <meshLambertMaterial color={f.c} />
+        </mesh>
+      ))}
+      <mesh position={[size / 2, -0.04, size / 2]} receiveShadow>
+        <boxGeometry args={[size + 0.9, 0.08, size + 0.9]} />
+        <meshLambertMaterial color="#d6d9cb" />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[size / 2, 0.001, size / 2]} receiveShadow>
         <planeGeometry args={[size, size]} />

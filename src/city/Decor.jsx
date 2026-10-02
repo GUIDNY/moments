@@ -53,13 +53,26 @@ export default function Decor({ plan }) {
         if (!isRoad(x, y) && t !== TILE.WATER && grid[y + 1]?.[x] === TILE.ROAD && x % 5 === 2) lamps.push({ x: x + 0.5, z: y + 0.82 });
       }
     }
-    return { trees: trees.slice(0, 150), benches: benches.slice(0, 10), lamps: lamps.slice(0, 40), planters: planters.slice(0, 24) };
+    // the country past the board: copses, densest near the kerb, thinning
+    // out — so whatever the camera shows past the plan is still a place
+    const country = [];
+    for (let i = 0; i < 1400 && country.length < 260; i++) {
+      const x = -26 + next() * (size + 52);
+      const z = -26 + next() * (size + 52);
+      const out = Math.max(-x, x - size, -z, z - size); // distance past the kerb
+      if (out < 1.2) continue;
+      if (next() < Math.max(0.12, 1 - out / 22)) country.push({ x, z, big: next() < 0.45, turn: Math.floor(next() * 4) });
+    }
+    return { trees: trees.slice(0, 150), country, benches: benches.slice(0, 10), lamps: lamps.slice(0, 40), planters: planters.slice(0, 24) };
   }, [grid, size, hq]);
 
   return (
     <group>
       {items.trees.map((t, i) => (
         <Kit key={`t${i}`} model={t.big ? 'suburban/tree-large' : 'suburban/tree-small'} fit={[0.7, 0.7]} maxScale={3.4} position={[t.x, 0, t.z]} turn={t.turn} />
+      ))}
+      {items.country.map((t, i) => (
+        <Kit key={`c${i}`} model={t.big ? 'suburban/tree-large' : 'suburban/tree-small'} fit={[0.8, 0.8]} maxScale={3.6} position={[t.x, 0, t.z]} turn={t.turn} />
       ))}
       {items.planters.map((p, i) => (
         <Kit key={`p${i}`} model="suburban/planter" fit={[0.6, 0.6]} maxScale={2} position={[p.x, 0, p.z]} turn={p.turn} />

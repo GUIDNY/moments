@@ -3,7 +3,6 @@ import { Canvas } from '@react-three/fiber';
 import { EffectComposer, N8AO, SMAA } from '@react-three/postprocessing';
 import { useCity } from '../stocks/CityContext';
 import { BOARD_BY_SYMBOL } from '../stocks/catalog';
-import { lookAt } from '../world3d/focus';
 import { planCity } from './layout';
 import CityCamera from './CityCamera';
 import CityGrid from './CityGrid';
@@ -55,15 +54,9 @@ export default function CityScene({ compact, selected, onSelectBuilding, onSelec
     window.__hq = plan.hq;
   }, [plan]);
 
-  // a building that was not in the last plan rises, and the camera goes to it
-  useEffect(() => {
-    const fresh = plan.buildings.find((b) => b.fresh);
-    // stand back to see the new building and its neighbours; on a phone the
-    // board is wider than the screen, so stay as close as the start
-    if (fresh) lookAt(fresh.cx, fresh.cz, compact ? 2.75 : 1.9);
-    // only a new plan flies the camera; a resize must not fly it again
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plan]);
+  // a building that was not in the last plan rises where it stands. The
+  // camera does not go to it: the user asked for a city that does not move
+  // by itself, and a new building rising under a crane is enough of a cue.
 
   return (
     <Canvas
