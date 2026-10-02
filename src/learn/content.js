@@ -22,12 +22,12 @@ export const LESSONS = [
     body: {
       he: [
         'יש לך 100,000 דולר של כסף משחק. המחירים אמיתיים — אלה הבורסות של תל אביב וניו יורק, בהשהיה של רבע שעה.',
-        'כל מניה שתקנה הופכת למגדל בעיר. הגובה שלו הוא כמה מהתיק שלך מושקע בה; הגג ירוק כשהיא עולה היום ואדום כשהיא יורדת.',
+        'כל מניה שתקנה הופכת לבניין בעיר. ככל שהפוזיציה שווה יותר, הבניין גדול יותר — מחנות קטנה ועד מגדל; השלט מעל הגג אומר כמה המניה זזה היום, והבניין במרכז הוא התיק כולו.',
         'המטרה היא לא להתעשר. המטרה היא להבין איך זה עובד — ולראות את זה קורה מול העיניים.',
       ],
       en: [
         'You have $100,000 of play money. The prices are real — Tel Aviv and New York, delayed by a quarter of an hour.',
-        'Every stock you buy becomes a tower in the city. Its height is how much of your portfolio is in it; its roof is green when it is up today and red when it is down.',
+        'Every stock you buy becomes a building in the city. The more the position is worth, the bigger the building — from a small shop to a tower; the sign over its roof says how far the stock moved today, and the building in the middle is the whole portfolio.',
         'The goal is not to get rich. The goal is to understand how this works — and to watch it happen in front of you.',
       ],
     },
@@ -49,7 +49,7 @@ export const LESSONS = [
         'What you paid per share is your "cost basis". Every gain or loss from now on is measured against it.',
       ],
     },
-    tip: { he: 'היכנס למגדל כדי לראות את מחיר העלות, המחיר הנוכחי וההפרש.', en: 'Walk into the tower to see your cost, the current price and the difference.' },
+    tip: { he: 'הקישו על הבניין כדי לראות את מחיר העלות, המחיר הנוכחי וההפרש.', en: 'Tap the building to see your cost, the current price and the difference.' },
   },
   {
     id: 'fees',
@@ -73,12 +73,12 @@ export const LESSONS = [
     title: { he: 'מה זה "היום"', en: 'What "today" means' },
     body: {
       he: [
-        'האחוז הירוק או האדום ליד כל מגדל הוא השינוי מסגירת יום המסחר הקודם. הוא לא אומר כלום על אם אתה ברווח — רק על מה קרה היום.',
+        'האחוז הירוק או האדום מעל כל בניין הוא השינוי מסגירת יום המסחר הקודם. הוא לא אומר כלום על אם אתה ברווח — רק על מה קרה היום.',
         'הרווח האמיתי שלך הוא מול מחיר העלות. מניה יכולה להיות אדומה היום ועדיין להיות הרווח הכי גדול בתיק.',
         'תנודה של אחוז ביום היא רגילה. חמישה אחוזים זה יום סוער. עשרה אחוזים — משהו קרה, ושווה לקרוא מה.',
       ],
       en: [
-        'The green or red percentage on a tower is the change since the previous day\'s close. It says nothing about whether you are in profit — only what happened today.',
+        'The green or red percentage over a building is the change since the previous day\'s close. It says nothing about whether you are in profit — only what happened today.',
         'Your real gain is against your cost basis. A stock can be red today and still be the biggest winner in the portfolio.',
         'A one-percent move in a day is ordinary. Five percent is a wild day. Ten — something happened, and it is worth reading what.',
       ],
@@ -156,7 +156,7 @@ export const LESSONS = [
   {
     id: 'concentration',
     emoji: '🗼',
-    title: { he: 'מגדל אחד הוא חצי מהעיר', en: 'One tower is half the city' },
+    title: { he: 'בניין אחד הוא חצי מהעיר', en: 'One building is half the city' },
     body: {
       he: [
         'יותר מחצי מהתיק שלך באחזקה אחת. היום הטוב שלה הוא היום הטוב שלך — וגם היום הרע.',
@@ -212,7 +212,7 @@ export const MISSIONS = [
     id: 'first-buy',
     emoji: '🏗️',
     title: { he: 'קנה את המניה הראשונה שלך', en: 'Buy your first stock' },
-    why: { he: 'כמה אלפי דולרים מספיקים. המגדל הראשון בעיר.', en: 'A few thousand dollars is plenty. The first tower in the city.' },
+    why: { he: 'כמה אלפי דולרים מספיקים. הבניין הראשון בעיר.', en: 'A few thousand dollars is plenty. The first building in the city.' },
     lesson: 'first-buy',
     test: ({ holdings }) => holdings.length >= 1,
   },

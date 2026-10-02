@@ -37,7 +37,7 @@ export const STRINGS = {
     'city.unconverted': '{n} אחזקות לא נכללות בסכום — אין שער המרה.',
 
     'directory.title': 'התיק שלי',
-    'directory.sub': 'הקישו על אחזקה כדי להגיע למגדל שלה',
+    'directory.sub': 'הקישו על אחזקה כדי להגיע לבניין שלה',
     'directory.empty': 'עוד לא הוספתם מניות',
     'directory.add': 'קניית מניה',
     'directory.share': 'שיתוף התיק',
@@ -61,7 +61,7 @@ export const STRINGS = {
     'game.sinceStart': 'מההתחלה',
     'game.start': 'התחלת עם {amount}',
     'game.reset': 'להתחיל מחדש',
-    'game.resetConfirm': 'להתחיל מחדש עם {amount}? המגדלים יימחקו, ההישגים והשיעורים יישארו.',
+    'game.resetConfirm': 'להתחיל מחדש עם {amount}? הבניינים יימחקו, ההישגים והשיעורים יישארו.',
     'game.history': 'שווי התיק לאורך זמן',
     'game.trades': 'פעולות',
     'game.noTrades': 'עוד לא ביצעת פעולות',
@@ -134,7 +134,7 @@ export const STRINGS = {
     'panel.close': 'סגור',
     'soon.title': 'בקרוב',
     'soon.rankings': 'דירוג הערים העשירות, העולות של היום ולייקים — ברגע שיהיו שכנים.',
-    'soon.friends': 'ביקור בעיר של חבר: שם העיר, שווי, שינוי יומי והמגדלים שלו.',
+    'soon.friends': 'ביקור בעיר של חבר: שם העיר, שווי, שינוי יומי והבניינים שלו.',
     'visit.banner': 'אתם מבקרים בעיר של {name}',
     'visit.leave': 'חזרה לעיר שלי',
     'visit.visit': 'ביקור בעיר',
@@ -151,7 +151,7 @@ export const STRINGS = {
     'picker.qty': 'כמה מניות',
     'picker.cost': 'מחיר קנייה למניה (לא חובה)',
     'picker.costHint': 'באותן יחידות שהבורסה מציגה. בתל אביב זה באגורות.',
-    'picker.addIt': 'בנו את המגדל',
+    'picker.addIt': 'בנו את הבניין',
     'picker.note': 'הנתונים לצורך תצוגה בלבד, לא ייעוץ ולא המלצה.',
 
     'holding.value': 'שווי האחזקה',
@@ -169,7 +169,7 @@ export const STRINGS = {
 
     'welcome.title': 'ברוכים הבאים לעיר המניות',
     'welcome.body':
-      'You have $100,000 of play money and real prices from the exchange. Every stock you buy becomes a tower in the city: its height is how much of the portfolio is in it, and its roof is green or red with the day. The missions teach you how it works, one step at a time.',
+      'יש לך 100,000 דולר של כסף משחק ומחירים אמיתיים מהבורסה. כל מניה שתקנו הופכת לבניין בעיר: הגודל שלו הוא כמה הפוזיציה שווה, והשלט מעל הגג אומר כמה היא זזה היום. המשימות מלמדות איך זה עובד, צעד אחר צעד.',
     'welcome.cta': 'בואו נתחיל',
   },
 
@@ -198,7 +198,7 @@ export const STRINGS = {
     'city.unconverted': '{n} holdings are left out of the total — no exchange rate.',
 
     'directory.title': 'My portfolio',
-    'directory.sub': 'Tap a holding to walk to its tower',
+    'directory.sub': 'Tap a holding to go to its building',
     'directory.empty': 'No stocks added yet',
     'directory.add': 'Buy a stock',
     'directory.share': 'Share this portfolio',
@@ -222,7 +222,7 @@ export const STRINGS = {
     'game.sinceStart': 'since start',
     'game.start': 'You started with {amount}',
     'game.reset': 'Start over',
-    'game.resetConfirm': 'Start over with {amount}? The towers go, the badges and lessons stay.',
+    'game.resetConfirm': 'Start over with {amount}? The buildings go, the badges and lessons stay.',
     'game.history': 'Portfolio value over time',
     'game.trades': 'Trades',
     'game.noTrades': 'No trades yet',
@@ -295,7 +295,7 @@ export const STRINGS = {
     'panel.close': 'Close',
     'soon.title': 'Coming soon',
     'soon.rankings': 'Richest cities, biggest daily gainers and likes — once there are neighbours.',
-    'soon.friends': "Visit a friend's city: its name, value, daily change and their towers.",
+    'soon.friends': "Visit a friend's city: its name, value, daily change and their buildings.",
     'visit.banner': "You are visiting {name}'s city",
     'visit.leave': 'Back to my city',
     'visit.visit': 'Visit city',
@@ -312,7 +312,7 @@ export const STRINGS = {
     'picker.qty': 'How many shares',
     'picker.cost': 'Price paid per share (optional)',
     'picker.costHint': 'In the units the exchange shows. Tel Aviv quotes in agorot.',
-    'picker.addIt': 'Put up the tower',
+    'picker.addIt': 'Put up the building',
     'picker.note': 'For display only — not advice and not a recommendation.',
 
     'holding.value': 'Position value',
@@ -330,7 +330,7 @@ export const STRINGS = {
 
     'welcome.title': 'Welcome to Stock City',
     'welcome.body':
-      'Every stock you hold is a tower. Its height is what the position is worth, its roof is green when the stock is up and red when it is down, and the building gleams when you are in profit and dims when you are not. Add a stock and the first tower goes up.',
+      'You have $100,000 of play money and real prices from the exchange. Every stock you buy becomes a building in the city: its size is what the position is worth, and the sign over its roof says how far it moved today. The missions teach you how it works, one step at a time.',
     'welcome.cta': "Let's go",
   },
 };
