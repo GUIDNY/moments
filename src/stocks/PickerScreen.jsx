@@ -132,7 +132,7 @@ export default function PickerScreen({ onExit }) {
         </div>
       </header>
 
-      <div className="mx-auto max-w-2xl px-4 py-4 pb-[calc(2rem+env(safe-area-inset-bottom,0px))]">
+      <div className="mx-auto max-w-2xl px-4 py-4 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:pb-28">
         {query.trim().length >= 2 ? (
           <>
             <h3 className="text-[11px] font-black uppercase tracking-wide text-paper-muted mb-1.5">

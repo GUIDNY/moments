@@ -40,9 +40,21 @@ async function quoteOne(symbol) {
     /* Three months of daily closes, for the sparkline and for teaching: a
        price is a number, a line is a story. Nulls are days the exchange was
        shut; they are dropped rather than drawn as zero. */
-    const closes = (result.indicators?.quote?.[0]?.close || [])
-      .filter((v) => typeof v === 'number')
-      .slice(-66);
+    const series = result.indicators?.quote?.[0]?.close || [];
+    const stamps = result.timestamp || [];
+    const closes = series.filter((v) => typeof v === 'number').slice(-66);
+    /* Yesterday's close is the last bar before the session the quote belongs
+       to. `chartPreviousClose` is NOT that: it is the close before the range
+       began, three months ago, and reading it as yesterday turned a flat day
+       into a +12% one on every roof in the city. */
+    const DAY = 86400;
+    const session = Math.floor((meta.regularMarketTime || 0) / DAY);
+    let prevClose = meta.regularMarketPreviousClose ?? meta.previousClose ?? null;
+    if (prevClose == null) {
+      let i = series.length - 1;
+      while (i >= 0 && (typeof series[i] !== 'number' || Math.floor((stamps[i] || 0) / DAY) >= session)) i--;
+      prevClose = i >= 0 ? series[i] : meta.regularMarketPrice;
+    }
     return {
       closes,
       high52: meta.fiftyTwoWeekHigh ?? null,
@@ -50,7 +62,7 @@ async function quoteOne(symbol) {
       symbol: meta.symbol || symbol,
       name: meta.longName || meta.shortName || symbol,
       price: meta.regularMarketPrice,
-      prevClose: meta.chartPreviousClose ?? meta.previousClose ?? meta.regularMarketPrice,
+      prevClose,
       changePct: meta.regularMarketChangePercent ?? null,
       currency: meta.currency || 'USD',
       exchange: meta.fullExchangeName || meta.exchangeName || '',

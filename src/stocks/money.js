@@ -53,10 +53,11 @@ export function rateBetween(from, to, rates) {
 /**
  * One holding, priced.
  *
- * `cost` is what was paid per share, in whatever unit the market quotes — an
- * agent types 7726 for a bank share because that is what the screen said — so
- * it goes through exactly the same conversion as the live price. Converting one
- * and not the other is how a flat position shows a 9,900% gain.
+ * `cost` is what was paid per share in the stock's own currency, in major
+ * units — the trade price `store.js` settled, ₪77.46 and never 7746 — so it is
+ * NOT put through `toMajor`. The live price is, because the quote arrives in
+ * agorot. Converting the cost as well is how a position bought a minute ago
+ * showed a 9,900% gain and earned the "doubled" badge.
  */
 export function priceHolding(holding, quote, display, rates) {
   if (!quote || quote.error || !Number.isFinite(quote.price)) {
@@ -65,10 +66,11 @@ export function priceHolding(holding, quote, display, rates) {
 
   const now = toMajor(quote.price, quote.currency);
   const prev = toMajor(quote.prevClose ?? quote.price, quote.currency);
-  const cost = Number.isFinite(holding.cost) ? toMajor(holding.cost, quote.currency).price : null;
+  const cost = Number.isFinite(holding.cost) ? holding.cost : null;
 
   const qty = Number(holding.qty) || 0;
   const rate = rateBetween(now.currency, display, rates);
+  const toUsd = rateBetween(now.currency, 'USD', rates);
 
   const value = qty * now.price;
   const dayChange = qty * (now.price - prev.price);
@@ -96,6 +98,10 @@ export function priceHolding(holding, quote, display, rates) {
     convertedDay: rate == null ? null : dayChange * rate,
     convertedGain: rate == null || gain == null ? null : gain * rate,
     rate,
+    // and in dollars, whatever the display currency: the city's tiers and
+    // the game's score are both in dollars
+    valueUsd: toUsd == null ? null : value * toUsd,
+    gainUsd: toUsd == null || gain == null ? null : gain * toUsd,
   };
 }
 

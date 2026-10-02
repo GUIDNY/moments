@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useI18n } from '../i18n/I18nContext';
 import { useCity } from './CityContext';
 import { formatMoney, formatPct, tradeQuote } from './money';
@@ -57,10 +58,14 @@ export default function TradeSheet({ symbol, side, meta = {}, onClose }) {
     onClose(true);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/55 backdrop-blur-[2px]" onClick={() => onClose(false)}>
+  /* Portalled to the body: the market screen is `position: fixed`, which is
+     a stacking context of its own, so a ticket drawn inside it sat under the
+     bottom bar whatever z-index it was given — and the buy button was the
+     part under the bar. */
+  return createPortal(
+    <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center bg-black/55 backdrop-blur-[2px]" onClick={() => onClose(false)}>
       <div
-        className="w-full md:max-w-sm bg-paper rounded-t-[26px] md:rounded-3xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] md:pb-4 animate-sheet-up"
+        className="w-full md:max-w-sm bg-paper rounded-t-[26px] md:rounded-3xl p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] md:pb-4 animate-sheet-up max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-label={side === 'buy' ? t('trade.buyTitle') : t('trade.sellTitle')}
@@ -171,6 +176,7 @@ export default function TradeSheet({ symbol, side, meta = {}, onClose }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

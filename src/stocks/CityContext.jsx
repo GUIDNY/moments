@@ -1,5 +1,4 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { rebuild } from '../world/map-data';
 import { REFRESH_MS, ensureQuote, market, onMarket, refresh } from './market';
 import { priceHolding, summarise, tradeQuote } from './money';
 import { LESSON_BY_ID, MISSIONS } from '../learn/content';
@@ -29,21 +28,8 @@ export function CityProvider({ children }) {
   const symbols = useMemo(() => state.holdings.map((h) => h.symbol), [state.holdings]);
   const symbolKey = symbols.join(',');
 
-  /* The streets are relaid whenever the holdings change, never on a price
-     tick — and relaid *during render*, not in an effect. A buy closes the
-     board and mounts the city in the same commit, and the city's first
-     render asks `getSpawn()` where to stand; an effect would answer after
-     that render, with yesterday's map, and the first thing you saw of your
-     first tower was the plaza with your back to it. `rebuild` is
-     deterministic and touches nothing React owns, so it is safe here. */
-  const laidOut = useRef(new Set(state.holdings.map((h) => h.symbol)));
-  useMemo(() => {
-    // what is new is decided against the last layout this context made, so
-    // a reload builds the skyline standing and only a buy makes a tower rise
-    const fresh = new Set(state.holdings.map((h) => h.symbol).filter((sym) => !laidOut.current.has(sym)));
-    laidOut.current = new Set(state.holdings.map((h) => h.symbol));
-    rebuild(state.holdings, fresh);
-  }, [state.holdings]);
+  /* The city plans itself from these numbers (`city/layout.js`); this layer
+     only has to say when the holdings changed. */
   useEffect(() => {
     setTick((t) => t + 1);
   }, [state.holdings]);

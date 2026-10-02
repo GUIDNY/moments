@@ -10,7 +10,7 @@ export function lookAt(x, z, dist = null) {
   focus.dist = dist;
 }
 
-/** A zoom request from the chrome: factor < 1 is closer, > 1 further. */
+/** A zoom request from the chrome: a magnification, so 1.25 is closer and 0.8 further. */
 export const zoom = { by: null };
 export function zoomBy(factor) {
   zoom.by = (zoom.by ?? 1) * factor;

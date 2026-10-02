@@ -81,3 +81,15 @@ export function fitTo(key, w, d, maxScale = 3) {
   const scale = Math.min(maxScale, w / Math.max(0.01, b.w), d / Math.max(0.01, b.d));
   return { scale, offset: [-b.cx * scale, -b.y0 * scale, -b.cz * scale], height: b.h * scale };
 }
+
+/**
+ * Scale and offset that give a model a wanted height, standing on the ground
+ * and centred — the tiered building: a tier is a height, and the model is
+ * whatever the district builds in. The footprint caps it so a squat model
+ * asked to be tall does not spill over its plot.
+ */
+export function fitHeight(key, height, maxW, maxD = maxW) {
+  const b = boundsOf(key);
+  const scale = Math.min(height / Math.max(0.01, b.h), maxW / Math.max(0.01, b.w), maxD / Math.max(0.01, b.d));
+  return { scale, offset: [-b.cx * scale, -b.y0 * scale, -b.cz * scale], height: b.h * scale };
+}

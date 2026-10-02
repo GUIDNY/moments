@@ -5,22 +5,45 @@ import { ACHIEVEMENT_BY_ID } from './stocks/achievements';
 import BadgesScreen from './stocks/BadgesScreen';
 import LearnScreen from './learn/LearnScreen';
 import LessonSheet from './learn/LessonSheet';
-import HoldingScreen from './stocks/HoldingScreen';
 import PickerScreen from './stocks/PickerScreen';
+import { cityLevel } from './city/tiers';
+import CityScene from './city/CityScene';
+import { zoomBy } from './world3d/focus';
 import Button from './ui/Button';
 import Sheet from './ui/Sheet';
 import Toast from './ui/Toast';
-import CityHud from './world/CityHud';
-import Directory from './world/Directory';
-import World3D from './world3d/World3D';
+import BottomNavigation from './ui/game/BottomNavigation';
+import CityProfile from './ui/game/CityProfile';
+import PortfolioHUD from './ui/game/PortfolioHUD';
+import PortfolioView from './ui/game/PortfolioView';
+import SoonScreen from './ui/game/SoonScreen';
+import StockInfoPanel from './ui/game/StockInfoPanel';
+import VisitCityMode from './ui/game/VisitCityMode';
 
 const WELCOME_KEY = 'stockcity.welcomed';
 
+/** Phones get a bottom sheet instead of a side panel, and a lighter render budget. */
+function useIsCompact() {
+  const [compact, setCompact] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const onChange = (e) => setCompact(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return compact;
+}
+
+const ZOOM_BTN = 'ui-layer w-10 h-10 rounded-xl grid place-items-center bg-white/95 backdrop-blur-md border border-paper-200 shadow-card text-ink-900 text-xl font-black active:scale-90 transition-transform';
+
 export default function App() {
   const { t, loc } = useI18n();
-  const { holdings, freshBadges, dismissBadge, current, dismissCurrent, readLesson, lastTrade, holdingOf } = useCity();
-  const [view, setView] = useState({ type: 'city' });
-  const [directoryOpen, setDirectoryOpen] = useState(false);
+  const city = useCity();
+  const { holdings, summary, cash, totalUsd, freshBadges, dismissBadge, current, dismissCurrent, readLesson, lastTrade, holdingOf, isShared } = city;
+  const compact = useIsCompact();
+
+  const [tab, setTab] = useState('city');
+  const [selected, setSelected] = useState(null); // symbol of the open building
   const [badgesOpen, setBadgesOpen] = useState(false);
   const [learnOpen, setLearnOpen] = useState(false);
   const [welcome, setWelcome] = useState(false);
@@ -55,7 +78,6 @@ export default function App() {
       /* private mode — just skip the intro */
     }
   }, []);
-
   const closeWelcome = () => {
     setWelcome(false);
     try {
@@ -65,66 +87,74 @@ export default function App() {
     }
   };
 
-  const openHolding = useCallback((symbol) => {
-    setDirectoryOpen(false);
-    setView({ type: 'holding', symbol });
+  // a building that was sold out from under the panel closes it
+  useEffect(() => {
+    if (selected && !holdingOf(selected)) setSelected(null);
+  }, [holdings, selected, holdingOf]);
+
+  const openStock = useCallback((symbol) => {
+    setTab('city');
+    setSelected(symbol);
   }, []);
-
-  const openPicker = useCallback(() => {
-    setDirectoryOpen(false);
-    setView({ type: 'picker' });
+  const goMarket = useCallback(() => {
+    setSelected(null);
+    setTab('market');
   }, []);
-
-  const backToCity = useCallback(() => setView({ type: 'city' }), []);
-
-  let content;
-  if (view.type === 'holding') {
-    content = <HoldingScreen key={view.symbol} symbol={view.symbol} onExit={backToCity} />;
-  } else if (view.type === 'picker') {
-    content = <PickerScreen onExit={backToCity} />;
-  } else {
-    content = (
-      <>
-        <World3D
-          onEnter={(building) => openHolding(building.symbol)}
-          onOpenDirectory={() => setDirectoryOpen(true)}
-          onBuild={openPicker}
-        />
-        <CityHud onOpenPortfolio={() => setDirectoryOpen(true)} onLearn={() => setLearnOpen(true)} />
-        <Directory
-          open={directoryOpen}
-          onClose={() => setDirectoryOpen(false)}
-          onEnter={openHolding}
-          onAdd={openPicker}
-          onBadges={() => {
-            setDirectoryOpen(false);
-            setBadgesOpen(true);
-          }}
-          onLearn={() => {
-            setDirectoryOpen(false);
-            setLearnOpen(true);
-          }}
-        />
-        <BadgesScreen open={badgesOpen} onClose={() => setBadgesOpen(false)} />
-        <LearnScreen open={learnOpen} onClose={() => setLearnOpen(false)} />
-      </>
-    );
-  }
+  const onSelectBuilding = useCallback((b) => setSelected(b.symbol), []);
+  const level = cityLevel(totalUsd, holdings.length);
 
   return (
-    <>
-      {content}
-      {toast && <Toast emoji={toast.emoji} text={toast.text} onDone={toastDone} />}
-      {/* lessons and finished missions, one at a time, only in the city */}
-      {view.type === 'city' && !welcome && (
-        <LessonSheet item={current} onDone={dismissCurrent} onReadLesson={readLesson} />
+    <div className="absolute inset-0 bg-[#dfe9ee] overflow-hidden">
+      {/* the city is always mounted: switching tabs must not rebuild it */}
+      <div className={tab === 'city' ? 'absolute inset-0' : 'absolute inset-0 invisible'}>
+        <CityScene compact={compact} selected={selected} onSelectBuilding={onSelectBuilding} onSelectHQ={() => setTab('portfolio')} />
+        <CityProfile name={null} level={level} onTap={() => setTab('portfolio')} />
+        <PortfolioHUD
+          totalUsd={totalUsd}
+          dayUsd={summary.valueUsd && summary.value ? (summary.day / summary.value) * summary.valueUsd : 0}
+          dayPct={holdings.length ? summary.dayPct : null}
+          cash={cash}
+          investedUsd={summary.valueUsd}
+          onOpen={() => setTab('portfolio')}
+        />
+        {isShared && <VisitCityMode name={t('profile.myCity')} />}
+        <div className="absolute z-30 end-3 md:end-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:bottom-24 flex flex-col gap-1.5">
+          <button type="button" className={ZOOM_BTN} onClick={() => zoomBy(1.25)} aria-label="+">+</button>
+          <button type="button" className={ZOOM_BTN} onClick={() => zoomBy(0.8)} aria-label="−">−</button>
+        </div>
+        {holdings.length === 0 && !welcome && (
+          <div className="absolute inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] md:bottom-24 flex justify-center px-4 pointer-events-none">
+            <button type="button" onClick={goMarket} className="pointer-events-auto rounded-2xl bg-brand text-white font-black text-[14px] px-5 h-12 shadow-fab active:scale-95 transition-transform">
+              🏗️ {t('directory.add')}
+            </button>
+          </div>
+        )}
+        {selected && <StockInfoPanel symbol={selected} onClose={() => setSelected(null)} readOnly={isShared} />}
+      </div>
+
+      {tab === 'portfolio' && (
+        <PortfolioView onOpenStock={openStock} onBuy={goMarket} onLearn={() => setLearnOpen(true)} onBadges={() => setBadgesOpen(true)} />
       )}
+      {tab === 'market' && (
+        <div className="absolute inset-0">
+          <PickerScreen onExit={() => setTab('city')} />
+        </div>
+      )}
+      {tab === 'rankings' && <SoonScreen emoji="🏆" textKey="soon.rankings" />}
+      {tab === 'friends' && <SoonScreen emoji="👥" textKey="soon.friends" />}
+
+      <BottomNavigation active={tab} onChange={(id) => { setSelected(null); setTab(id); }} />
+
+      <BadgesScreen open={badgesOpen} onClose={() => setBadgesOpen(false)} />
+      <LearnScreen open={learnOpen} onClose={() => setLearnOpen(false)} />
+      {toast && <Toast emoji={toast.emoji} text={toast.text} onDone={toastDone} />}
+      {tab === 'city' && !welcome && <LessonSheet item={current} onDone={dismissCurrent} onReadLesson={readLesson} />}
       <Sheet open={welcome} onClose={closeWelcome} title={t('welcome.title')} tone="paper">
         <p className="text-[14px] text-ink-900/80 leading-relaxed">{t('welcome.body')}</p>
-        <Button className="w-full mt-4" onClick={holdings.length ? closeWelcome : () => { closeWelcome(); openPicker(); }}>
+        <Button className="w-full mt-4" onClick={holdings.length ? closeWelcome : () => { closeWelcome(); goMarket(); }}>
           {holdings.length ? t('welcome.cta') : t('directory.add')}
         </Button>
       </Sheet>
-    </>
+    </div>
   );
 }
