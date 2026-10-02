@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { MAP_H, MAP_W } from '../world/map-data';
-import { focus } from './focus';
+import { focus, zoom } from './focus';
 import { setPlayerPos } from './playerPos';
 
 /**
@@ -15,15 +15,22 @@ import { setPlayerPos } from './playerPos';
  * easing towards when something asks for attention (`focus`). A drag never
  * re-renders anything.
  */
-const PITCH = 0.95; // radians down from level: steep enough to read the grid
-const YAW = 0.6; // turned off-axis so two faces of every building show
-const MIN_D = 12;
-const MAX_D = 60;
+/* A three-quarter view, not a map: low enough that a facade is a facade and a
+   street has depth, high enough that the plots behind are not hidden. The
+   diagonal yaw shows two faces of every building, the way an isometric game
+   does. */
+const PITCH = 0.66; // radians down from level (~38°)
+const YAW = Math.PI / 4;
+const MIN_D = 9;
+const MAX_D = 48;
+/* A finger never holds still. Panning only starts once the pointer has moved
+   this far, so a tap with a wobble in it stays a tap and the city stays put. */
+const DEAD_PX = 8;
 
 export default function CameraRig({ compact }) {
   const { camera, gl } = useThree();
   const target = useRef({ x: MAP_W / 2, z: MAP_H / 2 + 2 });
-  const dist = useRef(compact ? 34 : 30);
+  const dist = useRef(compact ? 26 : 24);
   const drag = useRef(null);
   const pinch = useRef(null);
 
@@ -38,19 +45,24 @@ export default function CameraRig({ compact }) {
 
     const onDown = (e) => {
       if (e.pointerType === 'touch' && e.isPrimary === false) return;
-      drag.current = { x: e.clientX, y: e.clientY, moved: 0 };
-      focus.at = null; // a hand on the city cancels any flight
+      drag.current = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, live: false };
     };
     const onMove = (e) => {
       const d = drag.current;
       if (!d || pinch.current) return;
+      if (!d.live) {
+        if (Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < DEAD_PX) return;
+        d.live = true;
+        d.x = e.clientX;
+        d.y = e.clientY;
+        focus.at = null; // a hand on the city cancels any flight
+      }
       const dx = e.clientX - d.x;
       const dy = e.clientY - d.y;
       d.x = e.clientX;
       d.y = e.clientY;
-      d.moved += Math.abs(dx) + Math.abs(dy);
       // screen right is world +x rotated by the yaw; screen down is world +z
-      const k = panScale() * 1.9;
+      const k = panScale() * 1.5;
       const c = Math.cos(YAW);
       const s = Math.sin(YAW);
       target.current.x -= (dx * c - dy * s) * k;
@@ -117,6 +129,11 @@ export default function CameraRig({ compact }) {
   const first = useRef(true);
   useFrame((_, rawDelta) => {
     const delta = Math.min(0.1, rawDelta);
+    // the chrome's zoom buttons: applied once, eased below
+    if (zoom.by != null) {
+      dist.current = Math.min(MAX_D, Math.max(MIN_D, dist.current * zoom.by));
+      zoom.by = null;
+    }
     // something asked to be looked at: fly there, then let go
     if (focus.at) {
       const t = target.current;

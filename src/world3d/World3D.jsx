@@ -2,7 +2,7 @@ import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } f
 import { Canvas, useThree } from '@react-three/fiber';
 import { EffectComposer, N8AO, SMAA } from '@react-three/postprocessing';
 import CameraRig from './CameraRig';
-import { lookAt } from './focus';
+import { lookAt, zoomBy } from './focus';
 import MiniMap from './MiniMap';
 import Npcs from './Npcs';
 import { Ground, PlazaScreen, Props, River, Shops, Surrounds, Waterfront } from './Scenery';
@@ -78,7 +78,9 @@ export default function World3D({ onEnter, onOpenDirectory, onBuild }) {
     const b = getBuildings().find((x) => x.fresh);
     if (!b) return;
     b.fresh = false;
-    lookAt(b.x + b.w / 2, b.y + b.h / 2 + 1, compact ? 24 : 20);
+    // aim a little in front of the tower and stand back: at the lower pitch
+    // a tower looked at dead-on fills the frame and loses its roof
+    lookAt(b.x + b.w / 2, b.y + b.h / 2 + 3, compact ? 32 : 28);
   }, [holdings, compact]);
 
   useEffect(() => {
@@ -211,6 +213,14 @@ export default function World3D({ onEnter, onOpenDirectory, onBuild }) {
             ))}
           </div>
         )}
+
+        {/* zoom, for the phone that cannot scroll and the thumb that cannot pinch */}
+        <button type="button" onClick={() => zoomBy(0.8)} className={RAIL_BUTTON} aria-label="+">
+          <span className="text-xl font-black leading-none">+</span>
+        </button>
+        <button type="button" onClick={() => zoomBy(1.25)} className={RAIL_BUTTON} aria-label="−">
+          <span className="text-xl font-black leading-none">−</span>
+        </button>
 
         <button
           type="button"

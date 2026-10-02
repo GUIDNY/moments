@@ -160,7 +160,12 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
 - Nothing in the lessons is advice, and the screens say so (`learn.notAdvice`). Keep it that way:
   the content explains how the machine works, with play money and delayed prices.
 - **The camera is the player.** `CameraRig` keeps its target and distance in refs and applies
-  them in `useFrame`; a drag never re-renders anything. It publishes the point it looks at through
+  them in `useFrame`; a drag never re-renders anything. It is a three-quarter view (pitch ~38°,
+  yaw 45°), not a map — the user asked for "not really from above". Panning starts only after an
+  8 px dead zone, so a tap with a wobble in it stays a tap and the city stays put; the rail has
+  +/− buttons because a thumb cannot scroll and often cannot pinch. A fly-to aims a little in
+  front of the tower and stands back, or at this pitch the tower fills the frame and loses its
+  roof. It publishes the point it looks at through
   `setPlayerPos`, which is what the minimap marker, the district chip and the signs that fade with
   distance read — so nothing downstream had to learn that the walker was gone. `focus.js` is how
   something asks to be looked at: a new tower sets it, the rig flies there and clears it, and a

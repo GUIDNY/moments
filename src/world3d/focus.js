@@ -9,3 +9,9 @@ export function lookAt(x, z, dist = null) {
   focus.at = { x, z };
   focus.dist = dist;
 }
+
+/** A zoom request from the chrome: factor < 1 is closer, > 1 further. */
+export const zoom = { by: null };
+export function zoomBy(factor) {
+  zoom.by = (zoom.by ?? 1) * factor;
+}
