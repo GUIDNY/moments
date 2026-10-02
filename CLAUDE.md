@@ -35,7 +35,7 @@ nothing else.
 
 ## Stack
 Vite 6 + React 18 (JSX, no TypeScript) + Tailwind 3, with three.js through react-three-fiber for
-the town. No backend, no router and no drei — state lives in `localStorage`, views are switched in
+the town, Lucide for icons and Motion for the chrome's springs. No backend, no router and no drei — state lives in `localStorage`, views are switched in
 `src/App.jsx`, and every label in the 3D scene is a canvas texture.
 
 ## Layout
@@ -224,6 +224,12 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
 - The chrome over the game has its own small palette — `brand` (orange), `ink` (dark blue-greys)
   and `paper` (white/greys). The world keeps its district colours for wayfinding; do not mix the
   two sets.
+- **Icons are Lucide, motion is Motion.** `lucide-react` for every icon in the chrome (nav, HUD
+  trend, zoom, close, buy/sell, badges, learn, build); emoji stay only where they are content —
+  a lesson's or a badge's own emoji. `motion/react` for the nav's sliding pill (`layoutId`), the
+  building sheet's spring, the toast, and `NumberTicker` (the HUD total rolls to a new value; the
+  first value shows at once so a reload never counts up from zero). Nothing in the 3D scene
+  uses either: the city animates from refs in `useFrame`, as before.
 - **Ambient occlusion is most of the difference between a rendered model and a drawn one.** The
   canvas ends with an `EffectComposer` running `N8AO` at half resolution and `SMAA`, and the sun
   casts soft shadows from a 4096 map. That stack is `@react-three/postprocessing@2` — the 3.x line

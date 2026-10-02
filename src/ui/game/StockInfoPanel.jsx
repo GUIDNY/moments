@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
+import { Minus, Plus, X } from 'lucide-react';
 import { useI18n } from '../../i18n/I18nContext';
 import { SECTOR_BY_ID } from '../../stocks/catalog';
 import { useCity } from '../../stocks/CityContext';
@@ -66,10 +68,14 @@ export default function StockInfoPanel({ symbol, onClose, readOnly = false, onVi
 
   return (
     <>
-      <aside
+      <motion.aside
+        key={symbol}
+        initial={{ y: 28, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 420, damping: 36 }}
         className="ui-layer absolute z-40 inset-x-0 bottom-0 md:inset-x-auto md:bottom-auto md:end-4 md:top-[4.5rem] md:w-[340px]
           bg-white text-ink-900 rounded-t-[26px] md:rounded-3xl shadow-card-lg border border-paper-200
-          px-4 pt-3 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-4 animate-sheet-up md:animate-pop-in max-h-[78vh] md:max-h-[calc(100vh-9rem)] overflow-y-auto"
+          px-4 pt-3 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-4 max-h-[78vh] md:max-h-[calc(100vh-9rem)] overflow-y-auto"
         role="dialog"
         aria-label={name}
       >
@@ -84,7 +90,7 @@ export default function StockInfoPanel({ symbol, onClose, readOnly = false, onVi
             <h2 className="text-[17px] font-black text-ink-900 leading-tight truncate">{name}</h2>
             <p dir="ltr" className="text-[11.5px] text-paper-muted text-start">{symbol} · {sector ? loc(sector.name) : ''}</p>
           </div>
-          <button type="button" onClick={onClose} aria-label={t('panel.close')} className="w-9 h-9 rounded-xl bg-paper-50 border border-paper-200 text-ink-900 font-black">✕</button>
+          <button type="button" onClick={onClose} aria-label={t('panel.close')} className="w-9 h-9 rounded-xl bg-paper-50 border border-paper-200 text-ink-900 grid place-items-center"><X size={18} strokeWidth={2.4} aria-hidden="true" /></button>
         </div>
 
         {missing ? (
@@ -118,10 +124,12 @@ export default function StockInfoPanel({ symbol, onClose, readOnly = false, onVi
 
         {!readOnly && !missing && (
           <div className="flex gap-2 mt-3">
-            <button type="button" onClick={() => setTrade('buy')} className="flex-1 h-11 rounded-2xl bg-brand text-white font-black text-[14px] shadow-fab active:scale-[0.99] transition-transform">
+            <button type="button" onClick={() => setTrade('buy')} className="flex-1 h-11 rounded-2xl bg-brand text-white font-black text-[14px] shadow-fab active:scale-[0.99] transition-transform inline-flex items-center justify-center gap-1.5">
+              <Plus size={17} strokeWidth={2.6} aria-hidden="true" />
               {t('holding.buyMore')}
             </button>
-            <button type="button" onClick={() => setTrade('sell')} className="flex-1 h-11 rounded-2xl border-2 border-[#e2706f] text-[#e2706f] font-black text-[14px] active:scale-[0.99] transition-transform">
+            <button type="button" onClick={() => setTrade('sell')} className="flex-1 h-11 rounded-2xl border-2 border-[#e2706f] text-[#e2706f] font-black text-[14px] active:scale-[0.99] transition-transform inline-flex items-center justify-center gap-1.5">
+              <Minus size={17} strokeWidth={2.6} aria-hidden="true" />
               {t('holding.sellSome')}
             </button>
           </div>
@@ -131,7 +139,7 @@ export default function StockInfoPanel({ symbol, onClose, readOnly = false, onVi
             {t('panel.view')}
           </button>
         )}
-      </aside>
+      </motion.aside>
 
       {trade && (
         <TradeSheet

@@ -1,6 +1,8 @@
+import { TrendingDown, TrendingUp } from 'lucide-react';
 import { useI18n } from '../../i18n/I18nContext';
 import { formatMoney, formatPct } from '../../stocks/money';
 import { moveColor } from '../../stocks/towers';
+import NumberTicker from './NumberTicker';
 
 /**
  * The one number, top centre: what the whole city is worth. Under it, today.
@@ -21,11 +23,12 @@ export default function PortfolioHUD({ totalUsd, dayUsd, dayPct, cash, investedU
         <span className="text-center">
           <span className="block text-[9.5px] font-black uppercase tracking-wide text-paper-muted leading-none mb-1">{t('hud.value')}</span>
           <span className="block text-[22px] md:text-[26px] font-black tabular-nums leading-none">
-            {totalUsd != null ? formatMoney(totalUsd, 'USD', true) : '…'}
+            {totalUsd != null ? <NumberTicker value={totalUsd} format={(v) => formatMoney(v, 'USD', true)} /> : '…'}
           </span>
           {Number.isFinite(dayPct) && (
-            <span className="block mt-1 text-[12px] font-bold tabular-nums leading-none" style={{ color: tone }}>
-              {dayUsd >= 0 ? '+' : ''}{formatMoney(dayUsd, 'USD', true)} · {formatPct(dayPct)} {t('hud.today')}
+            <span className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold tabular-nums leading-none" style={{ color: tone }}>
+              {dayPct >= 0 ? <TrendingUp size={13} strokeWidth={2.6} aria-hidden="true" /> : <TrendingDown size={13} strokeWidth={2.6} aria-hidden="true" />}
+              <span>{dayUsd >= 0 ? '+' : ''}{formatMoney(dayUsd, 'USD', true)} · {formatPct(dayPct)} {t('hud.today')}</span>
             </span>
           )}
         </span>

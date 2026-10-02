@@ -1,3 +1,4 @@
+import { BookOpen, Hammer, Trophy } from 'lucide-react';
 import { useState } from 'react';
 import { useI18n } from '../../i18n/I18nContext';
 import { SECTORS, SECTOR_BY_ID } from '../../stocks/catalog';
@@ -95,12 +96,12 @@ export default function PortfolioView({ onOpenStock, onBuy, onLearn, onBadges })
         {!isShared && (
           <div className="grid grid-cols-2 gap-2">
             <button type="button" onClick={onBadges} className="rounded-2xl bg-white border border-paper-200 shadow-card h-12 px-3 flex items-center gap-2 text-start">
-              <span className="text-lg">🏆</span>
+              <span className="w-8 h-8 rounded-xl bg-[#f5c542]/20 text-[#b8860b] grid place-items-center"><Trophy size={16} strokeWidth={2.4} aria-hidden="true" /></span>
               <span className="text-[12.5px] font-black text-ink-900 flex-1">{t('badges.title')}</span>
               <span className="text-[11.5px] font-bold text-paper-muted tabular-nums">{progress.unlocked.length}/{ACHIEVEMENTS.length}</span>
             </button>
             <button type="button" onClick={onLearn} className="rounded-2xl bg-white border border-paper-200 shadow-card h-12 px-3 flex items-center gap-2 text-start">
-              <span className="text-lg">📚</span>
+              <span className="w-8 h-8 rounded-xl bg-brand/12 text-brand-deep grid place-items-center"><BookOpen size={16} strokeWidth={2.4} aria-hidden="true" /></span>
               <span className="text-[12.5px] font-black text-ink-900 flex-1">{t('learn.title')}</span>
               <span className="text-[11.5px] font-bold text-paper-muted tabular-nums">{progress.missions.length}/{MISSIONS.length}</span>
             </button>
@@ -110,7 +111,7 @@ export default function PortfolioView({ onOpenStock, onBuy, onLearn, onBadges })
         {/* the holdings, the way the city groups them */}
         {holdings.length === 0 ? (
           <section className="rounded-3xl bg-white border border-paper-200 shadow-card p-5 text-center">
-            <div className="text-3xl">🏗️</div>
+            <div className="mx-auto w-14 h-14 rounded-2xl bg-brand/12 text-brand-deep grid place-items-center"><Hammer size={28} strokeWidth={2.2} aria-hidden="true" /></div>
             <h2 className="text-[16px] font-black text-ink-900 mt-2">{t('empty.title')}</h2>
             <p className="text-[13px] text-paper-muted mt-1">{t('empty.body')}</p>
             {!isShared && (

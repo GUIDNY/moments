@@ -1,11 +1,13 @@
+import { motion } from 'motion/react';
+import { Briefcase, Building2, Store, Trophy, Users } from 'lucide-react';
 import { useI18n } from '../../i18n/I18nContext';
 
 const TABS = [
-  { id: 'city', emoji: '🏙️', key: 'nav.city' },
-  { id: 'portfolio', emoji: '💼', key: 'nav.portfolio' },
-  { id: 'market', emoji: '🏪', key: 'nav.market' },
-  { id: 'rankings', emoji: '🏆', key: 'nav.rankings' },
-  { id: 'friends', emoji: '👥', key: 'nav.friends' },
+  { id: 'city', Icon: Building2, key: 'nav.city' },
+  { id: 'portfolio', Icon: Briefcase, key: 'nav.portfolio' },
+  { id: 'market', Icon: Store, key: 'nav.market' },
+  { id: 'rankings', Icon: Trophy, key: 'nav.rankings' },
+  { id: 'friends', Icon: Users, key: 'nav.friends' },
 ];
 
 /**
@@ -30,12 +32,19 @@ export default function BottomNavigation({ active, onChange }) {
               type="button"
               onClick={() => onChange(tab.id)}
               aria-current={on ? 'page' : undefined}
-              className={`flex-1 md:flex-none md:w-[4.6rem] flex flex-col items-center justify-center gap-0.5 h-12 rounded-xl transition-colors ${
-                on ? 'bg-brand/12 text-brand-deep' : 'text-ink-900/60 hover:bg-paper-50'
+              className={`relative flex-1 md:flex-none md:w-[4.6rem] flex flex-col items-center justify-center gap-1 h-12 rounded-xl transition-colors ${
+                on ? 'text-brand-deep' : 'text-ink-900/55 hover:text-ink-900'
               }`}
             >
-              <span className="text-lg leading-none">{tab.emoji}</span>
-              <span className="text-[10.5px] font-black leading-none">{t(tab.key)}</span>
+              {on && (
+                <motion.span
+                  layoutId="nav-pill"
+                  className="absolute inset-0 rounded-xl bg-brand/12"
+                  transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                />
+              )}
+              <tab.Icon size={20} strokeWidth={on ? 2.4 : 2} className="relative" aria-hidden="true" />
+              <span className="relative text-[10.5px] font-black leading-none">{t(tab.key)}</span>
             </button>
           );
         })}

@@ -9,6 +9,7 @@ import PickerScreen from './stocks/PickerScreen';
 import { cityLevel } from './city/tiers';
 import CityScene from './city/CityScene';
 import { zoomBy } from './world3d/focus';
+import { Hammer, Minus, Plus, Trophy, Users } from 'lucide-react';
 import Button from './ui/Button';
 import Sheet from './ui/Sheet';
 import Toast from './ui/Toast';
@@ -34,7 +35,7 @@ function useIsCompact() {
   return compact;
 }
 
-const ZOOM_BTN = 'ui-layer w-10 h-10 rounded-xl grid place-items-center bg-white/95 backdrop-blur-md border border-paper-200 shadow-card text-ink-900 text-xl font-black active:scale-90 transition-transform';
+const ZOOM_BTN = 'ui-layer w-10 h-10 rounded-xl grid place-items-center bg-white/95 backdrop-blur-md border border-paper-200 shadow-card text-ink-900 active:scale-90 transition-transform';
 
 export default function App() {
   const { t, loc } = useI18n();
@@ -119,13 +120,14 @@ export default function App() {
         />
         {isShared && <VisitCityMode name={t('profile.myCity')} />}
         <div className="absolute z-30 end-3 md:end-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:bottom-24 flex flex-col gap-1.5">
-          <button type="button" className={ZOOM_BTN} onClick={() => zoomBy(1.25)} aria-label="+">+</button>
-          <button type="button" className={ZOOM_BTN} onClick={() => zoomBy(0.8)} aria-label="−">−</button>
+          <button type="button" className={ZOOM_BTN} onClick={() => zoomBy(1.25)} aria-label="+"><Plus size={20} strokeWidth={2.6} aria-hidden="true" /></button>
+          <button type="button" className={ZOOM_BTN} onClick={() => zoomBy(0.8)} aria-label="−"><Minus size={20} strokeWidth={2.6} aria-hidden="true" /></button>
         </div>
         {holdings.length === 0 && !welcome && (
           <div className="absolute inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] md:bottom-24 flex justify-center px-4 pointer-events-none">
-            <button type="button" onClick={goMarket} className="pointer-events-auto rounded-2xl bg-brand text-white font-black text-[14px] px-5 h-12 shadow-fab active:scale-95 transition-transform">
-              🏗️ {t('directory.add')}
+            <button type="button" onClick={goMarket} className="pointer-events-auto inline-flex items-center gap-2 rounded-2xl bg-brand text-white font-black text-[14px] px-5 h-12 shadow-fab active:scale-95 transition-transform">
+              <Hammer size={18} strokeWidth={2.4} aria-hidden="true" />
+              {t('directory.add')}
             </button>
           </div>
         )}
@@ -140,8 +142,8 @@ export default function App() {
           <PickerScreen onExit={() => setTab('city')} />
         </div>
       )}
-      {tab === 'rankings' && <SoonScreen emoji="🏆" textKey="soon.rankings" />}
-      {tab === 'friends' && <SoonScreen emoji="👥" textKey="soon.friends" />}
+      {tab === 'rankings' && <SoonScreen icon={Trophy} textKey="soon.rankings" />}
+      {tab === 'friends' && <SoonScreen icon={Users} textKey="soon.friends" />}
 
       <BottomNavigation active={tab} onChange={(id) => { setSelected(null); setTab(id); }} />
 
