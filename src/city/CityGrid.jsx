@@ -5,7 +5,8 @@ import { GROUND, groundTexture } from './textures';
 
 /**
  * The ground: one textured plane for the whole grid, a base slab under it
- * so the city reads as a board with an edge, and a lake that ripples. Drawn
+ * so the city reads as a board with an edge, the sea around it, and a lake
+ * that ripples. Drawn
  * once per layout; nothing here is per-tile React.
  */
 export default function CityGrid({ plan }) {
@@ -22,6 +23,16 @@ export default function CityGrid({ plan }) {
   });
   return (
     <group>
+      {/* the sea the board sits in, out past anything the camera can reach,
+          and a sandy shore round the slab: an island city, not a tile on a desk */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[size / 2, -0.7, size / 2]} receiveShadow>
+        <planeGeometry args={[size * 8, size * 8]} />
+        <meshLambertMaterial color="#86c3e4" />
+      </mesh>
+      <mesh position={[size / 2, -0.62, size / 2]}>
+        <boxGeometry args={[size + 3.2, 0.14, size + 3.2]} />
+        <meshLambertMaterial color="#e5dab8" />
+      </mesh>
       {/* the board's edge: a slab a little larger than the grid, in the lawn's colour */}
       <mesh position={[size / 2, -0.3, size / 2]} receiveShadow>
         <boxGeometry args={[size + 1.2, 0.6, size + 1.2]} />

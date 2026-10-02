@@ -29,6 +29,7 @@ export default function Decor({ plan }) {
     const trees = [];
     const benches = [];
     const lamps = [];
+    const planters = [];
     const isRoad = (x, y) => grid[y]?.[x] === TILE.ROAD || grid[y]?.[x] === TILE.LANE;
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
@@ -40,21 +41,28 @@ export default function Decor({ plan }) {
           else if (next() < 0.06) benches.push({ x: x + 0.5, z: y + 0.5, turn: Math.floor(next() * 4) });
         }
         if (t === TILE.GRASS && !isRoad(x, y)) {
-          // the verges between districts and the edge
-          if (next() < 0.1) trees.push({ x: x + 0.5, z: y + 0.5, big: next() < 0.3, turn: Math.floor(next() * 4) });
+          // the verges, and the plots no stock has taken yet: gardens, so an
+          // empty district is green rather than bare, and a planter here and
+          // there so the lawn has a street in it
+          const r = next();
+          if (r < 0.22) trees.push({ x: x + 0.25 + next() * 0.5, z: y + 0.25 + next() * 0.5, big: next() < 0.3, turn: Math.floor(next() * 4) });
+          else if (r < 0.26) planters.push({ x: x + 0.5, z: y + 0.5, turn: Math.floor(next() * 4) });
         }
         // a lamp on the pavement beside long roads, every fifth tile
         if (!isRoad(x, y) && t !== TILE.WATER && grid[y]?.[x + 1] === TILE.ROAD && y % 5 === 2) lamps.push({ x: x + 0.82, z: y + 0.5 });
         if (!isRoad(x, y) && t !== TILE.WATER && grid[y + 1]?.[x] === TILE.ROAD && x % 5 === 2) lamps.push({ x: x + 0.5, z: y + 0.82 });
       }
     }
-    return { trees: trees.slice(0, 90), benches: benches.slice(0, 10), lamps: lamps.slice(0, 40) };
+    return { trees: trees.slice(0, 150), benches: benches.slice(0, 10), lamps: lamps.slice(0, 40), planters: planters.slice(0, 24) };
   }, [grid, size, hq]);
 
   return (
     <group>
       {items.trees.map((t, i) => (
         <Kit key={`t${i}`} model={t.big ? 'suburban/tree-large' : 'suburban/tree-small'} fit={[0.7, 0.7]} maxScale={3.4} position={[t.x, 0, t.z]} turn={t.turn} />
+      ))}
+      {items.planters.map((p, i) => (
+        <Kit key={`p${i}`} model="suburban/planter" fit={[0.6, 0.6]} maxScale={2} position={[p.x, 0, p.z]} turn={p.turn} />
       ))}
       {items.benches.map((b, i) => (
         <group key={`b${i}`} position={[b.x, 0, b.z]} rotation={[0, (b.turn * Math.PI) / 2, 0]}>

@@ -113,9 +113,10 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   every tile beside a road, lane dashes on the main roads only (district lanes are `TILE.LANE`,
   the same grey without a line) and nothing at a junction — all from the grid, none of it in the
   grid.
-- **Only buildings that are stocks.** No fillers: a plot without a position is lawn. The user
-  asked for a city where the stocks are the hero and nothing else draws the eye; the decor budget
-  is ~90 trees, 10 benches, 40 lamps, 2 cars, 4 people, all decided once per plan.
+- **Only buildings that are stocks.** No fillers: a plot without a position is a garden — trees
+  and a planter or two, so an empty district is green rather than bare. The user asked for a city
+  where the stocks are the hero and nothing else draws the eye; the decor budget is ~150 trees,
+  24 planters, 10 benches, 40 lamps, 2 cars, 4 people, all decided once per plan.
 - A company's mark comes from `api/logo.js` by the `domain` in the catalogue, same-origin, which is
   what lets `logos.js` read its pixels for the brand colour — a cross-origin favicon can be shown
   but never sampled. The colour goes on the fascia, the lintel and the frame of the board on the
@@ -174,8 +175,11 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   centre at a readable size (phone). Drag starts after an 8 px dead zone. `focus.js` carries fly-to
   (`lookAt`) and `zoomBy`; a hand on the city cancels a flight.
 - **The day's move is never a painted building.** A glow disc at the foot (opacity by pulse,
-  only past ±0.3%), a small cone over the roof, and the percentage only on hover or while the
-  panel is open. Red buildings read as cheap; the user said so.
+  only past ±0.3%), a small cone over the roof, and the ticker with the percentage on a small
+  dark pill over the roof (`tickerBadge`), always on — the user's reference had one on every
+  building, and it is what makes the city read as "these are my stocks" in two seconds. It is a
+  sprite with `depthTest` off, 2.3 world units wide, a fifth larger under the hand. Red buildings
+  read as cheap; the user said so.
 - The ticket (`TradeSheet`) is portalled to `document.body`: the market screen is `position:
   fixed`, which is a stacking context of its own, so a ticket drawn inside it sat under the bottom
   bar whatever z-index it was given.
@@ -230,8 +234,12 @@ the town. No backend, no router and no drei — state lives in `localStorage`, v
   `shadow-card`, with `text-ink-900`. The orange FAB is the only exception, because it is the one
   call to action. The dark `bg-ink-800/85` + `shadow-chip` recipe still belongs to the estate-agent
   pages, which are dark — do not carry either one across.
-- The board has an edge on purpose: `CityGrid` draws a slab under the grid and the background is a
-  flat pale blue. A small, dense, finished board reads as a game; an endless plain read as a demo.
+- The board has an edge on purpose: `CityGrid` draws a slab under the grid, a sandy shore round
+  it and the sea out past anything the camera can reach — an island city, not a tile on a desk. A
+  small, dense, finished board reads as a game; an endless plain read as a demo.
+- District names are small dark pills floating over each district's lane (`SectorDistrict`,
+  `districtLabel`), only for districts with a building. Flat on the pavement they could not be
+  read at the board-game pitch.
 - `world3d/playerPos.js` publishes the camera's point of attention outside React, for whatever
   wants to know where you are looking without re-rendering while you drag (the tests read it).
 - Chrome that must mirror with the language uses `start-*`/`end-*`, never `left-*`/`right-*`.

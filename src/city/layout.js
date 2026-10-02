@@ -154,7 +154,16 @@ export function planCity(positions = []) {
 
   const districts = DISTRICTS.map((d) => {
     const r = REGIONS[d.region];
-    return { ...d, cx: (r.x0 + r.x1 + 1) / 2, cz: (r.y0 + r.y1 + 1) / 2, used: bySector.get(d.sector).length };
+    // the name's pill goes at the outer end of the district's lane, by the
+    // shore — over the lane crossing it stacked on the nearest building's
+    const lx = r.x0 + 3.5;
+    const ly = r.y0 + 3.5;
+    const label =
+      d.region === 'nw' || d.region === 'ne' ? { x: lx, z: r.y0 + 0.6 }
+      : d.region === 'sw' || d.region === 'se' ? { x: lx, z: r.y1 + 0.4 }
+      : d.region === 'w' ? { x: r.x0 + 0.6, z: ly }
+      : { x: r.x1 + 0.4, z: ly };
+    return { ...d, cx: (r.x0 + r.x1 + 1) / 2, cz: (r.y0 + r.y1 + 1) / 2, label, used: bySector.get(d.sector).length };
   });
 
   return {

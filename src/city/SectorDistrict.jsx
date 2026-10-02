@@ -3,8 +3,8 @@ import { useI18n } from '../i18n/I18nContext';
 import { districtLabel } from './textures';
 
 /**
- * A district's name, flat on the pavement at its centre — read when you look
- * for it, invisible when you do not. Only districts with a building in them
+ * A district's name on a small pill over its lane — read when you look for
+ * it, out of the way when you do not. Only districts with a building in them
  * are labelled; an empty one is just more city.
  */
 export default function SectorDistrict({ district }) {
@@ -12,11 +12,10 @@ export default function SectorDistrict({ district }) {
   const label = loc(district.name);
   const tex = useMemo(() => districtLabel(label, district.tint, dir), [label, district.tint, dir]);
   if (!district.used) return null;
-  // the lane through the district, which is always free of buildings
+  // at the shore end of the lane through the district, clear of its plots
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[district.cx, 0.02, district.cz]}>
-      <planeGeometry args={[2.6, 0.5]} />
-      <meshBasicMaterial map={tex} transparent toneMapped={false} depthWrite={false} />
-    </mesh>
+    <sprite position={[district.label.x, 0.7, district.label.z]} scale={[2.7, 0.5, 1]}>
+      <spriteMaterial map={tex} transparent depthTest={false} toneMapped={false} />
+    </sprite>
   );
 }

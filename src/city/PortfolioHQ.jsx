@@ -4,7 +4,7 @@ import { fitHeight, useModel } from '../world3d/models';
 import { tapHandlers } from '../world3d/nav';
 import { hqLevelFor } from './tiers';
 import { useI18n } from '../i18n/I18nContext';
-import { badgeTexture } from './textures';
+import { districtLabel } from './textures';
 
 /* One model per level. The levels are a table in `tiers.js`; this is only
    what each one looks like. */
@@ -48,8 +48,8 @@ export default function PortfolioHQ({ hq, totalUsd, onSelect }) {
 
   // the level's name on a small flag over the roof: the one label that is
   // always up, because the HQ is the one building that is the whole city
-  const { loc } = useI18n();
-  const flag = useMemo(() => badgeTexture(loc(level.label), '#ff6b1a'), [loc, level.label]);
+  const { loc, dir } = useI18n();
+  const flag = useMemo(() => districtLabel(loc(level.label), '#ff8a3d', dir), [loc, level.label, dir]);
   // a slow halo on the plaza, so the eye finds the centre
   const halo = useRef();
   useFrame(({ clock }) => {
@@ -72,7 +72,7 @@ export default function PortfolioHQ({ hq, totalUsd, onSelect }) {
           <boxGeometry args={[2.4, fit.height, 2.4]} />
           <meshBasicMaterial />
         </mesh>
-        <sprite position={[0, fit.height + 0.9, 0]} scale={[1.5, 0.47, 1]}>
+        <sprite position={[0, fit.height + 1.05, 0]} scale={[2.4, 0.45, 1]}>
           <spriteMaterial map={flag} transparent depthTest={false} />
         </sprite>
       </group>

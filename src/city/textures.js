@@ -145,22 +145,59 @@ export function badgeTexture(text, colour) {
   return finish(c);
 }
 
-/** A district name on the pavement — small, flat, part of the ground. */
+/** The ticker and the day's move on a small dark pill over the roof: the
+    one label every building always carries, so the city reads as "these are
+    my stocks" without a tap. */
+export function tickerBadge(ticker, pct, colour) {
+  const c = document.createElement('canvas');
+  c.width = 320;
+  c.height = 88;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = 'rgba(30, 37, 48, 0.92)';
+  rounded(ctx, 4, 4, 312, 80, 26);
+  ctx.fill();
+  ctx.textBaseline = 'middle';
+  ctx.direction = 'ltr';
+  ctx.font = `900 34px ${FONT}`;
+  ctx.fillStyle = '#ffffff';
+  if (pct == null) {
+    ctx.textAlign = 'center';
+    ctx.fillText(ticker, 160, 46);
+    return finish(c);
+  }
+  ctx.textAlign = 'left';
+  const tw = ctx.measureText(ticker).width;
+  ctx.font = `800 30px ${FONT}`;
+  const pw = ctx.measureText(pct).width;
+  const x0 = 160 - (tw + 14 + pw) / 2;
+  ctx.font = `900 34px ${FONT}`;
+  ctx.fillText(ticker, x0, 46);
+  ctx.font = `800 30px ${FONT}`;
+  ctx.fillStyle = colour;
+  ctx.fillText(pct, x0 + tw + 14, 47);
+  return finish(c);
+}
+
+/** A district's name on a small dark pill with the district's colour as a
+    dot — floating over its lane, read when looked for. */
 export function districtLabel(text, colour, dir = 'ltr') {
   const c = document.createElement('canvas');
   c.width = 512;
   c.height = 96;
   const ctx = c.getContext('2d');
-  ctx.fillStyle = colour;
-  rounded(ctx, 0, 0, 512, 96, 48);
-  ctx.globalAlpha = 0.85;
+  ctx.fillStyle = 'rgba(30, 37, 48, 0.9)';
+  rounded(ctx, 4, 4, 504, 88, 44);
   ctx.fill();
-  ctx.globalAlpha = 1;
   ctx.fillStyle = '#ffffff';
-  ctx.font = `900 42px ${FONT}`;
+  ctx.font = `900 40px ${FONT}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.direction = dir;
-  ctx.fillText(text, 256, 50);
+  const tw = ctx.measureText(text).width;
+  ctx.fillText(text, 256 + 16, 50);
+  ctx.fillStyle = colour;
+  ctx.beginPath();
+  ctx.arc(256 - tw / 2 - 12, 50, 12, 0, Math.PI * 2);
+  ctx.fill();
   return finish(c);
 }

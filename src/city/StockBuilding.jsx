@@ -6,14 +6,14 @@ import { tapHandlers } from '../world3d/nav';
 import { moveColor } from '../stocks/towers';
 import { formatPct } from '../stocks/money';
 import { tierFor } from './tiers';
-import { badgeTexture, plaqueTexture } from './textures';
+import { plaqueTexture, tickerBadge } from './textures';
 
 /**
  * One stock, one building. The tier (from the position's dollar value) picks
  * the height; the district picks the architecture; the day's move is a soft
  * glow at the base and a small arrow, never a building painted red. The
- * ticker and the mark sit on a plaque on the street face, small enough to be
- * part of the building. Hover shows the move; a tap opens the panel.
+ * ticker and the day's move ride a small dark pill over the roof, the mark
+ * sits on a plaque on the street face; a tap opens the panel.
  */
 
 /* What each district builds in. Lists per tier so a shop is a shop and a
@@ -95,9 +95,11 @@ export default function StockBuilding({ building, position, onSelect, selected }
   const dayPct = position?.dayPct;
   const colour = moveColor(dayPct);
   const [hover, setHover] = useState(false);
+  // the pill over the roof: ticker always, the day's move once it is priced
+  const ticker = symbol.replace(/\.(TA|L)$/, '');
   const badge = useMemo(
-    () => (Number.isFinite(dayPct) ? badgeTexture(formatPct(dayPct), colour) : null),
-    [dayPct, colour]
+    () => tickerBadge(ticker, Number.isFinite(dayPct) ? formatPct(dayPct) : null, colour),
+    [ticker, dayPct, colour]
   );
 
   const tap = useMemo(() => {
@@ -128,6 +130,7 @@ export default function StockBuilding({ building, position, onSelect, selected }
   const group = useRef();
   const glow = useRef();
   const arrow = useRef();
+  const label = useRef();
   const scaleRef = useRef(building.fresh ? 0.05 : 1);
   useFrame(({ clock }) => {
     const g = group.current;
@@ -140,6 +143,11 @@ export default function StockBuilding({ building, position, onSelect, selected }
       glow.current.material.opacity = Number.isFinite(dayPct) && Math.abs(dayPct) >= 0.3 ? pulse : 0;
     }
     if (arrow.current) arrow.current.position.y = fit.height * scaleRef.current + 0.55 + Math.sin(clock.elapsedTime * 2.2) * 0.06;
+    if (label.current) {
+      const k = hover || selected ? 1.2 : 1;
+      label.current.scale.set(2.3 * k, 0.63 * k, 1);
+      label.current.position.y = fit.height * scaleRef.current + 1.05;
+    }
   });
 
   const front = facing === 1 ? cz + plot.h / 2 - 0.02 : cz - plot.h / 2 + 0.02;
@@ -178,12 +186,10 @@ export default function StockBuilding({ building, position, onSelect, selected }
           <meshBasicMaterial color={colour} toneMapped={false} />
         </mesh>
       )}
-      {/* the move, on hover or while the panel is open */}
-      {(hover || selected) && badge && (
-        <sprite position={[0, fit.height + 1.15, 0]} scale={[1.6, 0.5, 1]}>
-          <spriteMaterial map={badge} transparent depthTest={false} />
-        </sprite>
-      )}
+      {/* the ticker and the move, always, small; a little larger under the hand */}
+      <sprite ref={label} position={[0, fit.height + 1.05, 0]} scale={[2.3, 0.63, 1]}>
+        <spriteMaterial map={badge} transparent depthTest={false} />
+      </sprite>
     </group>
   );
 }

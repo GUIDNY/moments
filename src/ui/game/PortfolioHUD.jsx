@@ -19,6 +19,7 @@ export default function PortfolioHUD({ totalUsd, dayUsd, dayPct, cash, investedU
         className="pointer-events-auto flex items-center gap-4 rounded-2xl bg-white/95 backdrop-blur-md border border-paper-200 shadow-card px-4 py-2 text-ink-900 active:scale-[0.99] transition-transform"
       >
         <span className="text-center">
+          <span className="block text-[9.5px] font-black uppercase tracking-wide text-paper-muted leading-none mb-1">{t('hud.value')}</span>
           <span className="block text-[22px] md:text-[26px] font-black tabular-nums leading-none">
             {totalUsd != null ? formatMoney(totalUsd, 'USD', true) : '…'}
           </span>
