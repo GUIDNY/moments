@@ -93,8 +93,8 @@ export default function CityScene({ compact, selected, onSelectBuilding, onSelec
           <SectorDistrict key={d.sector} district={d} />
         ))}
         <PortfolioHQ hq={plan.hq} totalUsd={totalUsd} onSelect={onSelectHQ} />
-        {/* the news board, at the park's edge beside the plaza */}
-        <NewsBoard x={plan.hq.cx + 3.1} z={plan.hq.cz - 0.4} onSelect={onSelectNews} />
+        {/* the news board: centre stage, behind the HQ (up the screen is −x−z) */}
+        <NewsBoard x={plan.hq.cx - 3.0} z={plan.hq.cz - 3.0} onSelect={onSelectNews} />
         {plan.buildings.map((b) => (
           <StockBuilding
             key={b.id}

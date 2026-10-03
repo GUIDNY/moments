@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
 import { fitHeight, useModel } from '../world3d/models';
 import { loadLogo } from '../world3d/logos';
 import { tapHandlers } from '../world3d/nav';
@@ -65,6 +66,115 @@ const KITS = {
 
 const hash = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 
+/* A sector's look, on top of its kit: a tint the kit's colours are
+   multiplied by (cool glass for tech, sandstone for the banks, white for
+   health, warm for energy, olive for defence) and an emblem on the roof —
+   a mast, a gold dome, a cross, a solar panel, a radar dish, a flag. The
+   user asked for a city where "each stock looks like its sector", and the
+   kits alone did not say it. */
+const LOOK = {
+  tech: { tint: '#cfe0ff' },
+  banks: { tint: '#f1e3bf' },
+  health: { tint: '#f4f8ff' },
+  energy: { tint: '#ffd8b0' },
+  defence: { tint: '#d3dfcc' },
+  other: { tint: '#e4dfff' },
+};
+
+function tint(scene, hex) {
+  const c = new THREE.Color(hex);
+  scene.traverse((o) => {
+    if (!o.isMesh || !o.material) return;
+    const m = o.material.clone();
+    m.color = m.color.clone().multiply(c);
+    o.material = m;
+  });
+  return scene;
+}
+
+/** The emblem on the roof, by sector. Small, procedural, in the sector's
+    language; sits on the model's top. */
+function Emblem({ sector, y }) {
+  switch (sector) {
+    case 'tech':
+      return (
+        <group position={[0.3, y, 0.3]}>
+          <mesh position={[0, 0.45, 0]}>
+            <cylinderGeometry args={[0.025, 0.04, 0.9, 6]} />
+            <meshLambertMaterial color="#8a94a3" />
+          </mesh>
+          <mesh position={[0, 0.92, 0]}>
+            <sphereGeometry args={[0.06, 8, 8]} />
+            <meshBasicMaterial color="#ff5a5a" />
+          </mesh>
+        </group>
+      );
+    case 'banks':
+      return (
+        <mesh position={[0, y + 0.02, 0]}>
+          <sphereGeometry args={[0.42, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2]} />
+          <meshLambertMaterial color="#e2b84a" />
+        </mesh>
+      );
+    case 'health':
+      return (
+        <group position={[0, y + 0.3, 0]}>
+          <mesh>
+            <boxGeometry args={[0.16, 0.56, 0.16]} />
+            <meshLambertMaterial color="#ffffff" />
+          </mesh>
+          <mesh>
+            <boxGeometry args={[0.56, 0.16, 0.16]} />
+            <meshLambertMaterial color="#ffffff" />
+          </mesh>
+          <mesh position={[0, 0, -0.09]}>
+            <boxGeometry args={[0.6, 0.6, 0.02]} />
+            <meshLambertMaterial color="#e2706f" />
+          </mesh>
+        </group>
+      );
+    case 'energy':
+      return (
+        <group position={[0, y + 0.08, 0]} rotation={[-0.5, Math.PI / 4, 0]}>
+          <mesh>
+            <boxGeometry args={[1.0, 0.04, 0.6]} />
+            <meshLambertMaterial color="#1f3a6e" />
+          </mesh>
+          <mesh position={[0, 0.03, 0]}>
+            <boxGeometry args={[0.92, 0.01, 0.52]} />
+            <meshBasicMaterial color="#3b6fc9" />
+          </mesh>
+        </group>
+      );
+    case 'defence':
+      return (
+        <group position={[0.25, y, -0.25]}>
+          <mesh position={[0, 0.2, 0]}>
+            <cylinderGeometry args={[0.04, 0.05, 0.4, 6]} />
+            <meshLambertMaterial color="#7c8792" />
+          </mesh>
+          <mesh position={[0, 0.5, 0]} rotation={[-0.9, Math.PI / 4, 0]}>
+            <coneGeometry args={[0.36, 0.18, 14, 1, true]} />
+            <meshLambertMaterial color="#d9dee5" side={THREE.DoubleSide} />
+          </mesh>
+        </group>
+      );
+    default:
+      return (
+        <group position={[0.3, y, 0.3]}>
+          <mesh position={[0, 0.45, 0]}>
+            <cylinderGeometry args={[0.02, 0.03, 0.9, 6]} />
+            <meshLambertMaterial color="#8a94a3" />
+          </mesh>
+          <mesh position={[0.22, 0.78, 0]}>
+            <planeGeometry args={[0.42, 0.26]} />
+            <meshLambertMaterial color="#ff8a3d" side={THREE.DoubleSide} />
+          </mesh>
+        </group>
+      );
+  }
+}
+
 function useLogo(domain) {
   const [logo, setLogo] = useState(null);
   useEffect(() => {
@@ -86,7 +196,8 @@ export default function StockBuilding({ building, position, onSelect, selected }
     const list = kit[tier.tier] ?? kit[2];
     return list[hash(symbol) % list.length];
   }, [kit, tier.tier, symbol]);
-  const scene = useModel(model);
+  const raw = useModel(model);
+  const scene = useMemo(() => (raw ? tint(raw, (LOOK[sector] ?? LOOK.other).tint) : null), [raw, sector]);
   const fit = useMemo(() => fitHeight(model, tier.height, tier.footprint, tier.footprint), [model, tier]);
   const logo = useLogo(building.domain);
   const brand = logo?.colour ?? building.district?.tint ?? '#6b7a90';
@@ -167,6 +278,7 @@ export default function StockBuilding({ building, position, onSelect, selected }
             <primitive object={scene} />
           </group>
         )}
+        <Emblem sector={sector} y={fit.height} />
         {/* a tap target the size of the building, whatever the model's holes */}
         <mesh position={[0, fit.height / 2, 0]} visible={false}>
           <boxGeometry args={[tier.footprint, fit.height, tier.footprint]} />

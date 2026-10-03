@@ -124,7 +124,13 @@ the town, Lucide for icons and Motion for the chrome's springs. No backend, no r
   leaves the sector sign in place; the city is never blocked on a third party.
 - **Every building is a kit model now**, chosen per district and tier from `BUILDING_KITS` in
   `StockBuilding.jsx` and fitted by `fitHeight` to the tier's height (capped by the plot). The
-  company's mark and ticker go on a small plaque over the door, never on the walls.
+  company's mark and ticker go on a small plaque over the door, never on the walls. **A sector
+  is a look on top of the kit** (`LOOK` and `Emblem` in `StockBuilding`): the kit's colours are
+  multiplied by the sector's tint (cool glass for tech, sandstone for banks, white for health,
+  warm for energy, olive for defence) on a per-building clone of the materials, and a small
+  procedural emblem stands on the roof — mast, gold dome, cross, solar panel, radar dish, flag.
+  The user asked for a city where "each stock looks like its sector"; the kits alone did not say
+  it. The tint is a shade, never the day's colour.
   `kenney-bounds.json` is generated from the files' vertex ranges; regenerate it when a model is
   added, never edit it.
 - A model that fails to load is an empty plot, not a broken city: `loadModel` resolves null and
@@ -209,8 +215,9 @@ the town, Lucide for icons and Motion for the chrome's springs. No backend, no r
   RSS search for a company's Hebrew name and for the market (Hebrew, the papers people here read),
   caches ten minutes, dedupes by title. A Hebrew name goes in quotes with "מניה" after it: "טבע"
   alone is nature. `stocks/news.js` pulls once per set of holdings and every ten minutes;
-  `CityContext` publishes `news`; the board in the park (`city/NewsBoard`, a screen on two posts
-  beside the plaza, textures from `newsTexture`, cycled from the frame clock) and the news sheet
+  `CityContext` publishes `news`; the board (`city/NewsBoard`, a screen on two posts centre
+  stage behind the HQ — up the screen is −x−z — textures from `newsTexture` tagged "portfolio
+  news · name" or "market news", cycled from the frame clock) and the news sheet
   (`ui/game/NewsSheet`, with links out) read it. The feeds are unofficial, like the quotes.
 - **A real portfolio comes in by paste.** No broker has an API a browser can call, so
   `stocks/importer.js` reads a pasted holdings table (Meitav Trade or any other): a line is a
