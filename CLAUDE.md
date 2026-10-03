@@ -49,8 +49,8 @@ the town, Lucide for icons and Motion for the chrome's springs. No backend, no r
 - `src/learn/` — what the city teaches: `content.js` (LESSONS that fire on the moment they are
   about, MISSIONS in order, the GLOSSARY — all bilingual beside their data), `LessonSheet.jsx`
   (one lesson or finished mission at a time), `LearnScreen.jsx` (the classroom).
-- `api/quotes.js`, `api/search.js`, `api/logo.js` — the only server-side code, and it holds no
-  key: the upstreams send no CORS headers, so the browser cannot call them directly. `logo.js`
+- `api/quotes.js`, `api/search.js`, `api/logo.js`, `api/news.js` — the only server-side code, and
+  it holds no key: the upstreams send no CORS headers, so the browser cannot call them directly. `logo.js`
   asks two public favicon caches for a company's mark and sends on the larger. `vite.config.js`
   mounts the same handlers in dev and preview so a change can be tried without shipping it — but
   it bundles the list of handler files when the server starts, so a *new* `api/*.js` needs the
@@ -204,6 +204,22 @@ the town, Lucide for icons and Motion for the chrome's springs. No backend, no r
   began — three months back — and reading it as yesterday gave every roof a quarter's move: Apple
   was "+12% today" on a day it fell 0.8%. The day move drives the roof glow, the HUD, the 🔥 badge
   and the lessons, so it is the one number the whole city shows at once.
+- **The news is two keyless feeds, by what each is good at.** `api/news.js` asks Yahoo Finance's
+  RSS per ticker (English, knows every symbol the quotes do, Tel Aviv included) and Google News'
+  RSS search for a company's Hebrew name and for the market (Hebrew, the papers people here read),
+  caches ten minutes, dedupes by title. A Hebrew name goes in quotes with "מניה" after it: "טבע"
+  alone is nature. `stocks/news.js` pulls once per set of holdings and every ten minutes;
+  `CityContext` publishes `news`; the board in the park (`city/NewsBoard`, a screen on two posts
+  beside the plaza, textures from `newsTexture`, cycled from the frame clock) and the news sheet
+  (`ui/game/NewsSheet`, with links out) read it. The feeds are unofficial, like the quotes.
+- **A real portfolio comes in by paste.** No broker has an API a browser can call, so
+  `stocks/importer.js` reads a pasted holdings table (Meitav Trade or any other): a line is a
+  holding if it has a name and a number, the first usable number is the quantity, the second the
+  cost, six-plus-digit integers are Tel Aviv security numbers or the value column and never a
+  quantity. Names resolve against the catalogue (either language, either way round), then a typed
+  symbol, then search; the sheet lets the user fix a symbol. Tel Aviv costs are pasted in agorot
+  and divided by a hundred behind a checkbox that says so — the unit is decided where it is
+  written. `store.importHoldings` replaces the holdings; the purse and the trades stay.
 - User-facing text goes through `t('key')` from the dictionary, or `loc(entry)` for `{ he, en }`
   content that lives beside its data — company names, sector names. No bare strings in components;
   a Hebrew literal in a component is a bug. A name we chose in Hebrew beats the exchange's own

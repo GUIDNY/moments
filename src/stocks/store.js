@@ -97,6 +97,14 @@ export function addHolding(holdings, entry) {
 
 export const removeHolding = (holdings, symbol) => holdings.filter((h) => h.symbol !== symbol);
 
+/** A whole portfolio at once, from an import: each row a holding, same symbol
+    merged, the cost in the stock's own major units as everywhere else. */
+export function importHoldings(rows) {
+  let holdings = [];
+  for (const r of rows) holdings = addHolding(holdings, r);
+  return holdings;
+}
+
 /* ── trading ──────────────────────────────────────────────────────────────
    A trade is priced by the caller — the live price in the stock's own
    currency and its dollar rate — and settled here. These are pure: state

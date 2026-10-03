@@ -9,7 +9,7 @@ import PickerScreen from './stocks/PickerScreen';
 import { cityLevel } from './city/tiers';
 import CityScene from './city/CityScene';
 import { goHome, zoomBy } from './world3d/focus';
-import { Hammer, LocateFixed, Minus, Plus, Trophy, Users } from 'lucide-react';
+import { Hammer, LocateFixed, Minus, Newspaper, Plus, Trophy, Users } from 'lucide-react';
 import Button from './ui/Button';
 import Sheet from './ui/Sheet';
 import Toast from './ui/Toast';
@@ -19,6 +19,8 @@ import PortfolioHUD from './ui/game/PortfolioHUD';
 import PortfolioView from './ui/game/PortfolioView';
 import SoonScreen from './ui/game/SoonScreen';
 import StockInfoPanel from './ui/game/StockInfoPanel';
+import NewsSheet from './ui/game/NewsSheet';
+import ImportSheet from './ui/game/ImportSheet';
 import VisitCityMode from './ui/game/VisitCityMode';
 
 const WELCOME_KEY = 'stockcity.welcomed';
@@ -47,6 +49,8 @@ export default function App() {
   const [selected, setSelected] = useState(null); // symbol of the open building
   const [badgesOpen, setBadgesOpen] = useState(false);
   const [learnOpen, setLearnOpen] = useState(false);
+  const [newsOpen, setNewsOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [welcome, setWelcome] = useState(false);
 
   /* one toast at a time: a trade just made, else a badge just won */
@@ -108,7 +112,7 @@ export default function App() {
     <div className="absolute inset-0 bg-[#a7c48e] overflow-hidden">
       {/* the city is always mounted: switching tabs must not rebuild it */}
       <div className={tab === 'city' ? 'absolute inset-0' : 'absolute inset-0 invisible'}>
-        <CityScene compact={compact} selected={selected} onSelectBuilding={onSelectBuilding} onSelectHQ={() => setTab('portfolio')} />
+        <CityScene compact={compact} selected={selected} onSelectBuilding={onSelectBuilding} onSelectHQ={() => setTab('portfolio')} onSelectNews={() => setNewsOpen(true)} />
         <CityProfile name={null} level={level} onTap={() => setTab('portfolio')} />
         <PortfolioHUD
           totalUsd={totalUsd}
@@ -123,6 +127,7 @@ export default function App() {
           <button type="button" className={ZOOM_BTN} onClick={() => zoomBy(1.25)} aria-label="+"><Plus size={20} strokeWidth={2.6} aria-hidden="true" /></button>
           <button type="button" className={ZOOM_BTN} onClick={() => zoomBy(0.8)} aria-label="−"><Minus size={20} strokeWidth={2.6} aria-hidden="true" /></button>
           <button type="button" className={ZOOM_BTN} onClick={goHome} aria-label={t('city.home')}><LocateFixed size={19} strokeWidth={2.4} aria-hidden="true" /></button>
+          <button type="button" className={ZOOM_BTN} onClick={() => setNewsOpen(true)} aria-label={t('news.title')}><Newspaper size={19} strokeWidth={2.4} aria-hidden="true" /></button>
         </div>
         {holdings.length === 0 && !welcome && (
           <div className="absolute inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] md:bottom-24 flex justify-center px-4 pointer-events-none">
@@ -136,7 +141,7 @@ export default function App() {
       </div>
 
       {tab === 'portfolio' && (
-        <PortfolioView onOpenStock={openStock} onBuy={goMarket} onLearn={() => setLearnOpen(true)} onBadges={() => setBadgesOpen(true)} />
+        <PortfolioView onOpenStock={openStock} onBuy={goMarket} onLearn={() => setLearnOpen(true)} onBadges={() => setBadgesOpen(true)} onImport={() => setImportOpen(true)} />
       )}
       {tab === 'market' && (
         <div className="absolute inset-0">
@@ -150,6 +155,8 @@ export default function App() {
 
       <BadgesScreen open={badgesOpen} onClose={() => setBadgesOpen(false)} />
       <LearnScreen open={learnOpen} onClose={() => setLearnOpen(false)} />
+      <NewsSheet open={newsOpen} onClose={() => setNewsOpen(false)} />
+      <ImportSheet open={importOpen} onClose={() => setImportOpen(false)} />
       {toast && <Toast emoji={toast.emoji} text={toast.text} onDone={toastDone} />}
       {tab === 'city' && !welcome && <LessonSheet item={current} onDone={dismissCurrent} onReadLesson={readLesson} />}
       <Sheet open={welcome} onClose={closeWelcome} title={t('welcome.title')} tone="paper">

@@ -1,4 +1,4 @@
-import { BookOpen, Hammer, Trophy } from 'lucide-react';
+import { BookOpen, Download, Hammer, Trophy } from 'lucide-react';
 import { useState } from 'react';
 import { useI18n } from '../../i18n/I18nContext';
 import { SECTORS, SECTOR_BY_ID } from '../../stocks/catalog';
@@ -36,7 +36,7 @@ function HistoryLine({ history }) {
  * scoreboard on top, the next mission, the holdings by sector, the trades.
  * Tap a row and the city view opens on that building.
  */
-export default function PortfolioView({ onOpenStock, onBuy, onLearn, onBadges }) {
+export default function PortfolioView({ onOpenStock, onBuy, onLearn, onBadges, onImport }) {
   const { t, loc } = useI18n();
   const { holdings, positionOf, summary, cash, totalUsd, history, trades, progress, nextMission, isShared, resetGame, shareUrl } = useCity();
   const [copied, setCopied] = useState(false);
@@ -180,6 +180,12 @@ export default function PortfolioView({ onOpenStock, onBuy, onLearn, onBadges })
         )}
 
         <div className="space-y-2 pt-1">
+          {!isShared && onImport && (
+            <button type="button" onClick={onImport} className="w-full h-11 rounded-2xl bg-white border border-paper-200 text-ink-900 font-bold text-[13px] inline-flex items-center justify-center gap-2">
+              <Download size={16} aria-hidden="true" />
+              {t('import.button')}
+            </button>
+          )}
           <button type="button" onClick={share} className="w-full h-11 rounded-2xl bg-white border border-paper-200 text-ink-900 font-bold text-[13px]">
             {copied ? t('directory.copied') : t('directory.share')}
           </button>

@@ -201,3 +201,56 @@ export function districtLabel(text, colour, dir = 'ltr') {
   ctx.fill();
   return finish(c);
 }
+
+/** The news board's screen: one headline, wrapped, with its source and a
+    tag for the stock it is about. Dark screen, light type — a screen in a
+    park, read from a few metres. `dir` follows the headline's language. */
+export function newsTexture({ title, source, tag: label, colour }, dir = 'rtl') {
+  const c = document.createElement('canvas');
+  c.width = 1024;
+  c.height = 416;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#1b2230';
+  rounded(ctx, 0, 0, 1024, 416, 28);
+  ctx.fill();
+  // the tag bar
+  ctx.fillStyle = colour || '#ff8a3d';
+  rounded(ctx, 0, 0, 1024, 14, 7);
+  ctx.fill();
+  const rtl = dir === 'rtl';
+  const x = rtl ? 984 : 40;
+  ctx.direction = rtl ? 'rtl' : 'ltr';
+  ctx.textAlign = rtl ? 'right' : 'left';
+  ctx.textBaseline = 'alphabetic';
+  if (label) {
+    ctx.font = `900 30px ${FONT}`;
+    ctx.fillStyle = colour || '#ff8a3d';
+    ctx.fillText(label, x, 64);
+  }
+  // the headline, up to three lines
+  ctx.font = `800 54px ${FONT}`;
+  ctx.fillStyle = '#ffffff';
+  const words = String(title || '').split(' ');
+  const lines = [];
+  let line = '';
+  for (const w of words) {
+    const test = line ? `${line} ${w}` : w;
+    if (ctx.measureText(test).width > 944 && line) {
+      lines.push(line);
+      line = w;
+    } else line = test;
+    if (lines.length === 3) break;
+  }
+  if (lines.length < 3 && line) lines.push(line);
+  if (lines.length === 3 && words.join(' ') !== lines.join(' ')) lines[2] = `${lines[2].slice(0, -1)}…`;
+  lines.forEach((l, i) => ctx.fillText(l, x, 140 + i * 70));
+  // the source, small, at the foot; a live dot the other side
+  ctx.font = `700 28px ${FONT}`;
+  ctx.fillStyle = '#9aa6b8';
+  if (source) ctx.fillText(source, x, 384);
+  ctx.fillStyle = '#4caf7d';
+  ctx.beginPath();
+  ctx.arc(rtl ? 56 : 968, 376, 10, 0, Math.PI * 2);
+  ctx.fill();
+  return finish(c);
+}

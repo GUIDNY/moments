@@ -8,6 +8,7 @@ import CityCamera from './CityCamera';
 import CityGrid from './CityGrid';
 import Decor from './Decor';
 import PortfolioHQ from './PortfolioHQ';
+import NewsBoard from './NewsBoard';
 import SectorDistrict from './SectorDistrict';
 import StockBuilding from './StockBuilding';
 
@@ -17,7 +18,7 @@ import StockBuilding from './StockBuilding';
  * Nothing in here knows about brokers, prices or trades; swap the data
  * layer and this file does not change.
  */
-export default function CityScene({ compact, selected, onSelectBuilding, onSelectHQ, visiting = null }) {
+export default function CityScene({ compact, selected, onSelectBuilding, onSelectHQ, onSelectNews, visiting = null }) {
   const city = useCity();
   const source = visiting ?? city;
   const { holdings, positions, totalUsd } = source;
@@ -92,6 +93,8 @@ export default function CityScene({ compact, selected, onSelectBuilding, onSelec
           <SectorDistrict key={d.sector} district={d} />
         ))}
         <PortfolioHQ hq={plan.hq} totalUsd={totalUsd} onSelect={onSelectHQ} />
+        {/* the news board, at the park's edge beside the plaza */}
+        <NewsBoard x={plan.hq.cx + 3.1} z={plan.hq.cz - 0.4} onSelect={onSelectNews} />
         {plan.buildings.map((b) => (
           <StockBuilding
             key={b.id}

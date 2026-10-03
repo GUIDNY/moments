@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { fetchNews, NEWS_REFRESH_MS } from './news';
 import { REFRESH_MS, ensureQuote, market, onMarket, refresh } from './market';
 import { priceHolding, summarise, tradeQuote } from './money';
 import { LESSON_BY_ID, MISSIONS } from '../learn/content';
@@ -234,6 +235,31 @@ export function CityProvider({ children }) {
 
   const nextMission = MISSIONS.find((m) => !progress.missions.includes(m.id)) ?? null;
 
+  /* the news: for the holdings held, refreshed when they change and every
+     ten minutes; a feed that fails leaves the last headlines up */
+  const [news, setNews] = useState({ at: 0, items: [] });
+  const newsKey = symbols.join(',');
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    let live = true;
+    const lang = document.documentElement.lang === 'en' ? 'en' : 'he';
+    const pull = () => fetchNews(state.holdings, lang).then((got) => live && got.items.length && setNews(got));
+    pull();
+    const timer = setInterval(pull, NEWS_REFRESH_MS);
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newsKey]);
+
+  /* a real portfolio, pasted in: replaces the holdings outright. The purse
+     stays — the city keeps its game — and no trade is recorded, because
+     nothing was bought here. */
+  const importPortfolio = useCallback((rows) => {
+    setState((s) => ({ ...s, holdings: store.importHoldings(rows) }));
+  }, []);
+
   const add = useCallback((entry) => {
     setState((s) => ({ ...s, holdings: store.addHolding(s.holdings, entry) }));
   }, []);
@@ -281,6 +307,8 @@ export function CityProvider({ children }) {
       readLesson,
       nextMission,
       shareUrl: () => store.shareUrl(state),
+      news,
+      importPortfolio,
       add,
       remove,
       update,
@@ -289,7 +317,7 @@ export function CityProvider({ children }) {
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [state, positions, summary, tick, add, remove, update, setDisplay, symbols, progress, fresh, shared, dismissBadge,
-      totalUsd, ready, buyShares, sellShares, resetGame, lastTrade, current, dismissCurrent, readLesson, nextMission]
+      totalUsd, ready, buyShares, sellShares, resetGame, lastTrade, current, dismissCurrent, readLesson, nextMission, news, importPortfolio]
   );
 
   return <CityContext.Provider value={value}>{children}</CityContext.Provider>;
