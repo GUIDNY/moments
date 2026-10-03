@@ -227,6 +227,14 @@ the town, Lucide for icons and Motion for the chrome's springs. No backend, no r
   symbol, then search; the sheet lets the user fix a symbol. Tel Aviv costs are pasted in agorot
   and divided by a hundred behind a checkbox that says so — the unit is decided where it is
   written. `store.importHoldings` replaces the holdings; the purse and the trades stay.
+  **Three doors in, the phone's first:** a screenshot of the broker's app, read on the phone by
+  Tesseract (`stocks/ocr.js`, `heb+eng`, the default page layout — the block modes glued columns
+  together, and Hebrew alone misread the digits that matter most; loaded only when a picture is
+  given, nothing uploaded); an Excel export read by SheetJS (lazy too); or paste/type. A
+  screenshot read right-to-left puts the name last and the columns reversed, so the parser
+  reverses the numbers when every number precedes the name. OCR drops a decimal point now and
+  then, so the sheet asks for a live price per row and flags a cost more than three times off it
+  ("check the cost") — flagged, never silently fixed.
 - User-facing text goes through `t('key')` from the dictionary, or `loc(entry)` for `{ he, en }`
   content that lives beside its data — company names, sector names. No bare strings in components;
   a Hebrew literal in a component is a bug. A name we chose in Hebrew beats the exchange's own

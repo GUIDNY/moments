@@ -22,17 +22,23 @@ export function parseHoldingsText(text) {
     if (cells.length < 2) continue;
     const nums = [];
     const texts = [];
-    for (const c of cells) {
-      const cleaned = clip(c).replace(/^\((.*)\)$/, '-$1');
+    cells.forEach((c, at) => {
+      const cleaned = clip(c).replace(/^\((.*)\)$/, '-$1').replace(/[\u200e\u200f]/g, '');
       const n = Number(cleaned);
-      if (cleaned !== '' && Number.isFinite(n)) nums.push({ n, raw: c });
-      else texts.push(c);
-    }
+      if (cleaned !== '' && Number.isFinite(n)) nums.push({ n, raw: c, at });
+      else texts.push({ c: c.replace(/[\u200e\u200f]/g, '').trim(), at });
+    });
     if (!texts.length || !nums.length) continue;
+    // a screenshot read right-to-left puts the name last and the columns
+    // in reverse — value, last, cost, quantity. Then the numbers are reversed.
+    const nameAt = Math.max(...texts.map((x) => x.at));
+    if (nums.every((x) => x.at < nameAt)) nums.reverse();
     const usable = nums.filter((x) => !(Number.isInteger(x.n) && Math.abs(x.n) >= 10000 && !/[.]/.test(x.raw)));
     if (!usable.length || !(usable[0].n > 0)) continue;
-    const symbolHint = texts.find((c) => /^\^?[A-Z][A-Z0-9.-]{0,11}$/.test(c)) || null;
-    const name = [...texts].filter((c) => c !== symbolHint).sort((a, b) => b.length - a.length)[0] || symbolHint;
+    const words = texts.map((x) => x.c).filter(Boolean);
+    const symbolHint = words.find((c) => /^\^?[A-Z][A-Z0-9.-]{0,11}$/.test(c)) || null;
+    const name = [...words].filter((c) => c !== symbolHint).sort((a, b) => b.length - a.length)[0] || symbolHint;
+    if (!name) continue;
     rows.push({ name, symbolHint, qty: usable[0].n, cost: usable[1]?.n > 0 ? usable[1].n : null });
   }
   return rows;
