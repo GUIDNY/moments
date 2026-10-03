@@ -6,11 +6,11 @@
  */
 
 export const BUILDING_TIERS = [
-  { tier: 1, min: 0,     height: 1.1, footprint: 1.3, label: { he: 'חנות', en: 'Shop' } },
-  { tier: 2, min: 1000,  height: 2.0, footprint: 1.6, label: { he: 'בניין', en: 'Building' } },
-  { tier: 3, min: 5000,  height: 3.0, footprint: 1.8, label: { he: 'בניין משרדים', en: 'Office block' } },
-  { tier: 4, min: 20000, height: 4.2, footprint: 2.0, label: { he: 'מגדל', en: 'Tower' } },
-  { tier: 5, min: 50000, height: 5.4, footprint: 2.2, label: { he: 'גורד שחקים', en: 'Skyscraper' } },
+  { tier: 1, min: 0,     height: 1.5, footprint: 2.0, label: { he: 'חנות', en: 'Shop' } },
+  { tier: 2, min: 1000,  height: 2.6, footprint: 2.3, label: { he: 'בניין', en: 'Building' } },
+  { tier: 3, min: 5000,  height: 3.8, footprint: 2.5, label: { he: 'בניין משרדים', en: 'Office block' } },
+  { tier: 4, min: 20000, height: 5.2, footprint: 2.6, label: { he: 'מגדל', en: 'Tower' } },
+  { tier: 5, min: 50000, height: 6.8, footprint: 2.7, label: { he: 'גורד שחקים', en: 'Skyscraper' } },
 ];
 
 export function tierFor(valueUsd) {
@@ -22,11 +22,11 @@ export function tierFor(valueUsd) {
 
 /** The headquarters grows with the whole portfolio. Level 1 is the starting purse. */
 export const HQ_LEVELS = [
-  { level: 1, min: 0,       height: 3.0, label: { he: 'משרד', en: 'Office' } },
-  { level: 2, min: 110000,  height: 3.8, label: { he: 'בניין', en: 'Building' } },
-  { level: 3, min: 130000,  height: 4.6, label: { he: 'מגדל', en: 'Tower' } },
-  { level: 4, min: 175000,  height: 5.6, label: { he: 'מטה', en: 'Headquarters' } },
-  { level: 5, min: 250000,  height: 6.8, label: { he: 'ציון דרך', en: 'Landmark' } },
+  { level: 1, min: 0,       height: 3.6, label: { he: 'משרד', en: 'Office' } },
+  { level: 2, min: 110000,  height: 4.6, label: { he: 'בניין', en: 'Building' } },
+  { level: 3, min: 130000,  height: 5.6, label: { he: 'מגדל', en: 'Tower' } },
+  { level: 4, min: 175000,  height: 6.8, label: { he: 'מטה', en: 'Headquarters' } },
+  { level: 5, min: 250000,  height: 8.2, label: { he: 'ציון דרך', en: 'Landmark' } },
 ];
 
 export function hqLevelFor(totalUsd) {

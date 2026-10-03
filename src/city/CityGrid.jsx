@@ -12,14 +12,14 @@ import { GROUND, groundTexture } from './textures';
 /* Fields in the country round the board: offsets from the board's centre,
    past its edge on every side, in two greens and a straw. Decided once. */
 const FIELDS = [
-  { x: -24, z: -6, w: 9, h: 14, c: '#b7cf92' },
-  { x: -22, z: 12, w: 7, h: 9, c: '#c9c98f' },
-  { x: 24, z: -10, w: 8, h: 12, c: '#b7cf92' },
-  { x: 25, z: 8, w: 10, h: 10, c: '#c9c98f' },
-  { x: -6, z: -24, w: 14, h: 8, c: '#9dbb86' },
-  { x: 12, z: -25, w: 9, h: 9, c: '#c9c98f' },
-  { x: 4, z: 25, w: 12, h: 9, c: '#b7cf92' },
-  { x: -14, z: 24, w: 8, h: 7, c: '#9dbb86' },
+  { x: -24, z: -6, w: 9, h: 14, c: '#b4d47f' },
+  { x: -22, z: 12, w: 7, h: 9, c: '#d6cf7e' },
+  { x: 24, z: -10, w: 8, h: 12, c: '#b4d47f' },
+  { x: 25, z: 8, w: 10, h: 10, c: '#d6cf7e' },
+  { x: -6, z: -24, w: 14, h: 8, c: '#8fbd6b' },
+  { x: 12, z: -25, w: 9, h: 9, c: '#d6cf7e' },
+  { x: 4, z: 25, w: 12, h: 9, c: '#b4d47f' },
+  { x: -14, z: 24, w: 8, h: 7, c: '#8fbd6b' },
 ];
 
 export default function CityGrid({ plan }) {
@@ -42,7 +42,7 @@ export default function CityGrid({ plan }) {
           plan ends. */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[size / 2, -0.02, size / 2]} receiveShadow>
         <planeGeometry args={[size * 8, size * 8]} />
-        <meshLambertMaterial color="#a7c48e" />
+        <meshLambertMaterial color="#9ec877" />
       </mesh>
       {FIELDS.map((f, i) => (
         <mesh key={`f${i}`} rotation={[-Math.PI / 2, 0, 0]} position={[size / 2 + f.x, -0.01, size / 2 + f.z]} receiveShadow>

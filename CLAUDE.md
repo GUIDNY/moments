@@ -109,10 +109,18 @@ the town, Lucide for icons and Motion for the chrome's springs. No backend, no r
 - A shared link is somebody else's city: it neither grants badges nor counts a visit nor touches
   the viewer's streak. `progress.js` is keyed on the local date, so opening the app twice in a
   minute is one day and midnight is the user's, not the server's.
-- **The pavement is paint.** `city/textures.js` `groundTexture` draws the kerb and pavement on
-  every tile beside a road, lane dashes on the main roads only (district lanes are `TILE.LANE`,
-  the same grey without a line) and nothing at a junction — all from the grid, none of it in the
-  grid.
+- **The pavement is paint, and a strip.** `city/textures.js` `groundTexture` draws a kerb and a
+  pavement a quarter of a tile wide along every road edge, lane dashes on the main roads only,
+  nothing at a junction, and a district lane (`TILE.LANE`) as a pale path through the lawn, not a
+  road — all from the grid, none of it in the grid. The pavement was once the whole tile beside a
+  road, and since two rows of every plot touch a road the whole city read as parking lots; the
+  user said it did not look good enough, and that was most of why.
+- **The light is most of the look.** A warm, low sun (`#ffe7c2`, intensity 2.1, from [24, 26, 6])
+  with long soft shadows, a sky-and-lawn hemisphere light, ACES tone mapping at 1.08, a touch of
+  saturation and a vignette in the composer. Lawns are two tones of patch, never flat; flower
+  beds (four colours), low hedges at the garden's road edge and a fountain in front of the HQ give
+  the board colour and detail. Tiers run 1.5–6.8 high on footprints 2.0–2.7 of a 3×3 plot, so a
+  building fills its plot rather than standing in a car park.
 - **Only buildings that are stocks.** No fillers: a plot without a position is a garden — trees
   and a planter or two, so an empty district is green rather than bare. The user asked for a city
   where the stocks are the hero and nothing else draws the eye; the decor budget is ~150 trees,

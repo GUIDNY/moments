@@ -30,6 +30,8 @@ export default function Decor({ plan }) {
     const benches = [];
     const lamps = [];
     const planters = [];
+    const beds = []; // flower beds: the colour a lawn needs
+    const hedges = []; // low fences along a garden's road side
     const isRoad = (x, y) => grid[y]?.[x] === TILE.ROAD || grid[y]?.[x] === TILE.LANE;
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
@@ -47,7 +49,12 @@ export default function Decor({ plan }) {
           const r = next();
           if (r < 0.22) trees.push({ x: x + 0.25 + next() * 0.5, z: y + 0.25 + next() * 0.5, big: next() < 0.3, turn: Math.floor(next() * 4) });
           else if (r < 0.26) planters.push({ x: x + 0.5, z: y + 0.5, turn: Math.floor(next() * 4) });
+          else if (r < 0.34) beds.push({ x: x + 0.5, z: y + 0.5, hue: Math.floor(next() * 4), turn: next() < 0.5 });
+          // a hedge where the garden meets a road
+          if (grid[y]?.[x + 1] === TILE.ROAD && next() < 0.5) hedges.push({ x: x + 0.62, z: y + 0.5, turn: 1 });
+          if (grid[y + 1]?.[x] === TILE.ROAD && next() < 0.5) hedges.push({ x: x + 0.5, z: y + 0.62, turn: 0 });
         }
+        if (t === TILE.PARK && !inPlaza && next() < 0.07) beds.push({ x: x + 0.5, z: y + 0.5, hue: Math.floor(next() * 4), turn: next() < 0.5 });
         // a lamp on the pavement beside long roads, every fifth tile
         if (!isRoad(x, y) && t !== TILE.WATER && grid[y]?.[x + 1] === TILE.ROAD && y % 5 === 2) lamps.push({ x: x + 0.82, z: y + 0.5 });
         if (!isRoad(x, y) && t !== TILE.WATER && grid[y + 1]?.[x] === TILE.ROAD && x % 5 === 2) lamps.push({ x: x + 0.5, z: y + 0.82 });
@@ -63,7 +70,7 @@ export default function Decor({ plan }) {
       if (out < 1.2) continue;
       if (next() < Math.max(0.12, 1 - out / 22)) country.push({ x, z, big: next() < 0.45, turn: Math.floor(next() * 4) });
     }
-    return { trees: trees.slice(0, 150), country, benches: benches.slice(0, 10), lamps: lamps.slice(0, 40), planters: planters.slice(0, 24) };
+    return { trees: trees.slice(0, 150), country, benches: benches.slice(0, 10), lamps: lamps.slice(0, 40), planters: planters.slice(0, 24), beds: beds.slice(0, 40), hedges: hedges.slice(0, 40) };
   }, [grid, size, hq]);
 
   return (
@@ -74,6 +81,13 @@ export default function Decor({ plan }) {
       {items.country.map((t, i) => (
         <Kit key={`c${i}`} model={t.big ? 'suburban/tree-large' : 'suburban/tree-small'} fit={[0.8, 0.8]} maxScale={3.6} position={[t.x, 0, t.z]} turn={t.turn} />
       ))}
+      {items.beds.map((b, i) => (
+        <FlowerBed key={`fb${i}`} x={b.x} z={b.z} hue={b.hue} turn={b.turn} />
+      ))}
+      {items.hedges.map((h, i) => (
+        <Kit key={`h${i}`} model="suburban/fence-low" fit={[0.9, 0.3]} maxScale={2.2} position={[h.x, 0, h.z]} turn={h.turn} />
+      ))}
+      <Fountain x={hq.x + hq.w / 2} z={hq.y + hq.h + 1.4} />
       {items.planters.map((p, i) => (
         <Kit key={`p${i}`} model="suburban/planter" fit={[0.6, 0.6]} maxScale={2} position={[p.x, 0, p.z]} turn={p.turn} />
       ))}
@@ -189,6 +203,52 @@ function Walker({ from, to, skin, speed, offset }) {
   return (
     <group ref={ref}>
       <VoxelPerson skin={skin} motion={motion} scale={0.42} />
+    </group>
+  );
+}
+
+/* A bed of flowers: a low box of earth with a bright top, in one of four
+   colours. The cheapest colour a city can have. */
+const BED_COLOURS = ['#f06a84', '#f5c542', '#f59a52', '#b58cf0'];
+function FlowerBed({ x, z, hue, turn }) {
+  return (
+    <group position={[x, 0, z]} rotation={[0, turn ? Math.PI / 2 : 0, 0]}>
+      <mesh position={[0, 0.06, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.52, 0.12, 0.3]} />
+        <meshLambertMaterial color="#8d6b4a" />
+      </mesh>
+      <mesh position={[0, 0.14, 0]}>
+        <boxGeometry args={[0.46, 0.07, 0.24]} />
+        <meshLambertMaterial color={BED_COLOURS[hue % BED_COLOURS.length]} />
+      </mesh>
+    </group>
+  );
+}
+
+/* The fountain in front of the HQ: a basin, water, a spout that breathes. */
+function Fountain({ x, z }) {
+  const jet = useRef();
+  useFrame(({ clock }) => {
+    if (jet.current) jet.current.scale.y = 0.85 + Math.sin(clock.elapsedTime * 2.4) * 0.15;
+  });
+  return (
+    <group position={[x, 0, z]}>
+      <mesh position={[0, 0.12, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.95, 1.0, 0.24, 20]} />
+        <meshLambertMaterial color="#d9d4c4" />
+      </mesh>
+      <mesh position={[0, 0.25, 0]}>
+        <cylinderGeometry args={[0.82, 0.82, 0.04, 20]} />
+        <meshLambertMaterial color="#62b8dc" transparent opacity={0.85} />
+      </mesh>
+      <mesh position={[0, 0.5, 0]}>
+        <cylinderGeometry args={[0.12, 0.18, 0.5, 10]} />
+        <meshLambertMaterial color="#cfc9b8" />
+      </mesh>
+      <mesh ref={jet} position={[0, 0.95, 0]}>
+        <coneGeometry args={[0.16, 0.5, 10]} />
+        <meshBasicMaterial color="#bfe8f7" transparent opacity={0.8} />
+      </mesh>
     </group>
   );
 }

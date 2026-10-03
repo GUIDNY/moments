@@ -1,6 +1,7 @@
 import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { EffectComposer, N8AO, SMAA } from '@react-three/postprocessing';
+import * as THREE from 'three';
+import { EffectComposer, HueSaturation, N8AO, SMAA, Vignette } from '@react-three/postprocessing';
 import { useCity } from '../stocks/CityContext';
 import { BOARD_BY_SYMBOL } from '../stocks/catalog';
 import { planCity } from './layout';
@@ -65,16 +66,19 @@ export default function CityScene({ compact, selected, onSelectBuilding, onSelec
       shadows="soft"
       dpr={[1, compact ? 1.5 : 2]}
       camera={{ zoom: 20, near: -50, far: 200, position: [40, 40, 40] }}
-      gl={{ antialias: true }}
+      gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.08 }}
       style={{ touchAction: 'none' }}
     >
-      <color attach="background" args={['#dfe9ee']} />
-      <ambientLight intensity={0.85} color="#ffffff" />
-      <hemisphereLight args={['#ffffff', '#cfdac8', 0.7]} />
+      <color attach="background" args={['#a7c48e']} />
+      {/* a warm afternoon: sky-blue fill from above, bounced green from the
+          lawn, a low golden sun with long soft shadows — the light is most
+          of what makes a board look like a place */}
+      <ambientLight intensity={0.5} color="#ffffff" />
+      <hemisphereLight args={['#e6f3ff', '#9cc274', 0.75]} />
       <directionalLight
-        position={[18, 30, 12]}
-        intensity={1.3}
-        color="#fff8ec"
+        position={[24, 26, 6]}
+        intensity={2.1}
+        color="#ffe7c2"
         castShadow
         shadow-mapSize={compact ? [2048, 2048] : [4096, 4096]}
         shadow-camera-left={-22}
@@ -107,6 +111,9 @@ export default function CityScene({ compact, selected, onSelectBuilding, onSelec
       </Suspense>
       <EffectComposer multisampling={0} enableNormalPass={false}>
         <N8AO aoRadius={1.2} intensity={1.8} distanceFalloff={1} halfRes quality="performance" />
+        {/* a touch more colour and a soft edge: a picture, not a viewport */}
+        <HueSaturation saturation={0.14} />
+        <Vignette offset={0.32} darkness={0.42} />
         <SMAA />
       </EffectComposer>
     </Canvas>

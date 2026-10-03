@@ -109,7 +109,7 @@ export default function App() {
   const level = cityLevel(totalUsd, holdings.length);
 
   return (
-    <div className="absolute inset-0 bg-[#a7c48e] overflow-hidden">
+    <div className="absolute inset-0 bg-[#9ec877] overflow-hidden">
       {/* the city is always mounted: switching tabs must not rebuild it */}
       <div className={tab === 'city' ? 'absolute inset-0' : 'absolute inset-0 invisible'}>
         <CityScene compact={compact} selected={selected} onSelectBuilding={onSelectBuilding} onSelectHQ={() => setTab('portfolio')} onSelectNews={() => setNewsOpen(true)} />

@@ -22,21 +22,24 @@ function rounded(ctx, x, y, w, h, r) {
 }
 
 export const GROUND = {
-  grass: '#b9d49f',
-  park: '#a8cc8e',
-  road: '#d2d3cf',
-  kerb: '#bfc1bd',
-  pavement: '#e6e5df',
-  plaza: '#e9e6dc',
-  plot: '#dfe0d8',
-  water: '#8ec5e3',
+  grass: '#a6d278',
+  park: '#93c76b',
+  road: '#cfcbc0',
+  kerb: '#b9b4a6',
+  pavement: '#ece5d3',
+  plaza: '#efe8d6',
+  plot: '#a6d278',
+  water: '#62b8dc',
   lane: '#ffffff',
+  path: '#e4dcc6',
 };
 
 /**
- * The whole ground in one texture: a road with a kerb and a pavement, lane
- * dashes, paving on the plaza and plots, a soft noise on the lawns so they are
- * not one flat green. Drawn once per layout.
+ * The whole ground in one texture: a road with a kerb and a narrow pavement
+ * strip, lane dashes, paving on the plaza, paths through the districts, and
+ * two tones of patch on every lawn so it is never one flat green. Drawn once
+ * per layout. The pavement was once the whole tile beside a road, and since
+ * two rows of every plot touch a road the city read as parking lots.
  */
 export function groundTexture(grid, TILE, px = 24) {
   const n = grid.length;
@@ -58,22 +61,38 @@ export function groundTexture(grid, TILE, px = 24) {
       else if (t === TILE.WATER) fill = GROUND.water;
       else if (t === TILE.PLAZA) fill = GROUND.plaza;
       else if (t === TILE.PLOT) fill = GROUND.plot;
-      const nearRoad = !isRoad(x, y) && t !== TILE.WATER && (isRoad(x - 1, y) || isRoad(x + 1, y) || isRoad(x, y - 1) || isRoad(x, y + 1));
-      if (nearRoad && (t === TILE.GRASS || t === TILE.PLOT)) fill = GROUND.pavement;
+      // a district lane is a path through the lawn, not a road
+      if (t === TILE.LANE) fill = GROUND.grass;
       ctx.fillStyle = fill;
       ctx.fillRect(X, Y, px, px);
 
-      if (t === TILE.GRASS || t === TILE.PARK) {
-        // a little life in the lawn
-        ctx.fillStyle = (x * 7 + y * 13) % 5 === 0 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.025)';
-        ctx.fillRect(X + ((x * 5) % px), Y + ((y * 9) % px), px * 0.4, px * 0.4);
+      if (t === TILE.GRASS || t === TILE.PARK || t === TILE.PLOT || t === TILE.LANE) {
+        // a little life in the lawn: two tones of patch, never one flat green
+        const k = (x * 7 + y * 13) % 7;
+        ctx.fillStyle = k === 0 ? 'rgba(255,255,255,0.07)' : k < 3 ? 'rgba(0,0,0,0.035)' : 'rgba(255,255,160,0.04)';
+        ctx.fillRect(X + ((x * 5) % px), Y + ((y * 9) % px), px * 0.45, px * 0.45);
       }
-      if (nearRoad && fill === GROUND.pavement) {
+      if (t === TILE.LANE) {
+        const h = isRoad(x - 1, y) || isRoad(x + 1, y);
+        const v = isRoad(x, y - 1) || isRoad(x, y + 1);
+        ctx.fillStyle = GROUND.path;
+        if (h || !v) ctx.fillRect(X, Y + px * 0.3, px, px * 0.4);
+        if (v || !h) ctx.fillRect(X + px * 0.3, Y, px * 0.4, px);
+      }
+      // the pavement is a strip along the road, a quarter of a tile, with a kerb
+      const strip = px * 0.26;
+      if (!isRoad(x, y) && t !== TILE.WATER && t !== TILE.LANE) {
+        const side = (wx, wy) => at(wx, wy) === TILE.ROAD;
+        ctx.fillStyle = GROUND.pavement;
+        if (side(x - 1, y)) ctx.fillRect(X, Y, strip, px);
+        if (side(x + 1, y)) ctx.fillRect(X + px - strip, Y, strip, px);
+        if (side(x, y - 1)) ctx.fillRect(X, Y, px, strip);
+        if (side(x, y + 1)) ctx.fillRect(X, Y + px - strip, px, strip);
         ctx.fillStyle = GROUND.kerb;
-        if (isRoad(x - 1, y)) ctx.fillRect(X, Y, 2, px);
-        if (isRoad(x + 1, y)) ctx.fillRect(X + px - 2, Y, 2, px);
-        if (isRoad(x, y - 1)) ctx.fillRect(X, Y, px, 2);
-        if (isRoad(x, y + 1)) ctx.fillRect(X, Y + px - 2, px, 2);
+        if (side(x - 1, y)) ctx.fillRect(X, Y, 2, px);
+        if (side(x + 1, y)) ctx.fillRect(X + px - 2, Y, 2, px);
+        if (side(x, y - 1)) ctx.fillRect(X, Y, px, 2);
+        if (side(x, y + 1)) ctx.fillRect(X, Y + px - 2, px, 2);
       }
       if (t === TILE.ROAD) {
         // a dashed centre line along straight runs of the main roads,
@@ -87,7 +106,7 @@ export function groundTexture(grid, TILE, px = 24) {
           else ctx.fillRect(X + px / 2 - 1, Y + px * 0.2, 2, px * 0.6);
         }
       }
-      if (t === TILE.PLAZA || t === TILE.PLOT) {
+      if (t === TILE.PLAZA) {
         ctx.strokeStyle = 'rgba(0,0,0,0.06)';
         ctx.lineWidth = 1;
         ctx.strokeRect(X + 0.5, Y + 0.5, px - 1, px - 1);
