@@ -5,19 +5,29 @@
  * steps up a class rather than creeping. Values are dollars.
  */
 
+/* A building's size is the position's share of the whole portfolio — cash
+   included, so one $5,000 stock in a $100,000 purse is a shop, not a tower.
+   `min` is that share, 0–1. The portfolio is the city: a 40% position is
+   the building you see first. */
 export const BUILDING_TIERS = [
   { tier: 1, min: 0,     height: 1.5, footprint: 2.0, label: { he: 'חנות', en: 'Shop' } },
-  { tier: 2, min: 1000,  height: 2.6, footprint: 2.3, label: { he: 'בניין', en: 'Building' } },
-  { tier: 3, min: 5000,  height: 3.8, footprint: 2.5, label: { he: 'בניין משרדים', en: 'Office block' } },
-  { tier: 4, min: 20000, height: 5.2, footprint: 2.6, label: { he: 'מגדל', en: 'Tower' } },
-  { tier: 5, min: 50000, height: 6.8, footprint: 2.7, label: { he: 'גורד שחקים', en: 'Skyscraper' } },
+  { tier: 2, min: 0.025, height: 2.6, footprint: 2.3, label: { he: 'בניין', en: 'Building' } },
+  { tier: 3, min: 0.07,  height: 3.8, footprint: 2.5, label: { he: 'בניין משרדים', en: 'Office block' } },
+  { tier: 4, min: 0.15,  height: 5.2, footprint: 2.6, label: { he: 'מגדל', en: 'Tower' } },
+  { tier: 5, min: 0.30,  height: 6.8, footprint: 2.7, label: { he: 'גורד שחקים', en: 'Skyscraper' } },
 ];
 
-export function tierFor(valueUsd) {
-  const v = Number.isFinite(valueUsd) ? valueUsd : 0;
+export function tierFor(share) {
+  const v = Number.isFinite(share) ? share : 0;
   let best = BUILDING_TIERS[0];
   for (const t of BUILDING_TIERS) if (v >= t.min) best = t;
   return best;
+}
+
+/** A position's share of everything — holdings and cash. */
+export function shareOf(valueUsd, totalUsd) {
+  if (!Number.isFinite(valueUsd) || !Number.isFinite(totalUsd) || totalUsd <= 0) return 0;
+  return Math.max(0, Math.min(1, valueUsd / totalUsd));
 }
 
 /** The headquarters grows with the whole portfolio. Level 1 is the starting purse. */
@@ -36,7 +46,4 @@ export function hqLevelFor(totalUsd) {
   return best;
 }
 
-/** A city's level, for the profile chip: towers and value, one number. */
-export function cityLevel(totalUsd, holdingsCount) {
-  return Math.max(1, hqLevelFor(totalUsd).level + Math.floor((holdingsCount || 0) / 3));
-}
+

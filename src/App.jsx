@@ -6,7 +6,8 @@ import BadgesScreen from './stocks/BadgesScreen';
 import LearnScreen from './learn/LearnScreen';
 import LessonSheet from './learn/LessonSheet';
 import PickerScreen from './stocks/PickerScreen';
-import { cityLevel } from './city/tiers';
+import { levelFor, xpFor } from './stocks/xp';
+import InsightCard from './ui/game/InsightCard';
 import CityScene from './city/CityScene';
 import { goHome, zoomBy } from './world3d/focus';
 import { Hammer, LocateFixed, Minus, Newspaper, Plus, Trophy, Users } from 'lucide-react';
@@ -42,7 +43,7 @@ const ZOOM_BTN = 'ui-layer w-10 h-10 rounded-xl grid place-items-center bg-white
 export default function App() {
   const { t, loc } = useI18n();
   const city = useCity();
-  const { holdings, summary, cash, totalUsd, freshBadges, dismissBadge, current, dismissCurrent, readLesson, lastTrade, holdingOf, isShared } = city;
+  const { holdings, summary, cash, totalUsd, freshBadges, dismissBadge, current, dismissCurrent, readLesson, lastTrade, holdingOf, isShared, progress } = city;
   const compact = useIsCompact();
 
   const [tab, setTab] = useState('city');
@@ -50,6 +51,7 @@ export default function App() {
   const [badgesOpen, setBadgesOpen] = useState(false);
   const [learnOpen, setLearnOpen] = useState(false);
   const [newsOpen, setNewsOpen] = useState(false);
+  const [newsSymbol, setNewsSymbol] = useState(null);
   const [importOpen, setImportOpen] = useState(false);
   const [welcome, setWelcome] = useState(false);
 
@@ -105,29 +107,29 @@ export default function App() {
     setSelected(null);
     setTab('market');
   }, []);
-  const onSelectBuilding = useCallback((b) => setSelected(b.symbol), []);
-  const level = cityLevel(totalUsd, holdings.length);
+  const onSelectBuilding = useCallback((b) => setSelected(b ? b.symbol : null), []);
+  const level = levelFor(xpFor(progress, holdings.length));
 
   return (
     <div className="absolute inset-0 bg-[#9ec877] overflow-hidden">
       {/* the city is always mounted: switching tabs must not rebuild it */}
       <div className={tab === 'city' ? 'absolute inset-0' : 'absolute inset-0 invisible'}>
         <CityScene compact={compact} selected={selected} onSelectBuilding={onSelectBuilding} onSelectHQ={() => setTab('portfolio')} onSelectNews={() => setNewsOpen(true)} />
-        <CityProfile name={null} level={level} onTap={() => setTab('portfolio')} />
+        <CityProfile name={null} level={level.level} onTap={() => setTab('portfolio')} />
         <PortfolioHUD
           totalUsd={totalUsd}
           dayUsd={summary.valueUsd && summary.value ? (summary.day / summary.value) * summary.valueUsd : 0}
           dayPct={holdings.length ? summary.dayPct : null}
-          cash={cash}
-          investedUsd={summary.valueUsd}
+          level={level}
           onOpen={() => setTab('portfolio')}
         />
+        {!selected && <InsightCard onLesson={readLesson} onLearn={() => setLearnOpen(true)} />}
         {isShared && <VisitCityMode name={t('profile.myCity')} />}
         <div className="absolute z-30 end-3 md:end-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:bottom-24 flex flex-col gap-1.5">
           <button type="button" className={ZOOM_BTN} onClick={() => zoomBy(1.25)} aria-label="+"><Plus size={20} strokeWidth={2.6} aria-hidden="true" /></button>
           <button type="button" className={ZOOM_BTN} onClick={() => zoomBy(0.8)} aria-label="−"><Minus size={20} strokeWidth={2.6} aria-hidden="true" /></button>
           <button type="button" className={ZOOM_BTN} onClick={goHome} aria-label={t('city.home')}><LocateFixed size={19} strokeWidth={2.4} aria-hidden="true" /></button>
-          <button type="button" className={ZOOM_BTN} onClick={() => setNewsOpen(true)} aria-label={t('news.title')}><Newspaper size={19} strokeWidth={2.4} aria-hidden="true" /></button>
+          <button type="button" className={ZOOM_BTN} onClick={() => { setNewsSymbol(null); setNewsOpen(true); }} aria-label={t('news.title')}><Newspaper size={19} strokeWidth={2.4} aria-hidden="true" /></button>
         </div>
         {holdings.length === 0 && !welcome && (
           <div className="absolute inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] md:bottom-24 flex justify-center px-4 pointer-events-none">
@@ -137,7 +139,7 @@ export default function App() {
             </button>
           </div>
         )}
-        {selected && <StockInfoPanel symbol={selected} onClose={() => setSelected(null)} readOnly={isShared} />}
+        {selected && <StockInfoPanel symbol={selected} onClose={() => setSelected(null)} readOnly={isShared} onNews={(sym) => { setNewsSymbol(sym); setNewsOpen(true); }} onPortfolio={() => { setSelected(null); setTab('portfolio'); }} />}
       </div>
 
       {tab === 'portfolio' && (
@@ -155,7 +157,7 @@ export default function App() {
 
       <BadgesScreen open={badgesOpen} onClose={() => setBadgesOpen(false)} />
       <LearnScreen open={learnOpen} onClose={() => setLearnOpen(false)} />
-      <NewsSheet open={newsOpen} onClose={() => setNewsOpen(false)} />
+      <NewsSheet open={newsOpen} symbol={newsSymbol} onClose={() => { setNewsOpen(false); setNewsSymbol(null); }} />
       <ImportSheet open={importOpen} onClose={() => setImportOpen(false)} />
       {toast && <Toast emoji={toast.emoji} text={toast.text} onDone={toastDone} />}
       {tab === 'city' && !welcome && <LessonSheet item={current} onDone={dismissCurrent} onReadLesson={readLesson} />}

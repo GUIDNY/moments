@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { fitHeight, useModel } from '../world3d/models';
 import { loadLogo } from '../world3d/logos';
 import { tapHandlers } from '../world3d/nav';
+import { lookAt } from '../world3d/focus';
 import { moveColor } from '../stocks/towers';
 import { formatPct } from '../stocks/money';
 import { tierFor } from './tiers';
@@ -189,8 +190,7 @@ function useLogo(domain) {
 
 export default function StockBuilding({ building, position, onSelect, selected }) {
   const { symbol, sector, cx, cz, facing, plot } = building;
-  const valueUsd = position?.valueUsd ?? building.valueUsd;
-  const tier = tierFor(valueUsd);
+  const tier = tierFor(building.share);
   const kit = KITS[sector] ?? KITS.other;
   const model = useMemo(() => {
     const list = kit[tier.tier] ?? kit[2];
@@ -213,8 +213,15 @@ export default function StockBuilding({ building, position, onSelect, selected }
     [ticker, dayPct, colour]
   );
 
+  // one tap opens the sheet; a second within a third of a second flies in
+  const lastTap = useRef(0);
   const tap = useMemo(() => {
-    const h = tapHandlers(() => onSelect?.(building));
+    const h = tapHandlers(() => {
+      const now = performance.now();
+      if (now - lastTap.current < 350) lookAt(cx, cz, 3);
+      lastTap.current = now;
+      onSelect?.(building);
+    });
     return {
       onPointerDown: (e) => {
         e.stopPropagation();
@@ -234,7 +241,7 @@ export default function StockBuilding({ building, position, onSelect, selected }
         document.body.style.cursor = '';
       },
     };
-  }, [onSelect, building]);
+  }, [onSelect, building, cx, cz]);
 
   /* The building rises when it is new, grows when it steps up a tier, and
      breathes a little while hovered — all from refs in the frame loop. */
@@ -242,6 +249,7 @@ export default function StockBuilding({ building, position, onSelect, selected }
   const glow = useRef();
   const arrow = useRef();
   const label = useRef();
+  const crane = useRef();
   const scaleRef = useRef(building.fresh ? 0.05 : 1);
   useFrame(({ clock }) => {
     const g = group.current;
@@ -254,6 +262,11 @@ export default function StockBuilding({ building, position, onSelect, selected }
       glow.current.material.opacity = Number.isFinite(dayPct) && Math.abs(dayPct) >= 0.3 ? pulse : 0;
     }
     if (arrow.current) arrow.current.position.y = fit.height * scaleRef.current + 0.55 + Math.sin(clock.elapsedTime * 2.2) * 0.06;
+    if (crane.current) {
+      // the crane stands while the building rises, then goes
+      crane.current.visible = scaleRef.current < 0.985;
+      crane.current.rotation.y = clock.elapsedTime * 0.25;
+    }
     if (label.current) {
       const k = hover || selected ? 1.2 : 1;
       label.current.scale.set(2.3 * k, 0.63 * k, 1);
@@ -291,6 +304,23 @@ export default function StockBuilding({ building, position, onSelect, selected }
         </mesh>
       </group>
 
+      {/* a crane while the building goes up */}
+      {building.fresh && (
+        <group ref={crane} position={[tier.footprint * 0.55, 0, -tier.footprint * 0.55]}>
+          <mesh position={[0, (tier.height + 1.2) / 2, 0]}>
+            <boxGeometry args={[0.16, tier.height + 1.2, 0.16]} />
+            <meshLambertMaterial color="#f5b400" />
+          </mesh>
+          <mesh position={[-1.0, tier.height + 1.15, 0]}>
+            <boxGeometry args={[2.6, 0.12, 0.12]} />
+            <meshLambertMaterial color="#f5b400" />
+          </mesh>
+          <mesh position={[-1.9, tier.height + 0.55, 0]}>
+            <boxGeometry args={[0.02, 1.1, 0.02]} />
+            <meshBasicMaterial color="#444" />
+          </mesh>
+        </group>
+      )}
       {/* a small arrow above the roof, up or down, in the day's colour */}
       {Number.isFinite(dayPct) && Math.abs(dayPct) >= 0.3 && (
         <mesh ref={arrow} position={[0, fit.height + 0.55, 0]} rotation={[arrowUp ? 0 : Math.PI, 0, 0]}>

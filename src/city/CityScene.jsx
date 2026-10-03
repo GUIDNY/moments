@@ -5,6 +5,9 @@ import { EffectComposer, HueSaturation, N8AO, SMAA, Vignette } from '@react-thre
 import { useCity } from '../stocks/CityContext';
 import { BOARD_BY_SYMBOL } from '../stocks/catalog';
 import { planCity } from './layout';
+import { shareOf } from './tiers';
+import { levelFor, xpFor } from '../stocks/xp';
+import Treasury from './Treasury';
 import CityCamera from './CityCamera';
 import CityGrid from './CityGrid';
 import Decor from './Decor';
@@ -22,11 +25,12 @@ import StockBuilding from './StockBuilding';
 export default function CityScene({ compact, selected, onSelectBuilding, onSelectHQ, onSelectNews, visiting = null }) {
   const city = useCity();
   const source = visiting ?? city;
-  const { holdings, positions, totalUsd } = source;
+  const { holdings, positions, totalUsd, cash, progress } = source;
+  const level = levelFor(xpFor(progress, holdings.length)).level;
 
-  /* The plan is remade when the holdings change or a tier boundary is
-     crossed, not on every price tick: a price moves a glow, not a plot. */
-  const tierKey = positions.map((p) => `${p.symbol}:${Math.floor((p.valueUsd ?? 0) / 1000)}`).join('|');
+  /* The plan is remade when the holdings change or a share crosses a whole
+     per cent, not on every price tick: a price moves a glow, not a plot. */
+  const tierKey = positions.map((p) => `${p.symbol}:${Math.round(shareOf(p.valueUsd ?? 0, totalUsd) * 100)}`).join('|');
   const known = useRef(new Set(holdings.map((h) => h.symbol)));
   const plan = useMemo(
     () =>
@@ -39,6 +43,7 @@ export default function CityScene({ compact, selected, onSelectBuilding, onSelec
             name: h.name,
             domain: BOARD_BY_SYMBOL[h.symbol]?.domain ?? null,
             valueUsd: p && !p.missing ? p.valueUsd ?? 0 : 0,
+            share: p && !p.missing ? shareOf(p.valueUsd ?? 0, totalUsd) : 0,
           };
         })
       ),
@@ -68,6 +73,7 @@ export default function CityScene({ compact, selected, onSelectBuilding, onSelec
       camera={{ zoom: 20, near: -50, far: 200, position: [40, 40, 40] }}
       gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.08 }}
       style={{ touchAction: 'none' }}
+      onPointerMissed={() => onSelectBuilding?.(null)}
     >
       <color attach="background" args={['#a7c48e']} />
       {/* a warm afternoon: sky-blue fill from above, bounced green from the
@@ -92,11 +98,13 @@ export default function CityScene({ compact, selected, onSelectBuilding, onSelec
       <CityCamera centre={plan.centre} size={plan.size} compact={compact} />
       <Suspense fallback={null}>
         <CityGrid plan={plan} />
-        <Decor plan={plan} />
+        <Decor plan={plan} level={level} />
         {plan.districts.map((d) => (
           <SectorDistrict key={d.sector} district={d} />
         ))}
         <PortfolioHQ hq={plan.hq} totalUsd={totalUsd} onSelect={onSelectHQ} />
+        {/* the cash, as a building: the treasury beside the plaza */}
+        <Treasury x={plan.hq.cx + 3.3} z={plan.hq.cz + 0.3} share={shareOf(cash, totalUsd)} onSelect={onSelectHQ} />
         {/* the news board: centre stage, behind the HQ (up the screen is −x−z) */}
         <NewsBoard x={plan.hq.cx - 3.0} z={plan.hq.cz - 3.0} onSelect={onSelectNews} />
         {plan.buildings.map((b) => (

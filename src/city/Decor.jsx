@@ -21,7 +21,7 @@ function seeded(seed) {
   };
 }
 
-export default function Decor({ plan }) {
+export default function Decor({ plan, level = 1 }) {
   const { grid, size, hq } = plan;
 
   const items = useMemo(() => {
@@ -70,8 +70,18 @@ export default function Decor({ plan }) {
       if (out < 1.2) continue;
       if (next() < Math.max(0.12, 1 - out / 22)) country.push({ x, z, big: next() < 0.45, turn: Math.floor(next() * 4) });
     }
-    return { trees: trees.slice(0, 150), country, benches: benches.slice(0, 10), lamps: lamps.slice(0, 40), planters: planters.slice(0, 24), beds: beds.slice(0, 40), hedges: hedges.slice(0, 40) };
-  }, [grid, size, hq]);
+    // the city grows with its level: more beds, benches and lamps as it rises
+    const k = Math.min(1, 0.55 + level * 0.09);
+    return {
+      trees: trees.slice(0, 150),
+      country,
+      benches: benches.slice(0, Math.round(10 * k)),
+      lamps: lamps.slice(0, Math.round(40 * k)),
+      planters: planters.slice(0, Math.round(24 * k)),
+      beds: beds.slice(0, Math.round(40 * k)),
+      hedges: hedges.slice(0, Math.round(40 * k)),
+    };
+  }, [grid, size, hq, level]);
 
   return (
     <group>
@@ -117,6 +127,7 @@ export default function Decor({ plan }) {
       ))}
       <Cars plan={plan} />
       <People plan={plan} />
+      <Birds cx={hq.x + hq.w / 2} cz={hq.y + hq.h / 2} />
     </group>
   );
 }
@@ -130,6 +141,8 @@ function Cars() {
     <>
       <Car offset={0} speed={1.6} colour="#e0574f" lane={0.18} />
       <Car offset={0.5} speed={1.3} colour="#3d6fd0" lane={-0.18} dir={-1} />
+      <Car offset={0.27} speed={1.45} colour="#f5c542" lane={0.18} />
+      <Car offset={0.78} speed={1.2} colour="#f6f6f2" lane={-0.18} dir={-1} />
     </>
   );
 }
@@ -250,5 +263,40 @@ function Fountain({ x, z }) {
         <meshBasicMaterial color="#bfe8f7" transparent opacity={0.8} />
       </mesh>
     </group>
+  );
+}
+
+/* Three birds circling high over the park, now and then: a sky with
+   something in it. Each a small dark V, flapping from the frame clock. */
+function Birds({ cx, cz }) {
+  const refs = useRef([]);
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    refs.current.forEach((g, i) => {
+      if (!g) return;
+      const a = t * (0.22 + i * 0.05) + i * 2.1;
+      const r = 5 + i * 1.6;
+      g.position.set(cx + Math.cos(a) * r, 7.5 + i * 0.6 + Math.sin(t * 0.7 + i) * 0.3, cz + Math.sin(a) * r);
+      g.rotation.y = -a;
+      const flap = Math.sin(t * 9 + i) * 0.5;
+      g.children[0].rotation.z = flap;
+      g.children[1].rotation.z = -flap;
+    });
+  });
+  return (
+    <>
+      {[0, 1, 2].map((i) => (
+        <group key={i} ref={(el) => (refs.current[i] = el)}>
+          <mesh position={[-0.12, 0, 0]}>
+            <boxGeometry args={[0.26, 0.02, 0.06]} />
+            <meshBasicMaterial color="#2b3340" />
+          </mesh>
+          <mesh position={[0.12, 0, 0]}>
+            <boxGeometry args={[0.26, 0.02, 0.06]} />
+            <meshBasicMaterial color="#2b3340" />
+          </mesh>
+        </group>
+      ))}
+    </>
   );
 }

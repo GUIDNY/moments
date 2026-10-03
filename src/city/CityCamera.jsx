@@ -24,7 +24,7 @@ const PITCH = (40 * Math.PI) / 180;
 const YAW = Math.PI / 4;
 const DEAD_PX = 5;
 const DIST = 60; // far enough that nothing clips; depth is a non-issue orthographically
-const START_MAG = { phone: 2.8, desktop: 1.3 }; // × the fitted zoom
+const START_MAG = { phone: 3.0, desktop: 1.5 }; // × the fitted zoom
 
 /** A screen vector, in pixels (y down), as a vector on the ground at this
     zoom. The camera sits on the +x+z side looking back, so screen right is

@@ -8,7 +8,7 @@ import { STARTING_CASH } from '../../stocks/store';
 import { moveColor } from '../../stocks/towers';
 import { ACHIEVEMENTS } from '../../stocks/achievements';
 import { MISSIONS } from '../../learn/content';
-import { tierFor } from '../../city/tiers';
+import { shareOf, tierFor } from '../../city/tiers';
 
 /** The portfolio's worth, day by day, from the starting purse. */
 function HistoryLine({ history }) {
@@ -132,7 +132,7 @@ export default function PortfolioView({ onOpenStock, onBuy, onLearn, onBadges, o
                   {inSector.map((h) => {
                     const p = positionOf(h.symbol);
                     const live = p && !p.missing;
-                    const tier = tierFor(p?.valueUsd);
+                    const tier = tierFor(shareOf(p?.valueUsd, totalUsd));
                     return (
                       <li key={h.symbol}>
                         <button type="button" onClick={() => onOpenStock(h.symbol)} className="w-full flex items-center gap-3 p-2.5 rounded-2xl text-start hover:bg-paper-50 active:bg-paper-100 transition-colors">

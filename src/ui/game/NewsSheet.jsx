@@ -8,15 +8,15 @@ import { ago } from '../../stocks/news';
 
 /** Every headline the board cycles, as a list: the stocks held, or the
     market. Each opens the paper in a new tab. */
-export default function NewsSheet({ open, onClose }) {
+export default function NewsSheet({ open, onClose, symbol = null }) {
   const { t, loc, lang } = useI18n();
   const { news, holdingOf } = useCity();
   const [kind, setKind] = useState('stock');
-  const items = news.items.filter((i) => (kind === 'stock' ? i.kind === 'stock' : i.kind === 'market'));
+  const items = news.items.filter((i) => (symbol ? i.symbol === symbol : kind === 'stock' ? i.kind === 'stock' : i.kind === 'market'));
   if (!open) return null;
   return (
-    <Sheet open onClose={onClose} title={`📰 ${t('news.title')}`} tone="paper">
-      <div className="flex gap-1.5 mb-3">
+    <Sheet open onClose={onClose} title={`📰 ${symbol ? `${loc(holdingOf(symbol)?.name) || symbol}` : t('news.title')}`} tone="paper">
+      {!symbol && <div className="flex gap-1.5 mb-3">
         {[['stock', t('news.mine')], ['market', t('news.market')]].map(([id, label]) => (
           <button
             key={id}
@@ -27,7 +27,7 @@ export default function NewsSheet({ open, onClose }) {
             {label}
           </button>
         ))}
-      </div>
+      </div>}
       {items.length === 0 ? (
         <p className="text-[13px] text-paper-muted py-6 text-center">{t('news.empty')}</p>
       ) : (

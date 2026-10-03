@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { Minus, Plus, X } from 'lucide-react';
+import { Briefcase, ExternalLink, Minus, Newspaper, Plus, X } from 'lucide-react';
 import { useI18n } from '../../i18n/I18nContext';
 import { SECTOR_BY_ID } from '../../stocks/catalog';
 import { useCity } from '../../stocks/CityContext';
 import { formatMoney, formatPct, toMajor } from '../../stocks/money';
 import { moveColor } from '../../stocks/towers';
 import TradeSheet from '../../stocks/TradeSheet';
-import { tierFor } from '../../city/tiers';
+import { shareOf, tierFor } from '../../city/tiers';
 
 /** Three months of closes as one line, the cost basis dashed across it. */
 function Sparkline({ closes, cost, colour }) {
@@ -44,9 +44,9 @@ function Row({ label, value, tone }) {
  * The numbers people tap a building for, a small chart, buy and sell. It is
  * read-only when visiting somebody else's city.
  */
-export default function StockInfoPanel({ symbol, onClose, readOnly = false, onViewStock }) {
+export default function StockInfoPanel({ symbol, onClose, readOnly = false, onNews, onPortfolio }) {
   const { t, loc } = useI18n();
-  const { positionOf, holdingOf, quoteOf } = useCity();
+  const { positionOf, holdingOf, quoteOf, totalUsd } = useCity();
   const [trade, setTrade] = useState(null);
   const position = positionOf(symbol);
   const holding = holdingOf(symbol);
@@ -62,7 +62,8 @@ export default function StockInfoPanel({ symbol, onClose, readOnly = false, onVi
   const sector = SECTOR_BY_ID[holding.sector];
   const missing = !position || position.missing;
   const name = loc(holding.name) || position?.name || symbol;
-  const tier = tierFor(position?.valueUsd);
+  const share = shareOf(position?.valueUsd, totalUsd);
+  const tier = tierFor(share);
   const closes = quote?.closes?.map((v) => toMajor(v, quote.currency).price) ?? null;
   const dayTone = moveColor(position?.dayPct);
 
@@ -108,6 +109,7 @@ export default function StockInfoPanel({ symbol, onClose, readOnly = false, onVi
             )}
             <dl className="mt-1">
               <Row label={t('panel.position')} value={formatMoney(position.valueUsd ?? position.value, position.valueUsd != null ? 'USD' : position.currency)} />
+              <Row label={t('panel.allocation')} value={`${(share * 100).toFixed(1)}%`} />
               {position.gain != null && (
                 <Row
                   label={t('panel.pl')}
@@ -134,11 +136,17 @@ export default function StockInfoPanel({ symbol, onClose, readOnly = false, onVi
             </button>
           </div>
         )}
-        {onViewStock && (
-          <button type="button" onClick={() => onViewStock(symbol)} className="w-full h-10 mt-2 rounded-2xl bg-paper-50 border border-paper-200 text-ink-900 font-bold text-[13px]">
-            {t('panel.view')}
+        <div className="grid grid-cols-3 gap-1.5 mt-2">
+          <button type="button" onClick={() => onNews?.(symbol)} className="h-10 rounded-2xl bg-paper-50 border border-paper-200 text-ink-900 font-bold text-[11.5px] inline-flex items-center justify-center gap-1">
+            <Newspaper size={14} aria-hidden="true" />{t('panel.news')}
           </button>
-        )}
+          <a href={`https://finance.yahoo.com/quote/${encodeURIComponent(symbol)}`} target="_blank" rel="noopener noreferrer" className="h-10 rounded-2xl bg-paper-50 border border-paper-200 text-ink-900 font-bold text-[11.5px] inline-flex items-center justify-center gap-1">
+            <ExternalLink size={14} aria-hidden="true" />{t('panel.view')}
+          </a>
+          <button type="button" onClick={() => onPortfolio?.()} className="h-10 rounded-2xl bg-paper-50 border border-paper-200 text-ink-900 font-bold text-[11.5px] inline-flex items-center justify-center gap-1">
+            <Briefcase size={14} aria-hidden="true" />{t('panel.portfolio')}
+          </button>
+        </div>
       </motion.aside>
 
       {trade && (

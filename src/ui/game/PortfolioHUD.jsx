@@ -5,12 +5,12 @@ import { moveColor } from '../../stocks/towers';
 import NumberTicker from './NumberTicker';
 
 /**
- * The one number, top centre: what the whole city is worth. Under it, today.
- * Beside it, small, cash and invested. Nothing else — the city is the hero,
- * the HUD only names it. On a phone it sits at the end of the top row, the
- * city's name chip at the start: centred, the two met in the middle.
+ * The one number, top centre: what the whole city is worth. Under it, today,
+ * and the level with its XP bar. Nothing else — the city is the hero, the
+ * HUD only names it; the cash is a building now. On a phone it sits at the
+ * end of the top row, the city's name chip at the start.
  */
-export default function PortfolioHUD({ totalUsd, dayUsd, dayPct, cash, investedUsd, onOpen }) {
+export default function PortfolioHUD({ totalUsd, dayUsd, dayPct, level, onOpen }) {
   const { t } = useI18n();
   const tone = moveColor(dayPct);
   return (
@@ -18,27 +18,27 @@ export default function PortfolioHUD({ totalUsd, dayUsd, dayPct, cash, investedU
       <button
         type="button"
         onClick={onOpen}
-        className="pointer-events-auto flex items-center gap-4 rounded-2xl bg-white/95 backdrop-blur-md border border-paper-200 shadow-card px-4 py-2 text-ink-900 active:scale-[0.99] transition-transform"
+        className="pointer-events-auto rounded-2xl bg-white/95 backdrop-blur-md border border-paper-200 shadow-card px-3.5 py-2 text-ink-900 text-start active:scale-[0.99] transition-transform"
       >
-        <span className="text-center">
-          <span className="block text-[9.5px] font-black uppercase tracking-wide text-paper-muted leading-none mb-1">{t('hud.value')}</span>
-          <span className="block text-[22px] md:text-[26px] font-black tabular-nums leading-none">
-            {totalUsd != null ? <NumberTicker value={totalUsd} format={(v) => formatMoney(v, 'USD', true)} /> : '…'}
+        <span className="block text-[9.5px] font-black uppercase tracking-wide text-paper-muted leading-none">{t('hud.value')}</span>
+        <span className="block mt-0.5 text-[21px] md:text-[24px] font-black tabular-nums leading-none">
+          {totalUsd != null ? <NumberTicker value={totalUsd} format={(v) => formatMoney(v, 'USD', true)} /> : '…'}
+        </span>
+        {Number.isFinite(dayPct) && (
+          <span className="mt-1 inline-flex items-center gap-1 text-[11.5px] font-bold tabular-nums leading-none" style={{ color: tone }}>
+            {dayPct >= 0 ? <TrendingUp size={12} strokeWidth={2.6} aria-hidden="true" /> : <TrendingDown size={12} strokeWidth={2.6} aria-hidden="true" />}
+            <span>{t('hud.today')} {formatPct(dayPct)} · {dayUsd >= 0 ? '+' : ''}{formatMoney(dayUsd, 'USD', true)}</span>
           </span>
-          {Number.isFinite(dayPct) && (
-            <span className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold tabular-nums leading-none" style={{ color: tone }}>
-              {dayPct >= 0 ? <TrendingUp size={13} strokeWidth={2.6} aria-hidden="true" /> : <TrendingDown size={13} strokeWidth={2.6} aria-hidden="true" />}
-              <span>{dayUsd >= 0 ? '+' : ''}{formatMoney(dayUsd, 'USD', true)} · {formatPct(dayPct)} {t('hud.today')}</span>
+        )}
+        {level && (
+          <span className="mt-1.5 flex items-center gap-2">
+            <span className="text-[10.5px] font-black text-brand-deep leading-none">{t('hud.level', { n: level.level })}</span>
+            <span className="relative h-1.5 w-20 rounded-full bg-paper-200 overflow-hidden">
+              <span className="absolute inset-y-0 start-0 rounded-full bg-brand" style={{ width: `${level.max ? 100 : Math.round((level.into / Math.max(1, level.span)) * 100)}%` }} />
             </span>
-          )}
-        </span>
-        <span className="hidden sm:block w-px h-8 bg-paper-200" />
-        <span className="hidden sm:grid grid-cols-2 gap-x-4 text-start">
-          <span className="text-[10px] font-bold text-paper-muted leading-tight">{t('hud.cash')}</span>
-          <span className="text-[10px] font-bold text-paper-muted leading-tight">{t('hud.invested')}</span>
-          <span className="text-[13px] font-black tabular-nums leading-tight">{formatMoney(cash, 'USD', true)}</span>
-          <span className="text-[13px] font-black tabular-nums leading-tight">{formatMoney(investedUsd, 'USD', true)}</span>
-        </span>
+            <span className="text-[10px] font-bold text-paper-muted leading-none tabular-nums">{level.max ? t('hud.maxLevel') : t('hud.xpNext', { xp: level.need, n: level.level + 1 })}</span>
+          </span>
+        )}
       </button>
     </div>
   );

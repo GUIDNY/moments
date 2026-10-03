@@ -180,10 +180,26 @@ the town, Lucide for icons and Motion for the chrome's springs. No backend, no r
   with nowhere to stand would vanish and the city would stop matching the portfolio. The plan is
   remade when the holdings change or a position crosses a $1,000 step, never on a price tick: a
   price moves a glow, not a plot.
-- **Tiers, not scaling.** A building's height comes from `BUILDING_TIERS` by the position's dollar
-  value (`position.valueUsd`, which `priceHolding` now computes); a position that grows steps up
-  a class and visibly changes model. Never scale a model by value — a FarmVille city reads by
-  classes. The HQ's level is `HQ_LEVELS` by `totalUsd`, with room for upgrades later.
+- **Tiers, not scaling, by share.** A building's height comes from `BUILDING_TIERS` by the
+  position's share of the *whole* portfolio, cash included (`shareOf(valueUsd, totalUsd)`): a
+  40% position is the building you see first, one $5,000 stock in a $100,000 purse is a shop.
+  A position that grows steps up a class and visibly changes model. Never scale a model by value
+  — a FarmVille city reads by classes. The HQ's level is `HQ_LEVELS` by `totalUsd`.
+- **The cash is a building.** `city/Treasury` stands beside the plaza, gold-tinted, with a coin
+  turning on its roof and a pill that says "cash · 95%"; its tier is the cash's share by the same
+  table, so the whole composition is on the board — what is invested and what is not. Tapping it
+  opens the portfolio.
+- **Progress is XP, never returns.** `stocks/xp.js`: missions, lessons, badges, days in a row and
+  companies held earn XP (tables); `LEVEL_XP` sets the levels. The HUD shows the level with its
+  bar and "N XP to level M"; the decor budget (beds, benches, lamps) grows with the level. A
+  friend's city compares on this, not on money.
+- **The city teaches by noticing.** `stocks/insights.js` reads the finished numbers — a sector
+  that is 60%+ of the city, one company carrying everything, cash 30%+ of the purse — and
+  `ui/game/InsightCard` shows one small card over the city with a concept and a lesson link,
+  dismissed for the day. It never says buy or sell.
+- A tap on a building opens its sheet; a second tap within 350 ms flies to it (`lookAt`); a tap
+  on empty ground (`onPointerMissed` on the Canvas) closes the sheet. A new building rises under a
+  turning crane that goes when it has stood up.
 - **The camera is a board-game camera.** Orthographic, pitch 40°, yaw 45°, never rotates. Zoom is
   `camera.zoom` (pixels per world unit). `focus.js` carries fly-to (`lookAt`), `zoomBy` and
   `goHome` (the ⌖ button: the middle at the starting zoom); a hand on the city cancels a flight.
@@ -285,7 +301,7 @@ the town, Lucide for icons and Motion for the chrome's springs. No backend, no r
   is for fiber 9, and this app is on fiber 8. Keep AO cheap (`halfRes`, `quality="performance"`):
   the test is a phone at sixty frames, not a desktop screenshot.
 - **The city is lit as a model on a table, so its chrome is white cards.** Floating controls over
-  the city share one recipe: same size, same radius, `bg-white/92` + blur + `border-paper-200` +
+  the city share one recipe: same size, same radius, `bg-white/95` + blur (92 is not on Tailwind's opacity scale: the class is dropped and the card goes clear) + `border-paper-200` +
   `shadow-card`, with `text-ink-900`. The orange FAB is the only exception, because it is the one
   call to action. The dark `bg-ink-800/85` + `shadow-chip` recipe still belongs to the estate-agent
   pages, which are dark — do not carry either one across.

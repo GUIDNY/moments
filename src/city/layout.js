@@ -146,6 +146,7 @@ export function planCity(positions = []) {
         // faces the lane or the ring, whichever is nearer the centre
         facing: plot.y + 1.5 < C ? 1 : -1,
         valueUsd: p.valueUsd ?? 0,
+        share: p.share ?? 0,
         name: p.name,
         domain: p.domain ?? null,
       });
