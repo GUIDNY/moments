@@ -11,13 +11,13 @@ import { formatMoney } from './stocks/money';
 import InsightCard from './ui/game/InsightCard';
 import CityScene from './city/CityScene';
 import { goHome, zoomBy } from './world3d/focus';
-import { LocateFixed, Minus, Newspaper, Plus, Trophy, Upload, Users } from 'lucide-react';
+import { LocateFixed, Minus, Newspaper, Plus, Upload } from 'lucide-react';
 import Toast from './ui/Toast';
 import BottomNavigation from './ui/game/BottomNavigation';
 import CityProfile from './ui/game/CityProfile';
 import PortfolioHUD from './ui/game/PortfolioHUD';
 import PortfolioView from './ui/game/PortfolioView';
-import SoonScreen from './ui/game/SoonScreen';
+import FriendsScreen from './ui/game/FriendsScreen';
 import StockInfoPanel from './ui/game/StockInfoPanel';
 import NewsSheet from './ui/game/NewsSheet';
 import ImportFlow from './ui/game/ImportFlow';
@@ -44,7 +44,8 @@ const ZOOM_BTN = 'ui-layer w-10 h-10 rounded-xl grid place-items-center bg-white
 export default function App() {
   const { t, loc } = useI18n();
   const city = useCity();
-  const { holdings, summary, cash, totalUsd, freshBadges, dismissBadge, current, dismissCurrent, readLesson, lastTrade, lastDividend, holdingOf, isShared, progress, trades, positions, marketOpen } = city;
+  const { holdings, summary, cash, totalUsd, freshBadges, dismissBadge, current, dismissCurrent, readLesson, lastTrade, lastDividend, holdingOf, isShared, progress, trades, positions, marketOpen, visitedMeta } = city;
+  const [learnTab, setLearnTab] = useState('missions');
   const compact = useIsCompact();
 
   const [tab, setTab] = useState('city');
@@ -129,9 +130,12 @@ export default function App() {
       {/* the city is always mounted: switching tabs must not rebuild it */}
       <div className={tab === 'city' ? 'absolute inset-0' : 'absolute inset-0 invisible'}>
         <CityScene compact={compact} selected={selected} onSelectBuilding={onSelectBuilding} onSelectHQ={() => setTab('portfolio')} onSelectNews={() => setNewsOpen(true)} />
-        <CityProfile name={null} level={level.level} onTap={() => setTab('portfolio')} />
+        <CityProfile name={isShared ? visitedMeta?.name || null : city.name || null} level={isShared ? visitedMeta?.level ?? 1 : level.level} onTap={() => setTab('portfolio')} />
         <PortfolioHUD
           totalUsd={totalUsd}
+          hideAmounts={isShared && visitedMeta?.privacy === 'city'}
+          gainPct={holdings.length ? summary.gainPct : null}
+          baseUsd={city.history?.[0]?.total ?? undefined}
           cash={cash}
           dayUsd={summary.valueUsd && summary.value ? (summary.day / summary.value) * summary.valueUsd : 0}
           dayPct={holdings.length ? summary.dayPct : null}
@@ -145,7 +149,7 @@ export default function App() {
             <HealthChip onOpen={() => setHealthOpen(true)} />
           </div>
         )}
-        {isShared && <VisitCityMode name={t('profile.myCity')} />}
+        {isShared && <VisitCityMode name={visitedMeta?.name || t('friends.unnamed')} cityOnly={visitedMeta?.privacy === 'city'} onLeave={() => window.location.assign(window.location.pathname)} />}
         <div className="absolute z-30 end-3 md:end-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:bottom-24 flex flex-col gap-1.5">
           <button type="button" className={ZOOM_BTN} onClick={() => zoomBy(1.25)} aria-label="+"><Plus size={20} strokeWidth={2.6} aria-hidden="true" /></button>
           <button type="button" className={ZOOM_BTN} onClick={() => zoomBy(0.8)} aria-label="−"><Minus size={20} strokeWidth={2.6} aria-hidden="true" /></button>
@@ -168,20 +172,30 @@ export default function App() {
       </div>
 
       {tab === 'portfolio' && (
-        <PortfolioView onOpenStock={openStock} onBuy={goMarket} onLearn={() => setLearnOpen(true)} onBadges={() => setBadgesOpen(true)} onImport={() => setImportOpen(true)} />
+        <PortfolioView
+          onOpenStock={openStock}
+          onBuy={goMarket}
+          onLearn={() => { setLearnTab('missions'); setLearnOpen(true); }}
+          onGlossary={() => { setLearnTab('glossary'); setLearnOpen(true); }}
+          onLesson={(id) => { setTab('city'); readLesson(id); }}
+          onBadges={() => setBadgesOpen(true)}
+          onImport={() => setImportOpen(true)}
+          onHealth={() => setHealthOpen(true)}
+          onNews={(sym) => { setNewsSymbol(sym ?? null); setNewsOpen(true); }}
+        />
       )}
       {tab === 'market' && (
         <div className="absolute inset-0">
           <PickerScreen onExit={() => setTab('city')} />
         </div>
       )}
-      {tab === 'rankings' && <SoonScreen icon={Trophy} textKey="soon.rankings" />}
-      {tab === 'friends' && <SoonScreen icon={Users} textKey="soon.friends" />}
+      {tab === 'rankings' && <FriendsScreen mode="rankings" />}
+      {tab === 'friends' && <FriendsScreen mode="friends" />}
 
       <BottomNavigation active={tab} onChange={(id) => { setSelected(null); setTab(id); }} />
 
       <BadgesScreen open={badgesOpen} onClose={() => setBadgesOpen(false)} />
-      <LearnScreen open={learnOpen} onClose={() => setLearnOpen(false)} />
+      <LearnScreen open={learnOpen} initialTab={learnTab} onClose={() => setLearnOpen(false)} />
       <NewsSheet open={newsOpen} symbol={newsSymbol} onClose={() => { setNewsOpen(false); setNewsSymbol(null); }} />
       <ImportFlow open={importOpen} onClose={(n) => { setImportOpen(false); if (Number.isFinite(n)) { setImported(n); setTab('city'); setSelected(null); } }} onManual={goMarket} />
       <HealthSheet open={healthOpen} onClose={() => setHealthOpen(false)} onLesson={readLesson} />

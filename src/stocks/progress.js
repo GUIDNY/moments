@@ -22,6 +22,9 @@ const EMPTY = {
   peak: 0,           // the highest the portfolio has ever been worth
   lessons: [],       // lesson ids read, in the order they were read
   missions: [],      // mission ids completed, in order
+  daily: { day: null, done: [] }, // today's short tasks done
+  dailyDone: 0,      // how many daily tasks ever, for XP
+  connected: false,  // a real portfolio was connected once
 };
 
 /** Local midnight, not UTC: a streak is about the user's day, not the server's. */
@@ -100,6 +103,15 @@ export function unlock(progress, ids) {
 /** A lesson read stays read; a mission done stays done. Same object when nothing is new. */
 export const seeLesson = (progress, id) =>
   progress.lessons.includes(id) ? progress : { ...progress, lessons: [...progress.lessons, id] };
+
+/** A daily task done today; the same task twice in a day counts once. */
+export function doDaily(progress, id, day = today()) {
+  const cur = progress.daily?.day === day ? progress.daily : { day, done: [] };
+  if (cur.done.includes(id)) return progress;
+  return { ...progress, daily: { day, done: [...cur.done, id] }, dailyDone: (progress.dailyDone ?? 0) + 1 };
+}
+
+export const connectedOnce = (progress) => (progress.connected ? progress : { ...progress, connected: true });
 
 export function completeMissions(progress, ids) {
   const fresh = ids.filter((id) => !progress.missions.includes(id));

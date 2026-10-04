@@ -55,7 +55,12 @@ export const fresh = () => ({
   history: [],
   started: Date.now(),
   imported: null, // when a broker file (or the demo) last replaced the holdings
+  privacy: 'city', // private · city · public — what a share link carries
+  watchlist: [],   // symbols watched, not held: no building
+  name: '',        // the city's name, if the owner gave it one
 });
+
+export const PRIVACY = ['private', 'city', 'public'];
 
 export function load() {
   try {
@@ -71,6 +76,9 @@ export function load() {
       history: Array.isArray(raw.history) ? raw.history : [],
       started: Number.isFinite(raw.started) ? raw.started : Date.now(),
       imported: Number.isFinite(raw.imported) ? raw.imported : null,
+      privacy: PRIVACY.includes(raw.privacy) ? raw.privacy : 'city',
+      watchlist: Array.isArray(raw.watchlist) ? raw.watchlist.filter((s) => typeof s === 'string').slice(0, 40) : [],
+      name: typeof raw.name === 'string' ? raw.name.slice(0, 40) : '',
     };
     return state;
   } catch {
@@ -201,7 +209,10 @@ export function payDividends(state, due) {
  */
 export function snapshot(state, totalUsd, day) {
   if (!Number.isFinite(totalUsd)) return state;
-  const history = state.history.length ? state.history : [{ day: 'start', total: STARTING_CASH, cash: STARTING_CASH }];
+  // a played game starts at the purse; an imported portfolio starts at its
+  // first real number — $100,000 of play money is no baseline for it
+  const history = state.history.length ? state.history : state.imported ? [] : [{ day: 'start', total: STARTING_CASH, cash: STARTING_CASH }];
+  if (!history.length) return { ...state, history: [{ day, total: Math.round(totalUsd * 100) / 100, cash: Math.round(state.cash * 100) / 100 }] };
   const last = history[history.length - 1];
   const point = { day, total: Math.round(totalUsd * 100) / 100, cash: Math.round(state.cash * 100) / 100 };
   const next = last.day === day ? [...history.slice(0, -1), point] : [...history, point];
@@ -218,26 +229,48 @@ export function updateHolding(holdings, symbol, patch) {
 
 /* ── sharing ──────────────────────────────────────────────────────────────── */
 
-/** Only what is needed to rebuild the city, in the shortest form. */
-const pack = (state) => ({
-  d: state.display,
-  c: Math.round(state.cash * 100) / 100,
-  s: state.started,
-  h: state.holdings.map((h) => [h.symbol, h.qty, h.cost ?? 0, h.sector]),
-});
+/**
+ * Only what is needed to rebuild the city, in the shortest form — and only
+ * what the owner's privacy allows. `public` carries the holdings as they
+ * are; `city` carries each holding as a *weight* of a notional $100,000 so
+ * the visitor sees the same districts, tiers and allocation and no amount
+ * that is real; `private` cannot be packed at all. A link also carries the
+ * city's name, level and badge count, which is what the rankings compare.
+ * `prices` is `symbol → dollar price per share` for the weights.
+ */
+const pack = (state, { level = 1, badges = 0, prices = {} } = {}) => {
+  const base = { d: state.display, s: state.started, v: state.privacy, n: state.name || '', l: level, b: badges };
+  if (state.privacy === 'public') {
+    return { ...base, c: Math.round(state.cash * 100) / 100, h: state.holdings.map((h) => [h.symbol, h.qty, h.cost ?? 0, h.sector]) };
+  }
+  // city only: weights of a notional purse, no cost, no cash amount
+  const usd = state.holdings.map((h) => (prices[h.symbol] ?? 0) * h.qty);
+  const total = usd.reduce((a, b) => a + b, 0) + Math.max(0, state.cash);
+  const NOTIONAL = 100000;
+  const k = total > 0 ? NOTIONAL / total : 0;
+  return {
+    ...base,
+    c: Math.round(Math.max(0, state.cash) * k),
+    h: state.holdings.map((h, i) => [h.symbol, prices[h.symbol] ? Math.round(((usd[i] * k) / prices[h.symbol]) * 1000) / 1000 : h.qty, 0, h.sector]),
+  };
+};
 
 const unpack = (raw) => ({
   ...fresh(),
   display: raw.d || DEFAULT_DISPLAY,
   cash: Number.isFinite(raw.c) ? raw.c : STARTING_CASH,
   started: Number.isFinite(raw.s) ? raw.s : Date.now(),
+  privacy: PRIVACY.includes(raw.v) ? raw.v : 'public',
+  name: typeof raw.n === 'string' ? raw.n.slice(0, 40) : '',
+  level: Number.isFinite(raw.l) ? raw.l : 1,
+  badges: Number.isFinite(raw.b) ? raw.b : 0,
   holdings: (raw.h || []).map(([symbol, qty, cost, sector]) =>
     clean({ symbol, qty, cost: cost || null, sector })
   ),
 });
 
-export function encodeState(state) {
-  const bytes = new TextEncoder().encode(JSON.stringify(pack(state)));
+export function encodeState(state, meta) {
+  const bytes = new TextEncoder().encode(JSON.stringify(pack(state, meta)));
   let binary = '';
   bytes.forEach((b) => {
     binary += String.fromCharCode(b);
@@ -265,7 +298,22 @@ export function stateFromLocation() {
   }
 }
 
-export function shareUrl(state) {
+export function shareUrl(state, meta) {
+  if (state.privacy === 'private') return null;
   const base = window.location.origin + window.location.pathname;
-  return `${base}?p=${encodeState(state)}`;
+  return `${base}?p=${encodeState(state, meta)}`;
 }
+
+/** Decode a friend's link into what the rankings and the friends list show. */
+export function peekLink(url) {
+  try {
+    const p = new URL(url, window.location.origin).searchParams.get('p');
+    const st = p ? decodeState(p) : null;
+    return st ? { name: st.name, level: st.level, badges: st.badges, holdings: st.holdings.length, privacy: st.privacy } : null;
+  } catch {
+    return null;
+  }
+}
+
+export const toggleWatch = (watchlist, symbol) =>
+  watchlist.includes(symbol) ? watchlist.filter((s) => s !== symbol) : [...watchlist, symbol].slice(-40);

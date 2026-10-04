@@ -61,6 +61,7 @@ export default function BadgesScreen({ open, onClose }) {
         </dl>
       )}
 
+      {won.size === 0 && <p className="text-[13px] font-black text-ink-900 text-center mb-3">{t('empty.badges')}</p>}
       <ul className="grid grid-cols-2 gap-2">
         {ACHIEVEMENTS.map((a) => {
           const has = won.has(a.id);

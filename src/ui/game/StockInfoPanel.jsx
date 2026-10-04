@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { BookOpen, Briefcase, Minus, Newspaper, Plus, X } from 'lucide-react';
+import { BookOpen, Briefcase, Minus, Newspaper, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { useI18n } from '../../i18n/I18nContext';
 import { SECTOR_BY_ID } from '../../stocks/catalog';
 import { useCity } from '../../stocks/CityContext';
@@ -74,8 +74,9 @@ function Range({ lo, hi, price, currency }) {
  */
 export default function StockInfoPanel({ symbol, onClose, readOnly = false, onNews, onPortfolio }) {
   const { t, loc } = useI18n();
-  const { positionOf, holdingOf, quoteOf, totalUsd } = useCity();
+  const { positionOf, holdingOf, quoteOf, totalUsd, update, remove } = useCity();
   const [trade, setTrade] = useState(null);
+  const [edit, setEdit] = useState(null); // { qty, cost } while the position is being edited
   const position = positionOf(symbol);
   const holding = holdingOf(symbol);
   const quote = quoteOf(symbol);
@@ -176,6 +177,31 @@ export default function StockInfoPanel({ symbol, onClose, readOnly = false, onNe
               <Minus size={17} strokeWidth={2.6} aria-hidden="true" />
               {t('holding.sellSome')}
             </button>
+          </div>
+        )}
+        {!readOnly && (
+          <div className="mt-2">
+            {edit ? (
+              <div className="rounded-2xl bg-paper-50 border border-paper-200 p-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="text-[10.5px] font-bold text-paper-muted">
+                    {t('panel.shares')}
+                    <input dir="ltr" type="number" inputMode="decimal" value={edit.qty} onChange={(e) => setEdit({ ...edit, qty: e.target.value })} className="mt-0.5 w-full h-10 rounded-xl border border-paper-200 bg-white px-2 text-[13px] font-black text-ink-900 tabular-nums" />
+                  </label>
+                  <label className="text-[10.5px] font-bold text-paper-muted">
+                    {t('panel.avg')} ({position?.currency ?? ''})
+                    <input dir="ltr" type="number" inputMode="decimal" value={edit.cost} onChange={(e) => setEdit({ ...edit, cost: e.target.value })} className="mt-0.5 w-full h-10 rounded-xl border border-paper-200 bg-white px-2 text-[13px] font-black text-ink-900 tabular-nums" />
+                  </label>
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <button type="button" onClick={() => { const qty = Number(edit.qty); if (qty > 0) update(symbol, { qty, cost: edit.cost === '' ? null : Number(edit.cost) }); setEdit(null); }} className="flex-1 h-10 rounded-xl bg-ink-900 text-white font-black text-[12.5px]">{t('common.save')}</button>
+                  <button type="button" onClick={() => setEdit(null)} className="h-10 px-3 rounded-xl bg-white border border-paper-200 text-ink-900 font-bold text-[12.5px]">{t('common.close')}</button>
+                  <button type="button" onClick={() => { if (window.confirm(t('panel.removeConfirm', { name }))) { remove(symbol); onClose(); } }} className="h-10 px-3 rounded-xl bg-white border border-[#e2706f]/50 text-[#b2423f] font-bold text-[12.5px] inline-flex items-center gap-1"><Trash2 size={13} aria-hidden="true" />{t('panel.removePos')}</button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setEdit({ qty: holding.qty, cost: holding.cost ?? '' })} className="h-9 px-3 rounded-xl text-[11.5px] font-bold text-paper-muted inline-flex items-center gap-1 hover:text-ink-900"><Pencil size={12} aria-hidden="true" />{t('panel.editPos')}</button>
+            )}
           </div>
         )}
         <div className="grid grid-cols-3 gap-1.5 mt-2">

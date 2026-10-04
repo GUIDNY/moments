@@ -34,6 +34,20 @@ export const ACHIEVEMENTS = [
     test: ({ holdings }) => holdings.length >= 1,
   },
   {
+    id: 'city',
+    emoji: '🌇',
+    name: { he: 'העיר הראשונה', en: 'First city' },
+    note: { he: 'תיק אמיתי חובר לעיר', en: 'A real portfolio connected to the city' },
+    test: ({ progress }) => Boolean(progress.connected),
+  },
+  {
+    id: 'etf',
+    emoji: '🧺',
+    name: { he: 'משקיע בקרנות', en: 'ETF investor' },
+    note: { he: 'קרן סל או מדד בתיק', en: 'An index fund in the portfolio' },
+    test: ({ holdings }) => holdings.some((h) => h.sector === 'other'),
+  },
+  {
     id: 'street',
     emoji: '🏙️',
     name: { he: 'רחוב שלם', en: 'A whole street' },

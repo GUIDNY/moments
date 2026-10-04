@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useI18n } from '../i18n/I18nContext';
 import { useCity } from '../stocks/CityContext';
 import Sheet from '../ui/Sheet';
@@ -9,10 +9,13 @@ import { GLOSSARY, LESSONS, MISSIONS } from './content';
  * lesson (read ones open again; unread ones say what will open them), and
  * the glossary. The missions are the path; the rest is for looking things up.
  */
-export default function LearnScreen({ open, onClose }) {
+export default function LearnScreen({ open, onClose, initialTab = 'missions' }) {
   const { t, loc } = useI18n();
   const { progress, readLesson } = useCity();
-  const [tab, setTab] = useState('missions');
+  const [tab, setTab] = useState(initialTab);
+  useEffect(() => {
+    if (open) setTab(initialTab);
+  }, [open, initialTab]);
   const done = new Set(progress.missions);
   const read = new Set(progress.lessons);
   const live = MISSIONS.find((m) => !done.has(m.id))?.id ?? null;

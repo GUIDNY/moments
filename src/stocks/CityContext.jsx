@@ -5,6 +5,7 @@ import { priceHolding, rateBetween, summarise, toMajor, tradeQuote } from './mon
 import { LESSON_BY_ID, MISSIONS } from '../learn/content';
 import { computeTowers } from './towers';
 import { earned } from './achievements';
+import { levelFor, xpFor } from './xp';
 import * as progressStore from './progress';
 import * as store from './store';
 
@@ -289,6 +290,7 @@ export function CityProvider({ children }) {
 
   const nextMission = MISSIONS.find((m) => !progress.missions.includes(m.id)) ?? null;
 
+
   /* the news: for the holdings held, refreshed when they change and every
      ten minutes; a feed that fails leaves the last headlines up */
   const [news, setNews] = useState({ at: 0, items: [] });
@@ -310,7 +312,13 @@ export function CityProvider({ children }) {
   /* a real portfolio, pasted in: replaces the holdings outright. The purse
      stays — the city keeps its game — and no trade is recorded, because
      nothing was bought here. */
-  const importPortfolio = useCallback((rows, { cashUsd = null } = {}) => {
+  const doDaily = useCallback((id) => setProgress((p) => progressStore.doDaily(p, id)), []);
+  const toggleWatch = useCallback((symbol) => setState((s) => ({ ...s, watchlist: store.toggleWatch(s.watchlist, symbol) })), []);
+  const setPrivacy = useCallback((privacy) => setState((s) => ({ ...s, privacy })), []);
+  const setName = useCallback((name) => setState((s) => ({ ...s, name: String(name || '').slice(0, 40) })), []);
+
+  const importPortfolio = useCallback((rows, { cashUsd = null, real = true } = {}) => {
+    if (real) setProgress((p) => progressStore.connectedOnce(p));
     setState((s) => ({
       ...s,
       holdings: store.importHoldings(rows, s.holdings),
@@ -318,6 +326,8 @@ export function CityProvider({ children }) {
       // purse to it, in dollars; one that does not leaves the purse alone
       cash: Number.isFinite(cashUsd) && cashUsd >= 0 ? cashUsd : s.cash,
       imported: Date.now(),
+      // a new baseline: the line starts again from the first real total
+      history: [],
     }));
   }, []);
 
@@ -369,7 +379,20 @@ export function CityProvider({ children }) {
       dismissCurrent,
       readLesson,
       nextMission,
-      shareUrl: () => store.shareUrl(state),
+      shareUrl: () => {
+        const prices = {};
+        for (const p of positions) if (!p.missing && p.valueUsd != null && p.qty) prices[p.symbol] = p.valueUsd / p.qty;
+        return store.shareUrl(state, { level: levelFor(xpFor(progress, { holdings: state.holdings, trades: state.trades, positions, totalUsd })).level, badges: progress.unlocked.length, prices });
+      },
+      privacy: state.privacy,
+      setPrivacy,
+      name: state.name,
+      setName,
+      watchlist: state.watchlist,
+      toggleWatch,
+      doDaily,
+      // what a visited city's link said about its owner
+      visitedMeta: shared ? { name: state.name, level: state.level ?? 1, badges: state.badges ?? 0, privacy: state.privacy } : null,
       news,
       importPortfolio,
       add,
@@ -380,8 +403,14 @@ export function CityProvider({ children }) {
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [state, positions, summary, tick, add, remove, update, setDisplay, symbols, progress, fresh, shared, dismissBadge,
-      totalUsd, ready, buyShares, sellShares, resetGame, lastTrade, lastDividend, marketOpen, current, dismissCurrent, readLesson, nextMission, news, importPortfolio]
+      totalUsd, ready, buyShares, sellShares, resetGame, lastTrade, lastDividend, marketOpen, current, dismissCurrent, readLesson, nextMission, news, importPortfolio,
+      setPrivacy, setName, toggleWatch, doDaily]
   );
+
+  // handy from the console, and what the browser tests build a friend from
+  useEffect(() => {
+    if (typeof window !== 'undefined') window.__shareUrl = () => value.shareUrl();
+  }, [value]);
 
   return <CityContext.Provider value={value}>{children}</CityContext.Provider>;
 }

@@ -9,12 +9,15 @@ import { useI18n } from '../../i18n/I18nContext';
  * `source` is whatever `CityScene` should draw — the context's own numbers
  * now, a friend's snapshot later — and that is the whole seam.
  */
-export default function VisitCityMode({ name, onLeave }) {
+export default function VisitCityMode({ name, onLeave, cityOnly = false }) {
   const { t } = useI18n();
   return (
     <div className="ui-layer absolute z-30 inset-x-0 top-[calc(3.6rem+env(safe-area-inset-top,0px))] md:top-16 flex justify-center px-3 pointer-events-none">
       <div className="pointer-events-auto flex items-center gap-3 rounded-2xl bg-ink-900/90 text-white backdrop-blur-md shadow-card ps-4 pe-2 py-1.5">
-        <span className="text-[12.5px] font-bold">{t('visit.banner', { name })}</span>
+        <span className="text-[12.5px] font-bold">
+          {t('visit.banner', { name })}
+          {cityOnly && <span className="block text-[10.5px] font-normal text-white/70">{t('visit.cityOnly')}</span>}
+        </span>
         {onLeave && (
           <button type="button" onClick={onLeave} className="h-8 px-3 rounded-xl bg-white/15 text-[12px] font-black">
             {t('visit.leave')}

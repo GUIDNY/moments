@@ -25,7 +25,7 @@ export default function Onboarding({ onDone }) {
     <div className="ui-layer fixed inset-0 z-[60] bg-paper-50 flex flex-col" role="dialog" aria-modal="true" aria-label={t(s.title)}>
       <div className="flex justify-end px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
         {!last && (
-          <button type="button" onClick={onDone} className="h-9 px-3 rounded-xl text-[12.5px] font-bold text-paper-muted">
+          <button type="button" onClick={() => onDone(false)} className="h-9 px-3 rounded-xl text-[12.5px] font-bold text-paper-muted">
             {t('onboard.skip')}
           </button>
         )}

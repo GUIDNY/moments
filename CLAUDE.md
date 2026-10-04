@@ -215,12 +215,27 @@ the town, Lucide for icons and Motion for the chrome's springs. No backend, no r
   date so a quote fetched twice pays once. `CoinFlight` arcs coins from the company to the
   treasury and a toast says who paid. Every holding carries `since` (set by `clean` at buy or
   import), which is also what "held for a month" and the held-days XP are measured from.
+- **Privacy is three settings and the link is the only thing that travels.** `state.privacy`:
+  `private` (no link), `city` (the default: holdings as *weights* of a notional $100,000, no
+  cost, no cash amount — the visitor's HUD shows •••), `public` (as is). The link also carries
+  the city's name, level and badge count; `stocks/friends.js` keeps the links friends sent as
+  the neighbours, the Friends tab lists them and the Rankings tab sorts me and them by level,
+  then badges, never by returns. Visiting is opening the link; `visitedMeta` is what it said.
+- **The market screen is a glance, not a terminal:** open/closed, four index tiles, the
+  portfolio's three biggest movers today, the watchlist (a star on any row; `state.watchlist`,
+  no building until bought), then the board. **Daily tasks** (`learn/daily.js`): two a day by
+  the date, each one thing to look at or read, 30 XP once; never a trade.
 - **XP is for behaviour.** `xpFor(progress, { holdings, trades, positions, totalUsd })`: besides
   missions, lessons, badges and streak days, it pays per company, per sector, per day a position
   has been held (capped), a spread bonus (five holdings, none over 40%) and a calm bonus (three
   days in, no more than a trade a day on average). Badges unlock decor: a statue for five
   sectors, a clock tower for a month held, flags for a portfolio built, more flower beds for
-  diversified, a gold fountain for the first dividend.
+  diversified, a gold fountain for the first dividend. Levels have titles (`LEVEL_TITLES`:
+  new investor → portfolio builder → market explorer → city investor → capital architect) and
+  the first real connection pays `XP_FOR.connect` once (`progress.connected`).
+- **The health score is an explanation.** `stocks/health.js`: securities (40), sectors (30),
+  the largest holding's weight (30), with one sentence that says why; the chip under the HUD
+  opens the sheet. It never says buy or sell.
 - **Tiers, not scaling, by share.** A building's height comes from `BUILDING_TIERS` by the
   position's share of the *whole* portfolio, cash included (`shareOf(valueUsd, totalUsd)`): a
   40% position is the building you see first, one $5,000 stock in a $100,000 purse is a shop.
@@ -285,14 +300,26 @@ the town, Lucide for icons and Motion for the chrome's springs. No backend, no r
   stage behind the HQ — up the screen is −x−z — textures from `newsTexture` tagged "portfolio
   news · name" or "market news", cycled from the frame clock) and the news sheet
   (`ui/game/NewsSheet`, with links out) read it. The feeds are unofficial, like the quotes.
-- **A real portfolio comes in by paste.** No broker has an API a browser can call, so
-  `stocks/importer.js` reads a pasted holdings table (Meitav Trade or any other): a line is a
-  holding if it has a name and a number, the first usable number is the quantity, the second the
-  cost, six-plus-digit integers are Tel Aviv security numbers or the value column and never a
-  quantity. Names resolve against the catalogue (either language, either way round), then a typed
-  symbol, then search; the sheet lets the user fix a symbol. Tel Aviv costs are pasted in agorot
-  and divided by a hundred behind a checkbox that says so — the unit is decided where it is
-  written. `store.importHoldings` replaces the holdings; the purse and the trades stay.
+- **A real portfolio comes in by file, by its column names.** No broker has an API a browser
+  can call, so `stocks/broker.js` reads the broker's export: `raw file → parser (a table found
+  by its header row, every column by name in Hebrew or English) → normaliser (one
+  PortfolioPosition shape) → validation (warnings, never guesses) → holdings`. Meitav Trade's
+  export is the first file it was written for: "שם נייר, מספר נייר, כמות, שער, שווי, שער
+  ממוצע…" — and Meitav puts a foreign ticker in the security-number column, so letters there
+  are a symbol and digits a Tel Aviv id. Cash rows (מזומן) set the purse, converted to dollars;
+  total rows (סה״כ) are skipped; a security whose name starts with a column word is still a
+  security (only a row with no numbers is a repeated header). Positions match by symbol only,
+  never by name. A file with no header row falls back to the forgiving line reader in
+  `importer.js`, which is what pasted and photographed tables go through. The real `data.xlsx`
+  the user meant to attach never arrived; the parser is written to names, not positions, so a
+  column it does not know is a warning on the preview and not a wrong number.
+  `ui/game/ImportFlow` is the whole journey on one screen: connect (Meitav, Excel/CSV,
+  screenshot, manual, demo, paste) → reading phases → preview (value, day, assets, cash, a card
+  per row with edit/remove and its warnings, agorot toggle, and **what changes in the city** —
+  `diffHoldings` by symbol: added, grown, shrunk, demolished) → build. A reimport keeps each
+  holding's `since` (`store.importHoldings(rows, previous)`), so dividends and held-days survive.
+  An imported or demo portfolio completes its missions quietly (`quiet` in the mission effect)
+  and only the welcome lesson fires: five sheets in a row on a city just built is noise.
   **Three doors in, the phone's first:** a screenshot of the broker's app, read on the phone by
   Tesseract (`stocks/ocr.js`, `heb+eng`, the default page layout — the block modes glued columns
   together, and Hebrew alone misread the digits that matter most; loaded only when a picture is

@@ -168,7 +168,7 @@ export default function ImportFlow({ open, onClose, onManual }) {
         const q = quoteOf(sym);
         return q && !q.error ? toMajor(q.price, q.currency).price : null;
       };
-      build(demoHoldings(priceOf), DEMO_CASH_USD);
+      build(demoHoldings(priceOf), DEMO_CASH_USD, false);
     } catch {
       fail('network');
     }
@@ -201,11 +201,11 @@ export default function ImportFlow({ open, onClose, onManual }) {
   const nameOf = (symbol) => loc(holdings.find((h) => h.symbol === symbol)?.name) || loc(rows.find((r) => r.symbol === symbol)?.display) || symbol;
 
   /* ── build ────────────────────────────────────────────────────────────── */
-  const build = (out, cash) => {
+  const build = (out, cash, real = true) => {
     setStep('build');
     setPhase('build');
     setTimeout(() => {
-      importPortfolio(out, { cashUsd: Number.isFinite(cash) ? cash : null });
+      importPortfolio(out, { cashUsd: Number.isFinite(cash) ? cash : null, real });
       if (live.current) onClose?.(out.length);
     }, BUILD_MS);
   };

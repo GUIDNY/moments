@@ -17,10 +17,26 @@ export const XP_FOR = {
   heldDay: 2,      // per day each position has been held, up to 60 a position
   spread: 150,     // five or more holdings and none over 40%: a portfolio, not a bet
   calm: 120,       // three days in and under a trade a day on average: not churning
+  daily: 30,       // a short daily task done (look at your spread, read about a company…)
+  connect: 150,    // a real portfolio connected, once
 };
 
 /** XP needed to *reach* each level: level 1 at 0, level 2 at 250, ... */
-export const LEVEL_XP = [0, 250, 600, 1100, 1800, 2700, 3800, 5200, 7000, 9200, 12000];
+export const LEVEL_XP = [0, 250, 600, 1100, 1800, 2700, 3800, 5200, 7000, 9200, 12000, 15500, 19500, 24000, 29000, 35000, 42000, 50000, 59000, 69000, 80000, 92000, 105000, 119000, 134000, 150000, 167000, 185000, 204000, 224000];
+
+/** What a level is called: the title changes at these levels and stays until the next. */
+export const LEVEL_TITLES = [
+  { from: 1, title: { he: 'משקיע חדש', en: 'New investor' } },
+  { from: 5, title: { he: 'בונה תיק', en: 'Portfolio builder' } },
+  { from: 10, title: { he: 'חוקר שוק', en: 'Market explorer' } },
+  { from: 20, title: { he: 'משקיע עירוני', en: 'City investor' } },
+  { from: 30, title: { he: 'אדריכל הון', en: 'Capital architect' } },
+];
+export function titleFor(level) {
+  let best = LEVEL_TITLES[0];
+  for (const t of LEVEL_TITLES) if (level >= t.from) best = t;
+  return best.title;
+}
 
 const DAY = 86400000;
 
@@ -42,6 +58,8 @@ export function xpFor(progress, ctx = {}) {
   const spread = holdings.length >= 5 && ctx.totalUsd > 0 && biggest / ctx.totalUsd <= 0.4;
   const days = progress.days ?? 0;
   const calm = days >= 3 && holdings.length > 0 && trades.filter((t) => t.side === 'buy' || t.side === 'sell').length <= days;
+  const daily = (progress.dailyDone ?? 0) * XP_FOR.daily;
+  const connected = progress.connected ? XP_FOR.connect : 0;
 
   return (
     (progress.missions?.length ?? 0) * XP_FOR.mission +
@@ -52,7 +70,9 @@ export function xpFor(progress, ctx = {}) {
     sectors * XP_FOR.sector +
     heldDays * XP_FOR.heldDay +
     (spread ? XP_FOR.spread : 0) +
-    (calm ? XP_FOR.calm : 0)
+    (calm ? XP_FOR.calm : 0) +
+    daily +
+    connected
   );
 }
 
@@ -62,5 +82,5 @@ export function levelFor(xp) {
   for (let i = 1; i < LEVEL_XP.length; i++) if (xp >= LEVEL_XP[i]) level = i + 1;
   const start = LEVEL_XP[level - 1];
   const next = LEVEL_XP[level] ?? null;
-  return { level, xp, into: xp - start, need: next == null ? 0 : next - xp, span: next == null ? 0 : next - start, max: next == null };
+  return { level, xp, into: xp - start, need: next == null ? 0 : next - xp, span: next == null ? 0 : next - start, max: next == null, title: titleFor(level) };
 }
