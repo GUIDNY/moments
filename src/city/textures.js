@@ -41,7 +41,7 @@ export const GROUND = {
  * per layout. The pavement was once the whole tile beside a road, and since
  * two rows of every plot touch a road the city read as parking lots.
  */
-export function groundTexture(grid, TILE, px = 24) {
+export function groundTexture(grid, TILE, zones = [], px = 24) {
   const n = grid.length;
   const c = document.createElement('canvas');
   c.width = n * px;
@@ -49,6 +49,8 @@ export function groundTexture(grid, TILE, px = 24) {
   const ctx = c.getContext('2d');
   const at = (x, y) => (y < 0 || x < 0 || y >= n || x >= n ? -1 : grid[y][x]);
   const isRoad = (x, y) => at(x, y) === TILE.ROAD || at(x, y) === TILE.LANE;
+  // which district a lawn tile belongs to, for its wash
+  const zoneAt = (x, y) => zones.find((z) => x >= z.x0 && x <= z.x1 && y >= z.y0 && y <= z.y1) ?? null;
 
   for (let y = 0; y < n; y++) {
     for (let x = 0; x < n; x++) {
@@ -66,6 +68,18 @@ export function groundTexture(grid, TILE, px = 24) {
       ctx.fillStyle = fill;
       ctx.fillRect(X, Y, px, px);
 
+      if (t === TILE.GRASS || t === TILE.PLOT || t === TILE.LANE) {
+        // a district's lawn carries a faint wash of its sector's colour, so
+        // the neighbourhoods read at a glance from far out — faint: a
+        // shade on the grass, never a painted floor
+        const z = zoneAt(x, y);
+        if (z?.tint) {
+          ctx.fillStyle = z.tint;
+          ctx.globalAlpha = 0.16;
+          ctx.fillRect(X, Y, px, px);
+          ctx.globalAlpha = 1;
+        }
+      }
       if (t === TILE.GRASS || t === TILE.PARK || t === TILE.PLOT || t === TILE.LANE) {
         // a little life in the lawn: two tones of patch, never one flat green
         const k = (x * 7 + y * 13) % 7;

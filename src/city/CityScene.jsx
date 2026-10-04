@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useRef } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import * as THREE from 'three';
 import { EffectComposer, HueSaturation, N8AO, SMAA, Vignette } from '@react-three/postprocessing';
@@ -10,7 +10,9 @@ import { levelFor, xpFor } from '../stocks/xp';
 import Treasury from './Treasury';
 import CityCamera from './CityCamera';
 import CityGrid from './CityGrid';
+import CoinFlight from './CoinFlight';
 import Decor from './Decor';
+import Daylight from './Daylight';
 import PortfolioHQ from './PortfolioHQ';
 import NewsBoard from './NewsBoard';
 import SectorDistrict from './SectorDistrict';
@@ -25,8 +27,8 @@ import StockBuilding from './StockBuilding';
 export default function CityScene({ compact, selected, onSelectBuilding, onSelectHQ, onSelectNews, visiting = null }) {
   const city = useCity();
   const source = visiting ?? city;
-  const { holdings, positions, totalUsd, cash, progress } = source;
-  const level = levelFor(xpFor(progress, holdings.length)).level;
+  const { holdings, positions, totalUsd, cash, progress, trades, marketOpen, lastDividend } = source;
+  const level = levelFor(xpFor(progress, { holdings, trades, positions, totalUsd })).level;
 
   /* The plan is remade when the holdings change or a share crosses a whole
      per cent, not on every price tick: a price moves a glow, not a plot. */
@@ -50,20 +52,42 @@ export default function CityScene({ compact, selected, onSelectBuilding, onSelec
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [holdings, tierKey]
   );
-  // a building whose symbol was not in the last plan is new: it rises
+
+  /* A building whose symbol was not in the last plan is new: it rises. One
+     that was and is not any more is sold: it stays as a ghost, shrinking
+     into the ground, until it says it is gone. */
+  const [ghosts, setGhosts] = useState([]);
+  const lastPlan = useRef(plan);
   for (const b of plan.buildings) b.fresh = !known.current.has(b.symbol);
-  known.current = new Set(plan.buildings.map((b) => b.symbol));
+  useEffect(() => {
+    const now = new Set(plan.buildings.map((b) => b.symbol));
+    const left = lastPlan.current.buildings.filter((b) => !now.has(b.symbol));
+    if (left.length) setGhosts((g) => [...g.filter((x) => !now.has(x.symbol)), ...left.map((b) => ({ ...b, fresh: false, leaving: true }))]);
+    else setGhosts((g) => (g.some((x) => now.has(x.symbol)) ? g.filter((x) => !now.has(x.symbol)) : g));
+    lastPlan.current = plan;
+    known.current = now;
+  }, [plan]);
+  const onGone = useCallback((symbol) => setGhosts((g) => g.filter((x) => x.symbol !== symbol)), []);
 
   // handy from the console, and what the browser tests aim their taps with
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    window.__buildings = plan.buildings.map((b) => ({ symbol: b.symbol, cx: b.cx, cz: b.cz, sector: b.sector }));
+    window.__buildings = plan.buildings.map((b) => ({ symbol: b.symbol, cx: b.cx, cz: b.cz, sector: b.sector, share: b.share }));
     window.__hq = plan.hq;
+    window.__plan = { size: plan.size, districts: plan.districts.map((d) => ({ sector: d.sector, used: d.used, label: d.label })) };
   }, [plan]);
+
+  // a dividend: coins fly from the company to the treasury
+  const flight = useMemo(() => {
+    if (!lastDividend) return null;
+    const from = plan.buildings.find((b) => b.symbol === lastDividend.symbol);
+    if (!from) return null;
+    return { key: lastDividend.at + lastDividend.symbol, from: [from.cx, 1.5, from.cz], to: [plan.treasury.x, 1.2, plan.treasury.z] };
+  }, [lastDividend, plan]);
 
   // a building that was not in the last plan rises where it stands. The
   // camera does not go to it: the user asked for a city that does not move
-  // by itself, and a new building rising under a crane is enough of a cue.
+  // by itself, and a site with a crane is enough of a cue.
 
   return (
     <Canvas
@@ -76,37 +100,22 @@ export default function CityScene({ compact, selected, onSelectBuilding, onSelec
       onPointerMissed={() => onSelectBuilding?.(null)}
     >
       <color attach="background" args={['#a7c48e']} />
-      {/* a warm afternoon: sky-blue fill from above, bounced green from the
-          lawn, a low golden sun with long soft shadows — the light is most
-          of what makes a board look like a place */}
-      <ambientLight intensity={0.5} color="#ffffff" />
-      <hemisphereLight args={['#e6f3ff', '#9cc274', 0.75]} />
-      <directionalLight
-        position={[24, 26, 6]}
-        intensity={2.1}
-        color="#ffe7c2"
-        castShadow
-        shadow-mapSize={compact ? [2048, 2048] : [4096, 4096]}
-        shadow-camera-left={-22}
-        shadow-camera-right={22}
-        shadow-camera-top={22}
-        shadow-camera-bottom={-22}
-        shadow-camera-near={1}
-        shadow-camera-far={90}
-        shadow-bias={-0.0006}
-      />
+      {/* a warm afternoon while the market is open, a quieter, cooler light
+          once it has closed — the light is most of what makes a board look
+          like a place, and the difference is the city's clock */}
+      <Daylight open={marketOpen} compact={compact} />
       <CityCamera centre={plan.centre} size={plan.size} compact={compact} />
       <Suspense fallback={null}>
         <CityGrid plan={plan} />
-        <Decor plan={plan} level={level} />
+        <Decor plan={plan} level={level} open={marketOpen} unlocked={progress?.unlocked ?? []} />
         {plan.districts.map((d) => (
           <SectorDistrict key={d.sector} district={d} />
         ))}
         <PortfolioHQ hq={plan.hq} totalUsd={totalUsd} onSelect={onSelectHQ} />
         {/* the cash, as a building: the treasury beside the plaza */}
-        <Treasury x={plan.hq.cx + 3.3} z={plan.hq.cz + 0.3} share={shareOf(cash, totalUsd)} onSelect={onSelectHQ} />
-        {/* the news board: centre stage, behind the HQ (up the screen is −x−z) */}
-        <NewsBoard x={plan.hq.cx - 3.0} z={plan.hq.cz - 3.0} onSelect={onSelectNews} />
+        <Treasury x={plan.treasury.x} z={plan.treasury.z} share={shareOf(cash, totalUsd)} onSelect={onSelectHQ} />
+        {/* the market news board: small, in the park's far corner, second to the city */}
+        <NewsBoard x={plan.board.x} z={plan.board.z} onSelect={onSelectNews} />
         {plan.buildings.map((b) => (
           <StockBuilding
             key={b.id}
@@ -114,8 +123,13 @@ export default function CityScene({ compact, selected, onSelectBuilding, onSelec
             position={positions.find((p) => p.symbol === b.symbol)}
             selected={selected === b.symbol}
             onSelect={onSelectBuilding}
+            marketOpen={marketOpen}
           />
         ))}
+        {ghosts.map((b) => (
+          <StockBuilding key={`ghost-${b.id}`} building={b} position={null} onGone={onGone} />
+        ))}
+        {flight && <CoinFlight key={flight.key} from={flight.from} to={flight.to} />}
       </Suspense>
       <EffectComposer multisampling={0} enableNormalPass={false}>
         <N8AO aoRadius={1.2} intensity={1.8} distanceFalloff={1} halfRes quality="performance" />

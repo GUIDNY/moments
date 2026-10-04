@@ -23,8 +23,9 @@ const FIELDS = [
 ];
 
 export default function CityGrid({ plan }) {
-  const { grid, size } = plan;
-  const tex = useMemo(() => groundTexture(grid, TILE), [grid]);
+  const { grid, size, districts } = plan;
+  const zones = useMemo(() => districts.filter((d) => d.region !== 'park').map((d) => ({ x0: d.x0, y0: d.y0, x1: d.x1, y1: d.y1, tint: d.tint })), [districts]);
+  const tex = useMemo(() => groundTexture(grid, TILE, zones), [grid, zones]);
   const water = useMemo(() => {
     const cells = [];
     grid.forEach((row, y) => row.forEach((v, x) => v === TILE.WATER && cells.push([x, y])));

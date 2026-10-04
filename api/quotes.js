@@ -20,12 +20,20 @@ const TIMEOUT_MS = 8000;
    (BRK-B, POLI.TA, BTC-USD, ^GSPC). Anything else never reaches the upstream. */
 const SYMBOL = /^\^?[A-Za-z0-9][A-Za-z0-9.\-=]{0,14}$/;
 
+function isOpen(meta) {
+  if (meta.marketState) return meta.marketState === 'REGULAR';
+  const reg = meta.currentTradingPeriod?.regular;
+  if (!reg || typeof reg.start !== 'number' || typeof reg.end !== 'number') return null;
+  const now = Date.now() / 1000;
+  return now >= reg.start && now < reg.end;
+}
+
 async function quoteOne(symbol) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
     const res = await fetch(
-      `${UPSTREAM}/${encodeURIComponent(symbol)}?interval=1d&range=3mo`,
+      `${UPSTREAM}/${encodeURIComponent(symbol)}?interval=1d&range=3mo&events=div`,
       {
         signal: controller.signal,
         headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' },
@@ -55,8 +63,17 @@ async function quoteOne(symbol) {
       while (i >= 0 && (typeof series[i] !== 'number' || Math.floor((stamps[i] || 0) / DAY) >= session)) i--;
       prevClose = i >= 0 ? series[i] : meta.regularMarketPrice;
     }
+    /* Dividends paid in the range, oldest first: the ex-date and the amount a
+       share got, in the quote's own currency (agorot for Tel Aviv, like the
+       price). The game pays them into the purse for shares held on the day. */
+    const dividends = Object.values(result.events?.dividends || {})
+      .filter((d) => typeof d.amount === 'number' && typeof d.date === 'number')
+      .map((d) => ({ at: d.date * 1000, amount: d.amount }))
+      .sort((a, b) => a.at - b.at)
+      .slice(-8);
     return {
       closes,
+      dividends,
       high52: meta.fiftyTwoWeekHigh ?? null,
       low52: meta.fiftyTwoWeekLow ?? null,
       symbol: meta.symbol || symbol,
@@ -67,6 +84,9 @@ async function quoteOne(symbol) {
       currency: meta.currency || 'USD',
       exchange: meta.fullExchangeName || meta.exchangeName || '',
       marketState: meta.marketState || null,
+      /* open or closed, decided here from the exchange's own session times
+         for today — the chart endpoint does not always say `marketState` */
+      open: isOpen(meta),
       at: meta.regularMarketTime ? meta.regularMarketTime * 1000 : Date.now(),
     };
   } catch (err) {

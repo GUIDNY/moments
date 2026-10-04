@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchNews, NEWS_REFRESH_MS } from './news';
 import { REFRESH_MS, ensureQuote, market, onMarket, refresh } from './market';
-import { priceHolding, summarise, tradeQuote } from './money';
+import { priceHolding, rateBetween, summarise, toMajor, tradeQuote } from './money';
 import { LESSON_BY_ID, MISSIONS } from '../learn/content';
 import { computeTowers } from './towers';
 import { earned } from './achievements';
@@ -108,7 +108,8 @@ export function CityProvider({ children }) {
     const kept = ready
       ? progressStore.record(progress, { dayPct: summary.dayPct, value: summary.value })
       : progress;
-    const won = earned({ holdings: state.holdings, positions, summary, progress: kept, ready });
+    const totalNow = ready ? summary.valueUsd + state.cash : null;
+    const won = earned({ holdings: state.holdings, positions, summary, progress: kept, ready, trades: state.trades, totalUsd: totalNow });
     const next = progressStore.unlock(kept, won);
     // both helpers hand back the same object when nothing changed, which is
     // what stops this effect feeding itself
@@ -116,7 +117,52 @@ export function CityProvider({ children }) {
     const added = next.unlocked.filter((id) => !progress.unlocked.includes(id));
     if (added.length) setFresh((f) => [...f, ...added.filter((id) => !f.includes(id))]);
     setProgress(next);
-  }, [state.holdings, positions, summary, shared, progress]);
+  }, [state.holdings, positions, summary, shared, progress, state.trades, state.cash]);
+
+  /* ── dividends ───────────────────────────────────────────────────────────
+     The quotes carry the dividends each company paid lately; the ones whose
+     ex-date falls after a position was opened go into the purse, once, as
+     a trade of side `dividend`. The city makes an event of the newest. */
+  const [lastDividend, setLastDividend] = useState(null);
+  useEffect(() => {
+    if (shared) return;
+    const due = [];
+    for (const h of state.holdings) {
+      const q = market.bySymbol[h.symbol];
+      if (!q || q.error || !Array.isArray(q.dividends)) continue;
+      for (const d of q.dividends) {
+        const { price: amount, currency } = toMajor(d.amount, q.currency);
+        const rate = rateBetween(currency, 'USD', market.rates);
+        if (rate == null) continue;
+        due.push({ symbol: h.symbol, at: d.at, amount, currency, rate });
+      }
+    }
+    if (!due.length) return;
+    let paid = null;
+    setState((s) => {
+      const next = store.payDividends(s, due);
+      if (next === s) return s;
+      paid = next.trades[next.trades.length - 1];
+      return next;
+    });
+    if (paid) setLastDividend({ symbol: paid.symbol, at: paid.at, valueUsd: paid.valueUsd, when: Date.now() });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.holdings, tick, shared]);
+
+  /* Open or closed, by the quotes themselves: a city is open while any of
+     its exchanges is in its regular session. With nothing held, the US
+     session decides — it is where most of the board trades. */
+  const marketOpen = useMemo(() => {
+    const quotes = state.holdings.map((h) => market.bySymbol[h.symbol]).filter((q) => q && !q.error);
+    const isOpen = (q) => q.open === true || q.marketState === 'REGULAR';
+    if (quotes.length) return quotes.some(isOpen);
+    const any = Object.values(market.bySymbol).find((q) => q && !q.error && (q.open != null || q.marketState));
+    if (any) return isOpen(any);
+    const h = new Date().getUTCHours();
+    const d = new Date().getUTCDay();
+    return d >= 1 && d <= 5 && h >= 14 && h < 21;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.holdings, tick]);
 
   const dismissBadge = useCallback(
     (id) => setFresh((f) => f.filter((x) => x !== id)),
@@ -298,6 +344,8 @@ export function CityProvider({ children }) {
       sellShares,
       resetGame,
       lastTrade,
+      lastDividend,
+      marketOpen,
       quoteOf: (symbol) => market.bySymbol[symbol] ?? null,
       ensureQuote: (symbol) => ensureQuote(symbol, state.display),
       rates: market.rates,
@@ -317,7 +365,7 @@ export function CityProvider({ children }) {
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [state, positions, summary, tick, add, remove, update, setDisplay, symbols, progress, fresh, shared, dismissBadge,
-      totalUsd, ready, buyShares, sellShares, resetGame, lastTrade, current, dismissCurrent, readLesson, nextMission, news, importPortfolio]
+      totalUsd, ready, buyShares, sellShares, resetGame, lastTrade, lastDividend, marketOpen, current, dismissCurrent, readLesson, nextMission, news, importPortfolio]
   );
 
   return <CityContext.Provider value={value}>{children}</CityContext.Provider>;

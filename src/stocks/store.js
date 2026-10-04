@@ -7,6 +7,8 @@
  * owner deliberately puts in a share link.
  */
 
+import { BOARD_BY_SYMBOL, SECTOR_ALIASES } from './catalog.js';
+
 const KEY = 'stockcity.portfolio';
 
 export const DEFAULT_DISPLAY = 'USD';
@@ -24,12 +26,25 @@ export const FEE_RATE = 0.001;
 export const FEE_MIN = 1;
 export const feeFor = (valueUsd) => Math.max(FEE_MIN, Math.round(valueUsd * FEE_RATE * 100) / 100);
 
+/* The catalogue is the authority on a known symbol's sector — a sector
+   renamed or a company moved district must move every city, not only new
+   buys — and a sector id that was renamed is read as its new name. */
+const sectorOf = (h) => {
+  const symbol = String(h.symbol || '').toUpperCase();
+  const known = BOARD_BY_SYMBOL[symbol]?.sector;
+  const own = SECTOR_ALIASES[h.sector] ?? h.sector;
+  return known ?? own ?? 'tech';
+};
+
 const clean = (h) => ({
   symbol: String(h.symbol || '').toUpperCase().slice(0, 16),
   qty: Math.max(0, Number(h.qty) || 0),
   cost: Number.isFinite(Number(h.cost)) && Number(h.cost) > 0 ? Number(h.cost) : null,
-  sector: h.sector || 'tech',
+  sector: sectorOf(h),
   name: h.name || null,
+  // when the position was opened: the day a dividend has to fall after to be
+  // yours, and what "held for a month" is measured from
+  since: Number.isFinite(Number(h.since)) ? Number(h.since) : Date.now(),
 });
 
 export const fresh = () => ({
@@ -145,6 +160,31 @@ export function sell(state, { symbol, qty, price, currency, rate }) {
   const holdings = left > 1e-9 ? updateHolding(state.holdings, symbol, { qty: left }) : removeHolding(state.holdings, symbol);
   const trade = { t: Date.now(), side: 'sell', symbol, qty, price, currency, rate, valueUsd, fee, realised };
   return { ...state, holdings, cash: state.cash + valueUsd - fee, trades: [...state.trades, trade], error: null };
+}
+
+/**
+ * Pay the dividends the market reports and the purse has not seen. A
+ * dividend is yours when its ex-date falls after the position was opened
+ * (`since`) and it has not been paid already — a trade of side `dividend`
+ * records each one, keyed by symbol and date, so a quote fetched twice pays
+ * once. `due` is `[{ symbol, at, amount, currency, rate }]` with the amount
+ * per share already in major units and `rate` its dollar rate; the caller
+ * (the context) reads those off the quotes. Returns the same state when
+ * nothing is owed.
+ */
+export function payDividends(state, due) {
+  let next = state;
+  for (const d of due) {
+    const held = next.holdings.find((h) => h.symbol === d.symbol);
+    if (!held || !(held.qty > 0) || !(d.amount > 0) || !(d.rate > 0)) continue;
+    if (!(d.at > (held.since ?? 0))) continue;
+    if (next.trades.some((t) => t.side === 'dividend' && t.symbol === d.symbol && t.at === d.at)) continue;
+    const valueUsd = Math.round(held.qty * d.amount * d.rate * 100) / 100;
+    if (!(valueUsd > 0)) continue;
+    const trade = { t: Date.now(), at: d.at, side: 'dividend', symbol: d.symbol, qty: held.qty, price: d.amount, currency: d.currency, rate: d.rate, valueUsd, fee: 0 };
+    next = { ...next, cash: next.cash + valueUsd, trades: [...next.trades, trade] };
+  }
+  return next;
 }
 
 /**

@@ -176,10 +176,51 @@ the town, Lucide for icons and Motion for the chrome's springs. No backend, no r
   propagation so the ground does not also get the tap.
 - **The plan is a table, not a search.** `planCity` places each sector in a fixed region so a
   city looks the same every time it opens, fills plots biggest-first nearest the centre, and
-  spills a sector with more than four positions into the nearest district with room — a building
+  spills a sector with more positions than plots into the nearest district with room — a building
   with nowhere to stand would vanish and the city would stop matching the portfolio. The plan is
-  remade when the holdings change or a position crosses a $1,000 step, never on a price tick: a
+  remade when the holdings change or a share crosses a whole per cent, never on a price tick: a
   price moves a glow, not a plot.
+- **Nine sectors, nine districts, on a 31×31 board.** The boulevard (cross at 8 and 22, ring at
+  9 and 21) cuts eight regions — four 7×7 corners with four plots, four 11-long sides with six —
+  and the ninth district is the park: index funds stand beside the HQ, because an index fund *is*
+  the whole market. The sector ids are stored on every holding, so an id is forever: `defence`
+  became `industry` and `SECTOR_ALIASES` in the catalogue renames it on load; the catalogue is
+  the authority on a known symbol's sector, so moving Google to Communication moves every city.
+  Each district's lawn carries a faint wash of its colour (`groundTexture` `zones`, alpha 0.16)
+  so the neighbourhoods read from far out — a shade on the grass, never a painted floor.
+- **A sector is a look on top of the kit** — nine of them now: tint plus a roof emblem (mast,
+  gold dome, cross, solar panel, striped awning, chimneys, water tank, dish, flag).
+- **The day's move is a mood, not a paint job.** Up: the building's cloned materials get a warm
+  emissive touch (more while the market is open) and the glow disc pulses; down: a shade darker,
+  unlit, a dim glow. Set in an effect when the move changes, never per frame. The user asked for
+  no "cheap red and green everywhere".
+- **Buying and selling are events.** A new position is a construction site (`Site`: slab, fence,
+  a stack of material) for 1.3 s under a crane, then the building rises; a tier change pops the
+  new model in from 0.78 (up) or 1.12 (down) with the crane back for a moment; a position sold
+  out stays in `CityScene`'s `ghosts` with `leaving: true`, shrinks into the ground and calls
+  `onGone`. The plan's `fresh` flag is a building whose symbol was not in the last plan.
+- **The market has a clock.** `api/quotes.js` says `open` per quote from the exchange's own
+  session times (`currentTradingPeriod`, because the chart endpoint rarely says `marketState`);
+  `CityContext.marketOpen` is true while any held exchange is in session. `Daylight` eases
+  between a warm afternoon and a cooler, quieter light; `Decor` runs four cars when open and two
+  after, slower walkers, warmer lamps. Subtle on purpose — a city after hours, not a night mode.
+- **Far out, the city is its buildings.** `Decor` hides cars, people and benches below a camera
+  zoom of 26 px per unit (`DETAIL_ZOOM`); trees are 80 on the board and 150 in the country — the
+  user said the old city had too many, and it did. The news board is small (3.2×1.3) in the
+  park's north-west corner, second to the city; it was centre stage and stole the eye.
+- **Dividends are real and paid once.** The proxy passes the chart's `events.dividends` (ex-date
+  and amount per share, in the quote's currency — agorot for Tel Aviv, like the price);
+  `store.payDividends` credits `qty × amount × rate` to the purse for each one whose ex-date
+  falls after the holding's `since`, recording a trade of side `dividend` keyed by symbol and
+  date so a quote fetched twice pays once. `CoinFlight` arcs coins from the company to the
+  treasury and a toast says who paid. Every holding carries `since` (set by `clean` at buy or
+  import), which is also what "held for a month" and the held-days XP are measured from.
+- **XP is for behaviour.** `xpFor(progress, { holdings, trades, positions, totalUsd })`: besides
+  missions, lessons, badges and streak days, it pays per company, per sector, per day a position
+  has been held (capped), a spread bonus (five holdings, none over 40%) and a calm bonus (three
+  days in, no more than a trade a day on average). Badges unlock decor: a statue for five
+  sectors, a clock tower for a month held, flags for a portfolio built, more flower beds for
+  diversified, a gold fountain for the first dividend.
 - **Tiers, not scaling, by share.** A building's height comes from `BUILDING_TIERS` by the
   position's share of the *whole* portfolio, cash included (`shareOf(valueUsd, totalUsd)`): a
   40% position is the building you see first, one $5,000 stock in a $100,000 purse is a shop.
@@ -189,10 +230,11 @@ the town, Lucide for icons and Motion for the chrome's springs. No backend, no r
   turning on its roof and a pill that says "cash · 95%"; its tier is the cash's share by the same
   table, so the whole composition is on the board — what is invested and what is not. Tapping it
   opens the portfolio.
-- **Progress is XP, never returns.** `stocks/xp.js`: missions, lessons, badges, days in a row and
-  companies held earn XP (tables); `LEVEL_XP` sets the levels. The HUD shows the level with its
-  bar and "N XP to level M"; the decor budget (beds, benches, lamps) grows with the level. A
-  friend's city compares on this, not on money.
+- **Progress is XP, never returns.** `stocks/xp.js`: tables, never returns; `LEVEL_XP` sets the
+  levels. The HUD is one white card: city value, today's move as a chip and in dollars, the
+  return since the game began (`totalUsd` against `STARTING_CASH`), cash, the level with its bar,
+  and the market's state as a dot. The decor budget (beds, benches, lamps) grows with the level.
+  A friend's city compares on XP, not on money.
 - **The city teaches by noticing.** `stocks/insights.js` reads the finished numbers — a sector
   that is 60%+ of the city, one company carrying everything, cash 30%+ of the purse — and
   `ui/game/InsightCard` shows one small card over the city with a concept and a lesson link,

@@ -25,7 +25,7 @@ export default function PortfolioHQ({ hq, totalUsd, onSelect }) {
   const level = hqLevelFor(totalUsd);
   const model = HQ_MODELS[level.level] ?? HQ_MODELS[1];
   const scene = useModel(model);
-  const fit = useMemo(() => fitHeight(model, level.height, 2.6, 2.6), [model, level.height]);
+  const fit = useMemo(() => fitHeight(model, level.height, 2.8, 2.8), [model, level.height]);
   const tap = useMemo(() => {
     const h = tapHandlers(() => onSelect?.());
     return {
@@ -59,7 +59,7 @@ export default function PortfolioHQ({ hq, totalUsd, onSelect }) {
   return (
     <group position={[hq.cx, 0, hq.cz]}>
       <mesh ref={halo} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]}>
-        <ringGeometry args={[1.5, 2.1, 40]} />
+        <ringGeometry args={[1.7, 2.3, 40]} />
         <meshBasicMaterial color="#ff6b1a" transparent opacity={0.16} depthWrite={false} />
       </mesh>
       <group {...tap}>
@@ -69,7 +69,7 @@ export default function PortfolioHQ({ hq, totalUsd, onSelect }) {
           </group>
         )}
         <mesh position={[0, fit.height / 2, 0]} visible={false}>
-          <boxGeometry args={[2.4, fit.height, 2.4]} />
+          <boxGeometry args={[2.8, fit.height, 2.8]} />
           <meshBasicMaterial />
         </mesh>
         <sprite position={[0, fit.height + 1.05, 0]} scale={[2.4, 0.45, 1]}>

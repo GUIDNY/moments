@@ -7,15 +7,17 @@ import { tapHandlers } from '../world3d/nav';
 import { newsTexture } from './textures';
 
 /**
- * A screen on two posts at the back of the plaza, behind the HQ, cycling
- * the city's headlines — the stocks you hold and the market — every few
- * seconds. The user wanted it centre stage and at the back; it faces the
- * camera and the HQ stands in front of it. A tap opens the news sheet. Textures are built once per headline
- * and kept; the cycle runs from the frame clock, never from React.
+ * The market news board: a small screen on two posts in the park's far
+ * corner, cycling the city's headlines — the stocks you hold and the market
+ * — every few seconds. It was once centre stage and the size of a building,
+ * and it stole the eye from the stocks; now it is a board in a park, second
+ * to the city, and faces the camera. A tap opens the news sheet. Textures
+ * are built once per headline and kept; the cycle runs from the frame
+ * clock, never from React.
  */
-const EVERY_S = 6;
-const W = 5.6;
-const H = 2.28;
+const EVERY_S = 7;
+const W = 3.2;
+const H = 1.3;
 
 export default function NewsBoard({ x, z, onSelect }) {
   const { news, holdingOf } = useCity();
@@ -91,17 +93,17 @@ export default function NewsBoard({ x, z, onSelect }) {
   // faces the camera: a plane faces +z, the camera looks along −x−z
   return (
     <group position={[x, 0, z]} rotation={[0, Math.PI / 4, 0]} {...tap}>
-      {[-2.2, 2.2].map((px) => (
-        <mesh key={px} position={[px, 1.1, -0.1]} castShadow>
-          <cylinderGeometry args={[0.08, 0.1, 2.2, 8]} />
+      {[-1.3, 1.3].map((px) => (
+        <mesh key={px} position={[px, 0.75, -0.1]} castShadow>
+          <cylinderGeometry args={[0.06, 0.08, 1.5, 8]} />
           <meshLambertMaterial color="#6b7480" />
         </mesh>
       ))}
-      <mesh position={[0, 3.2, -0.11]} castShadow>
-        <boxGeometry args={[W + 0.22, H + 0.22, 0.14]} />
+      <mesh position={[0, 2.0, -0.11]} castShadow>
+        <boxGeometry args={[W + 0.18, H + 0.18, 0.12]} />
         <meshLambertMaterial color="#2b3340" />
       </mesh>
-      <mesh ref={screen} position={[0, 3.2, 0]}>
+      <mesh ref={screen} position={[0, 2.0, 0]}>
         <planeGeometry args={[W, H]} />
         <meshBasicMaterial toneMapped={false} />
       </mesh>

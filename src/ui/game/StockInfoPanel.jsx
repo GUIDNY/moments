@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { Briefcase, ExternalLink, Minus, Newspaper, Plus, X } from 'lucide-react';
+import { BookOpen, Briefcase, Minus, Newspaper, Plus, X } from 'lucide-react';
 import { useI18n } from '../../i18n/I18nContext';
 import { SECTOR_BY_ID } from '../../stocks/catalog';
 import { useCity } from '../../stocks/CityContext';
@@ -39,6 +39,34 @@ function Row({ label, value, tone }) {
   );
 }
 
+/** Two numbers side by side in a soft tile: the pair a reader compares. */
+function Tile({ label, value, tone }) {
+  return (
+    <div className="rounded-2xl bg-paper-50 border border-paper-100 px-3 py-2 min-w-0">
+      <div className="text-[10px] font-black uppercase tracking-wide text-paper-muted leading-none">{label}</div>
+      <div className="mt-1 text-[15px] font-black tabular-nums leading-none truncate" style={tone ? { color: tone } : undefined}>{value}</div>
+    </div>
+  );
+}
+
+/** Where today's price sits in the year's range. */
+function Range({ lo, hi, price, currency }) {
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi <= lo) return null;
+  const k = Math.max(0, Math.min(1, (price - lo) / (hi - lo)));
+  return (
+    <div className="mt-1">
+      <div className="relative h-1.5 rounded-full bg-paper-200">
+        <div className="absolute inset-y-0 start-0 rounded-full bg-paper-300" style={{ width: `${k * 100}%` }} />
+        <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-ink-900 border-2 border-white shadow-card" style={{ insetInlineStart: `calc(${k * 100}% - 6px)` }} />
+      </div>
+      <div className="flex justify-between mt-1 text-[10px] font-bold text-paper-muted tabular-nums">
+        <span>{formatMoney(lo, currency)}</span>
+        <span>{formatMoney(hi, currency)}</span>
+      </div>
+    </div>
+  );
+}
+
 /**
  * The building's card: a side panel on desktop, a bottom sheet on a phone.
  * The numbers people tap a building for, a small chart, buy and sell. It is
@@ -66,6 +94,12 @@ export default function StockInfoPanel({ symbol, onClose, readOnly = false, onNe
   const tier = tierFor(share);
   const closes = quote?.closes?.map((v) => toMajor(v, quote.currency).price) ?? null;
   const dayTone = moveColor(position?.dayPct);
+  const lo52 = quote ? toMajor(quote.low52, quote.currency).price : null;
+  const hi52 = quote ? toMajor(quote.high52, quote.currency).price : null;
+  const investedUsd = position && position.cost != null && position.rate != null && position.valueUsd != null && position.value > 0
+    ? (position.qty * position.cost) * (position.valueUsd / position.value)
+    : null;
+  const heldDays = holding.since ? Math.floor((Date.now() - holding.since) / 86400000) : null;
 
   return (
     <>
@@ -107,20 +141,28 @@ export default function StockInfoPanel({ symbol, onClose, readOnly = false, onNe
                 <Sparkline closes={closes} cost={position.cost} colour={moveColor(closes[closes.length - 1] - closes[0])} />
               </div>
             )}
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <Tile label={t('panel.invested')} value={investedUsd != null ? formatMoney(investedUsd, 'USD') : '—'} />
+              <Tile label={t('panel.value')} value={formatMoney(position.valueUsd ?? position.value, position.valueUsd != null ? 'USD' : position.currency)} />
+              <Tile
+                label={t('panel.pl')}
+                value={position.gain != null ? `${position.gainUsd != null ? formatMoney(position.gainUsd, 'USD') : formatMoney(position.gain, position.currency)} · ${formatPct(position.gainPct)}` : '—'}
+                tone={position.gain != null ? moveColor(position.gainPct) : undefined}
+              />
+              <Tile label={t('panel.allocation')} value={`${(share * 100).toFixed(1)}%`} />
+            </div>
             <dl className="mt-1">
-              <Row label={t('panel.position')} value={formatMoney(position.valueUsd ?? position.value, position.valueUsd != null ? 'USD' : position.currency)} />
-              <Row label={t('panel.allocation')} value={`${(share * 100).toFixed(1)}%`} />
-              {position.gain != null && (
-                <Row
-                  label={t('panel.pl')}
-                  value={`${position.gainUsd != null ? formatMoney(position.gainUsd, 'USD') : formatMoney(position.gain, position.currency)} · ${formatPct(position.gainPct)}`}
-                  tone={moveColor(position.gainPct)}
-                />
-              )}
               <Row label={t('panel.shares')} value={position.qty.toLocaleString()} />
               {position.cost != null && <Row label={t('panel.avg')} value={formatMoney(position.cost, position.currency)} />}
+              {heldDays != null && <Row label={t('panel.held')} value={heldDays >= 1 ? t('panel.days', { n: heldDays }) : t('panel.sinceToday')} />}
               <Row label={t('panel.tier')} value={`${loc(tier.label)} · ${tier.tier}/5`} />
             </dl>
+            {lo52 != null && hi52 != null && (
+              <div className="mt-2">
+                <div className="text-[12px] font-bold text-paper-muted">{t('panel.range52')}</div>
+                <Range lo={lo52} hi={hi52} price={position.price} currency={position.currency} />
+              </div>
+            )}
           </>
         )}
 
@@ -140,8 +182,8 @@ export default function StockInfoPanel({ symbol, onClose, readOnly = false, onNe
           <button type="button" onClick={() => onNews?.(symbol)} className="h-10 rounded-2xl bg-paper-50 border border-paper-200 text-ink-900 font-bold text-[11.5px] inline-flex items-center justify-center gap-1">
             <Newspaper size={14} aria-hidden="true" />{t('panel.news')}
           </button>
-          <a href={`https://finance.yahoo.com/quote/${encodeURIComponent(symbol)}`} target="_blank" rel="noopener noreferrer" className="h-10 rounded-2xl bg-paper-50 border border-paper-200 text-ink-900 font-bold text-[11.5px] inline-flex items-center justify-center gap-1">
-            <ExternalLink size={14} aria-hidden="true" />{t('panel.view')}
+          <a href={`https://finance.yahoo.com/quote/${encodeURIComponent(symbol)}/profile`} target="_blank" rel="noopener noreferrer" className="h-10 rounded-2xl bg-paper-50 border border-paper-200 text-ink-900 font-bold text-[11.5px] inline-flex items-center justify-center gap-1">
+            <BookOpen size={14} aria-hidden="true" />{t('panel.learn')}
           </a>
           <button type="button" onClick={() => onPortfolio?.()} className="h-10 rounded-2xl bg-paper-50 border border-paper-200 text-ink-900 font-bold text-[11.5px] inline-flex items-center justify-center gap-1">
             <Briefcase size={14} aria-hidden="true" />{t('panel.portfolio')}

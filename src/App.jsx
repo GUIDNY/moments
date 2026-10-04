@@ -7,6 +7,7 @@ import LearnScreen from './learn/LearnScreen';
 import LessonSheet from './learn/LessonSheet';
 import PickerScreen from './stocks/PickerScreen';
 import { levelFor, xpFor } from './stocks/xp';
+import { formatMoney } from './stocks/money';
 import InsightCard from './ui/game/InsightCard';
 import CityScene from './city/CityScene';
 import { goHome, zoomBy } from './world3d/focus';
@@ -43,7 +44,7 @@ const ZOOM_BTN = 'ui-layer w-10 h-10 rounded-xl grid place-items-center bg-white
 export default function App() {
   const { t, loc } = useI18n();
   const city = useCity();
-  const { holdings, summary, cash, totalUsd, freshBadges, dismissBadge, current, dismissCurrent, readLesson, lastTrade, holdingOf, isShared, progress } = city;
+  const { holdings, summary, cash, totalUsd, freshBadges, dismissBadge, current, dismissCurrent, readLesson, lastTrade, lastDividend, holdingOf, isShared, progress, trades, positions, marketOpen } = city;
   const compact = useIsCompact();
 
   const [tab, setTab] = useState('city');
@@ -55,9 +56,11 @@ export default function App() {
   const [importOpen, setImportOpen] = useState(false);
   const [welcome, setWelcome] = useState(false);
 
-  /* one toast at a time: a trade just made, else a badge just won */
+  /* one toast at a time: a trade just made, else a dividend just paid, else a badge just won */
   const [seenTrade, setSeenTrade] = useState(null);
+  const [seenDividend, setSeenDividend] = useState(null);
   const tradeToast = lastTrade && lastTrade.at !== seenTrade ? lastTrade : null;
+  const dividendToast = lastDividend && lastDividend.when !== seenDividend ? lastDividend : null;
   const badge = freshBadges.length ? ACHIEVEMENT_BY_ID[freshBadges[0]] : null;
   const toast = useMemo(
     () =>
@@ -70,11 +73,17 @@ export default function App() {
             }),
             done: () => setSeenTrade(tradeToast.at),
           }
+        : dividendToast
+          ? {
+              emoji: '🪙',
+              text: t('trade.dividend', { amount: formatMoney(dividendToast.valueUsd, 'USD'), name: loc(holdingOf(dividendToast.symbol)?.name) || dividendToast.symbol }),
+              done: () => setSeenDividend(dividendToast.when),
+            }
         : badge
           ? { emoji: badge.emoji, text: t('achv.unlocked', { name: loc(badge.name) }), done: () => dismissBadge(freshBadges[0]) }
           : null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [tradeToast, badge, freshBadges, t, loc]
+    [tradeToast, dividendToast, badge, freshBadges, t, loc]
   );
   const toastDone = useCallback(() => toast?.done(), [toast]);
 
@@ -108,7 +117,7 @@ export default function App() {
     setTab('market');
   }, []);
   const onSelectBuilding = useCallback((b) => setSelected(b ? b.symbol : null), []);
-  const level = levelFor(xpFor(progress, holdings.length));
+  const level = levelFor(xpFor(progress, { holdings, trades, positions, totalUsd }));
 
   return (
     <div className="absolute inset-0 bg-[#9ec877] overflow-hidden">
@@ -118,9 +127,11 @@ export default function App() {
         <CityProfile name={null} level={level.level} onTap={() => setTab('portfolio')} />
         <PortfolioHUD
           totalUsd={totalUsd}
+          cash={cash}
           dayUsd={summary.valueUsd && summary.value ? (summary.day / summary.value) * summary.valueUsd : 0}
           dayPct={holdings.length ? summary.dayPct : null}
           level={level}
+          open={marketOpen}
           onOpen={() => setTab('portfolio')}
         />
         {!selected && <InsightCard onLesson={readLesson} onLearn={() => setLearnOpen(true)} />}

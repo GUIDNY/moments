@@ -50,7 +50,7 @@ export const ACHIEVEMENTS = [
   {
     id: 'districts',
     emoji: '🗺️',
-    name: { he: 'ארבע שכונות', en: 'Four districts' },
+    name: { he: 'ארבעה רבעים', en: 'Four districts' },
     note: { he: 'פיזור על פני ארבעה ענפים', en: 'Holdings in four different sectors' },
     test: ({ holdings }) => sectorsOf(holdings).size >= 4,
   },
@@ -106,6 +106,46 @@ export const ACHIEVEMENTS = [
       summary.value > 0 &&
       positions.length > 1 &&
       (best(positions, (p) => p.converted) ?? 0) >= summary.value * 0.5,
+  },
+  {
+    id: 'diversified',
+    emoji: '🧩',
+    name: { he: 'משקיע מפוזר', en: 'Diversified investor' },
+    note: { he: 'חמש אחזקות בשלושה ענפים, אף אחת מעל 40%', en: 'Five holdings in three sectors, none over 40%' },
+    test: ({ holdings, positions, ready, totalUsd }) =>
+      ready &&
+      holdings.length >= 5 &&
+      sectorsOf(holdings).size >= 3 &&
+      totalUsd > 0 &&
+      (best(positions, (p) => p.valueUsd) ?? 0) <= totalUsd * 0.4,
+  },
+  {
+    id: 'sectors5',
+    emoji: '🏙️',
+    name: { he: 'חמישה רבעים', en: 'Five sectors' },
+    note: { he: 'אחזקות בחמישה ענפים שונים', en: 'Holdings in five different sectors' },
+    test: ({ holdings }) => sectorsOf(holdings).size >= 5,
+  },
+  {
+    id: 'builder',
+    emoji: '🏗️',
+    name: { he: 'בונה תיק', en: 'Portfolio builder' },
+    note: { he: 'לפחות שמונה אחזקות ושני שלישים מהכסף מושקעים', en: 'Eight holdings and two thirds of the purse at work' },
+    test: ({ holdings, summary, ready, totalUsd }) => ready && holdings.length >= 8 && totalUsd > 0 && summary.valueUsd / totalUsd >= 0.66,
+  },
+  {
+    id: 'dividend',
+    emoji: '🪙',
+    name: { he: 'דיבידנד ראשון', en: 'First dividend' },
+    note: { he: 'חברה שילמה לכם חלק מהרווחים', en: 'A company paid you a share of its profits' },
+    test: ({ trades }) => (trades ?? []).some((t) => t.side === 'dividend'),
+  },
+  {
+    id: 'longterm',
+    emoji: '🕰️',
+    name: { he: 'משקיע לטווח ארוך', en: 'Long-term holder' },
+    note: { he: 'אחזקה שהחזקתם חודש שלם', en: 'A holding kept for a whole month' },
+    test: ({ holdings, now = Date.now() }) => holdings.some((h) => h.since && now - h.since >= 30 * 86400000),
   },
   {
     id: 'streak3',
