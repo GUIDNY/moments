@@ -11,9 +11,7 @@ import { formatMoney } from './stocks/money';
 import InsightCard from './ui/game/InsightCard';
 import CityScene from './city/CityScene';
 import { goHome, zoomBy } from './world3d/focus';
-import { Hammer, LocateFixed, Minus, Newspaper, Plus, Trophy, Users } from 'lucide-react';
-import Button from './ui/Button';
-import Sheet from './ui/Sheet';
+import { LocateFixed, Minus, Newspaper, Plus, Trophy, Upload, Users } from 'lucide-react';
 import Toast from './ui/Toast';
 import BottomNavigation from './ui/game/BottomNavigation';
 import CityProfile from './ui/game/CityProfile';
@@ -22,7 +20,9 @@ import PortfolioView from './ui/game/PortfolioView';
 import SoonScreen from './ui/game/SoonScreen';
 import StockInfoPanel from './ui/game/StockInfoPanel';
 import NewsSheet from './ui/game/NewsSheet';
-import ImportSheet from './ui/game/ImportSheet';
+import ImportFlow from './ui/game/ImportFlow';
+import Onboarding from './ui/game/Onboarding';
+import { HealthChip, HealthSheet } from './ui/game/HealthChip';
 import VisitCityMode from './ui/game/VisitCityMode';
 
 const WELCOME_KEY = 'stockcity.welcomed';
@@ -54,7 +54,9 @@ export default function App() {
   const [newsOpen, setNewsOpen] = useState(false);
   const [newsSymbol, setNewsSymbol] = useState(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [healthOpen, setHealthOpen] = useState(false);
   const [welcome, setWelcome] = useState(false);
+  const [imported, setImported] = useState(null); // a count, toasted once
 
   /* one toast at a time: a trade just made, else a dividend just paid, else a badge just won */
   const [seenTrade, setSeenTrade] = useState(null);
@@ -64,7 +66,9 @@ export default function App() {
   const badge = freshBadges.length ? ACHIEVEMENT_BY_ID[freshBadges[0]] : null;
   const toast = useMemo(
     () =>
-      tradeToast
+      imported != null
+        ? { emoji: '🏗️', text: t('import.done', { n: imported }), done: () => setImported(null) }
+        : tradeToast
         ? {
             emoji: tradeToast.side === 'buy' ? '🧾' : '🏷️',
             text: t(tradeToast.side === 'buy' ? 'trade.bought' : 'trade.sold', {
@@ -83,7 +87,7 @@ export default function App() {
           ? { emoji: badge.emoji, text: t('achv.unlocked', { name: loc(badge.name) }), done: () => dismissBadge(freshBadges[0]) }
           : null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [tradeToast, dividendToast, badge, freshBadges, t, loc]
+    [tradeToast, dividendToast, badge, freshBadges, t, loc, imported]
   );
   const toastDone = useCallback(() => toast?.done(), [toast]);
 
@@ -94,13 +98,14 @@ export default function App() {
       /* private mode — just skip the intro */
     }
   }, []);
-  const closeWelcome = () => {
+  const closeWelcome = (connect = false) => {
     setWelcome(false);
     try {
       localStorage.setItem(WELCOME_KEY, '1');
     } catch {
       /* ignore */
     }
+    if (connect && !holdings.length) setImportOpen(true);
   };
 
   // a building that was sold out from under the panel closes it
@@ -135,6 +140,11 @@ export default function App() {
           onOpen={() => setTab('portfolio')}
         />
         {!selected && <InsightCard onLesson={readLesson} onLearn={() => setLearnOpen(true)} />}
+        {holdings.length > 0 && (
+          <div className="absolute z-30 start-3 md:start-4 top-[calc(3.6rem+env(safe-area-inset-top,0px))] md:top-16 pointer-events-none">
+            <HealthChip onOpen={() => setHealthOpen(true)} />
+          </div>
+        )}
         {isShared && <VisitCityMode name={t('profile.myCity')} />}
         <div className="absolute z-30 end-3 md:end-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:bottom-24 flex flex-col gap-1.5">
           <button type="button" className={ZOOM_BTN} onClick={() => zoomBy(1.25)} aria-label="+"><Plus size={20} strokeWidth={2.6} aria-hidden="true" /></button>
@@ -142,12 +152,16 @@ export default function App() {
           <button type="button" className={ZOOM_BTN} onClick={goHome} aria-label={t('city.home')}><LocateFixed size={19} strokeWidth={2.4} aria-hidden="true" /></button>
           <button type="button" className={ZOOM_BTN} onClick={() => { setNewsSymbol(null); setNewsOpen(true); }} aria-label={t('news.title')}><Newspaper size={19} strokeWidth={2.4} aria-hidden="true" /></button>
         </div>
-        {holdings.length === 0 && !welcome && (
+        {holdings.length === 0 && !welcome && !isShared && (
           <div className="absolute inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] md:bottom-24 flex justify-center px-4 pointer-events-none">
-            <button type="button" onClick={goMarket} className="pointer-events-auto inline-flex items-center gap-2 rounded-2xl bg-brand text-white font-black text-[14px] px-5 h-12 shadow-fab active:scale-95 transition-transform">
-              <Hammer size={18} strokeWidth={2.4} aria-hidden="true" />
-              {t('directory.add')}
-            </button>
+            <div className="pointer-events-auto max-w-sm w-full rounded-3xl bg-white/95 backdrop-blur-md border border-paper-200 shadow-card p-4 text-center">
+              <h2 className="text-[15px] font-black text-ink-900">{t('empty.connect')}</h2>
+              <p className="text-[12.5px] text-paper-muted mt-0.5">{t('empty.connectBody')}</p>
+              <button type="button" onClick={() => setImportOpen(true)} className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-brand text-white font-black text-[14px] h-12 shadow-fab active:scale-[0.98] transition-transform">
+                <Upload size={18} strokeWidth={2.4} aria-hidden="true" />
+                {t('empty.connectCta')}
+              </button>
+            </div>
           </div>
         )}
         {selected && <StockInfoPanel symbol={selected} onClose={() => setSelected(null)} readOnly={isShared} onNews={(sym) => { setNewsSymbol(sym); setNewsOpen(true); }} onPortfolio={() => { setSelected(null); setTab('portfolio'); }} />}
@@ -169,15 +183,11 @@ export default function App() {
       <BadgesScreen open={badgesOpen} onClose={() => setBadgesOpen(false)} />
       <LearnScreen open={learnOpen} onClose={() => setLearnOpen(false)} />
       <NewsSheet open={newsOpen} symbol={newsSymbol} onClose={() => { setNewsOpen(false); setNewsSymbol(null); }} />
-      <ImportSheet open={importOpen} onClose={() => setImportOpen(false)} />
+      <ImportFlow open={importOpen} onClose={(n) => { setImportOpen(false); if (Number.isFinite(n)) { setImported(n); setTab('city'); setSelected(null); } }} onManual={goMarket} />
+      <HealthSheet open={healthOpen} onClose={() => setHealthOpen(false)} onLesson={readLesson} />
       {toast && <Toast emoji={toast.emoji} text={toast.text} onDone={toastDone} />}
       {tab === 'city' && !welcome && <LessonSheet item={current} onDone={dismissCurrent} onReadLesson={readLesson} />}
-      <Sheet open={welcome} onClose={closeWelcome} title={t('welcome.title')} tone="paper">
-        <p className="text-[14px] text-ink-900/80 leading-relaxed">{t('welcome.body')}</p>
-        <Button className="w-full mt-4" onClick={holdings.length ? closeWelcome : () => { closeWelcome(); goMarket(); }}>
-          {holdings.length ? t('welcome.cta') : t('directory.add')}
-        </Button>
-      </Sheet>
+      {welcome && <Onboarding onDone={closeWelcome} />}
     </div>
   );
 }

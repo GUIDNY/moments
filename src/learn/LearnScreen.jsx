@@ -75,19 +75,18 @@ export default function LearnScreen({ open, onClose }) {
               <li key={l.id}>
                 <button
                   type="button"
-                  disabled={!seen}
                   onClick={() => {
                     onClose();
                     readLesson(l.id);
                   }}
-                  className={`w-full rounded-2xl border p-3 flex items-center gap-3 text-start ${
-                    seen ? 'bg-white border-paper-200 shadow-card active:scale-[0.99] transition-transform' : 'bg-paper-50 border-paper-200 opacity-60'
+                  className={`w-full rounded-2xl border p-3 flex items-center gap-3 text-start active:scale-[0.99] transition-transform ${
+                    seen ? 'bg-white border-paper-200 shadow-card' : 'bg-paper-50 border-paper-200'
                   }`}
                 >
-                  <span className={`text-2xl leading-none ${seen ? '' : 'grayscale'}`}>{l.emoji}</span>
+                  <span className="text-2xl leading-none">{l.emoji}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-[13.5px] font-black text-ink-900 leading-tight">{loc(l.title)}</span>
-                    {!seen && <span className="block text-[11.5px] text-paper-muted">{t('learn.locked')}</span>}
+                    {!seen && <span className="block text-[11.5px] text-paper-muted">{t('learn.unread')}</span>}
                   </span>
                 </button>
               </li>

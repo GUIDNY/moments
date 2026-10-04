@@ -54,6 +54,7 @@ export const fresh = () => ({
   trades: [],
   history: [],
   started: Date.now(),
+  imported: null, // when a broker file (or the demo) last replaced the holdings
 });
 
 export function load() {
@@ -69,6 +70,7 @@ export function load() {
       trades: Array.isArray(raw.trades) ? raw.trades : [],
       history: Array.isArray(raw.history) ? raw.history : [],
       started: Number.isFinite(raw.started) ? raw.started : Date.now(),
+      imported: Number.isFinite(raw.imported) ? raw.imported : null,
     };
     return state;
   } catch {
@@ -113,10 +115,15 @@ export function addHolding(holdings, entry) {
 export const removeHolding = (holdings, symbol) => holdings.filter((h) => h.symbol !== symbol);
 
 /** A whole portfolio at once, from an import: each row a holding, same symbol
-    merged, the cost in the stock's own major units as everywhere else. */
-export function importHoldings(rows) {
+    merged, the cost in the stock's own major units as everywhere else. A
+    position the city already had keeps its `since` — a reimport is the same
+    portfolio brought up to date, not a new one — matched by symbol only. */
+export function importHoldings(rows, previous = []) {
   let holdings = [];
-  for (const r of rows) holdings = addHolding(holdings, r);
+  for (const r of rows) {
+    const prev = previous.find((h) => h.symbol === String(r.symbol || '').toUpperCase());
+    holdings = addHolding(holdings, prev ? { ...r, since: prev.since } : r);
+  }
   return holdings;
 }
 

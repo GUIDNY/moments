@@ -1,5 +1,5 @@
-import { BOARD, sectorFor } from './catalog';
-import { searchSymbols } from './market';
+import { BOARD, sectorFor } from './catalog.js';
+import { searchSymbols } from './market.js';
 
 /**
  * A real portfolio, pasted in from a broker's holdings table — Meitav Trade

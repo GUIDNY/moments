@@ -1,4 +1,4 @@
-import { fxSymbol, toMajor } from './money';
+import { fxSymbol, toMajor } from './money.js';
 
 /**
  * Live prices, published outside React.

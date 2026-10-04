@@ -224,6 +224,13 @@ export function CityProvider({ children }) {
   useEffect(() => {
     if (shared) return;
     const ctx = { holdings: state.holdings, trades: state.trades, cash: state.cash, summary, positions, progress, ready };
+    /* A portfolio that came in by import (or the demo) was not played: its
+       missions are done, but five sheets in a row on a city someone has just
+       built is noise, so they complete quietly, and the only lesson that
+       fires is the welcome. Everything else fires again from the first trade
+       made here, and every lesson can be opened from the classroom. */
+    const played = state.trades.some((t) => (t.side === 'buy' || t.side === 'sell') && (!state.imported || t.t > state.imported));
+    const quiet = Boolean(state.imported) && !played;
     const doneNow = [];
     for (const m of MISSIONS) {
       if (progress.missions.includes(m.id)) continue;
@@ -253,19 +260,20 @@ export function CityProvider({ children }) {
       'long-term': progress.streak >= 3 && state.holdings.length > 0,
     };
     for (const [id, on] of Object.entries(rules)) {
+      if (quiet && id !== 'welcome') continue;
       if (on && LESSON_BY_ID[id] && !progress.lessons.includes(id)) due.push(id);
     }
 
     if (!doneNow.length && !due.length) return;
     setQueue((q) => {
       const items = [...q];
-      for (const id of doneNow) if (!items.some((i) => i.kind === 'mission' && i.id === id)) items.push({ kind: 'mission', id });
+      if (!quiet) for (const id of doneNow) if (!items.some((i) => i.kind === 'mission' && i.id === id)) items.push({ kind: 'mission', id });
       for (const id of due) if (!items.some((i) => i.kind === 'lesson' && i.id === id)) items.push({ kind: 'lesson', id });
       return items;
     });
     if (doneNow.length) setProgress((p) => progressStore.completeMissions(p, doneNow));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.holdings, state.trades, state.cash, summary, progress.streak, progress.missions, progress.lessons, ready, shared]);
+  }, [state.holdings, state.trades, state.cash, state.imported, summary, progress.streak, progress.missions, progress.lessons, ready, shared]);
 
   const current = queue[0] ?? null;
   const dismissCurrent = useCallback(() => {
@@ -302,8 +310,15 @@ export function CityProvider({ children }) {
   /* a real portfolio, pasted in: replaces the holdings outright. The purse
      stays — the city keeps its game — and no trade is recorded, because
      nothing was bought here. */
-  const importPortfolio = useCallback((rows) => {
-    setState((s) => ({ ...s, holdings: store.importHoldings(rows) }));
+  const importPortfolio = useCallback((rows, { cashUsd = null } = {}) => {
+    setState((s) => ({
+      ...s,
+      holdings: store.importHoldings(rows, s.holdings),
+      // a broker file that says how much cash is in the account sets the
+      // purse to it, in dollars; one that does not leaves the purse alone
+      cash: Number.isFinite(cashUsd) && cashUsd >= 0 ? cashUsd : s.cash,
+      imported: Date.now(),
+    }));
   }, []);
 
   const add = useCallback((entry) => {
