@@ -364,7 +364,11 @@ export function validatePosition(p, livePrice = null) {
   const warnings = [];
   if (!p.symbol) warnings.push('unknown');
   if (!(p.quantity > 0)) warnings.push('qty');
-  if (p.averagePrice != null && livePrice != null && (p.averagePrice > livePrice * 3 || p.averagePrice < livePrice / 3)) warnings.push('cost');
+  // a cost far from today's price is suspect only when nothing vouches for
+  // it: a file that states the cost's unit, or its own P/L, has — Teva
+  // bought at $12 and worth $39 is a gain the file itself reports
+  const vouched = p.costInAgorot != null || p.totalPnLPercent != null;
+  if (!vouched && p.averagePrice != null && livePrice != null && (p.averagePrice > livePrice * 3 || p.averagePrice < livePrice / 3)) warnings.push('cost');
   if (p.assetType === 'bond' || p.assetType === 'option') warnings.push('type');
   return warnings;
 }
