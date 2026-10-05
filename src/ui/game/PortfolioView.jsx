@@ -1,4 +1,4 @@
-import { ArrowDownUp, BookOpen, Download, Trophy, Upload } from 'lucide-react';
+import { ArrowDownUp, BookOpen, Download, Trophy, Upload, UserCircle2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useI18n } from '../../i18n/I18nContext';
 import { SECTORS, SECTOR_BY_ID } from '../../stocks/catalog';
@@ -44,9 +44,9 @@ const chip = (on) => `h-9 px-3 rounded-xl text-[12.5px] font-bold border transit
  * tasks, the holdings sorted and filtered the way the reader wants, the
  * trades. Tap a row and the city view opens on that building.
  */
-export default function PortfolioView({ onOpenStock, onBuy, onLearn, onBadges, onImport, onHealth, onNews, onGlossary, onLesson }) {
+export default function PortfolioView({ onOpenStock, onBuy, onLearn, onBadges, onImport, onHealth, onNews, onGlossary, onLesson, onAccount }) {
   const { t, loc } = useI18n();
-  const { holdings, positions, positionOf, summary, cash, totalUsd, history, trades, progress, nextMission, isShared, resetGame, doDaily } = useCity();
+  const { holdings, positions, positionOf, summary, cash, totalUsd, history, trades, progress, nextMission, isShared, resetGame, doDaily, account } = useCity();
   const [sort, setSort] = useState('sector');
   const [filter, setFilter] = useState('all');
   const [sectorFilter, setSectorFilter] = useState(null);
@@ -322,6 +322,12 @@ export default function PortfolioView({ onOpenStock, onBuy, onLearn, onBadges, o
             <button type="button" onClick={onImport} className="w-full h-11 rounded-2xl bg-white border border-paper-200 text-ink-900 font-bold text-[13px] inline-flex items-center justify-center gap-2">
               <Download size={16} aria-hidden="true" />
               {t('import.button')}
+            </button>
+          )}
+          {!isShared && onAccount && account?.ready && (
+            <button type="button" onClick={onAccount} className="w-full h-11 rounded-2xl bg-white border border-paper-200 text-ink-900 font-bold text-[13px] inline-flex items-center justify-center gap-2">
+              <UserCircle2 size={16} aria-hidden="true" />
+              {account.session ? `${t('auth.title')} · ${account.session.user.email}` : t('friends.signInCta')}
             </button>
           )}
           {!isShared && (

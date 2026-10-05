@@ -24,6 +24,8 @@ import ImportFlow from './ui/game/ImportFlow';
 import Onboarding from './ui/game/Onboarding';
 import { HealthChip, HealthSheet } from './ui/game/HealthChip';
 import VisitCityMode from './ui/game/VisitCityMode';
+import AccountSheet from './ui/game/AccountSheet';
+import CloudConflictSheet from './ui/game/CloudConflictSheet';
 
 const WELCOME_KEY = 'stockcity.welcomed';
 
@@ -57,6 +59,12 @@ export default function App() {
   const [importOpen, setImportOpen] = useState(false);
   const [healthOpen, setHealthOpen] = useState(false);
   const [welcome, setWelcome] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  // a password-reset link opens the account sheet on its new-password form
+  const recovery = city.account?.linkType === 'recovery';
+  useEffect(() => {
+    if (recovery) setAccountOpen(true);
+  }, [recovery]);
   const [imported, setImported] = useState(null); // a count, toasted once
 
   /* one toast at a time: a trade just made, else a dividend just paid, else a badge just won */
@@ -182,6 +190,7 @@ export default function App() {
           onImport={() => setImportOpen(true)}
           onHealth={() => setHealthOpen(true)}
           onNews={(sym) => { setNewsSymbol(sym ?? null); setNewsOpen(true); }}
+          onAccount={() => setAccountOpen(true)}
         />
       )}
       {tab === 'market' && (
@@ -189,8 +198,8 @@ export default function App() {
           <PickerScreen onExit={() => setTab('city')} />
         </div>
       )}
-      {tab === 'rankings' && <FriendsScreen mode="rankings" />}
-      {tab === 'friends' && <FriendsScreen mode="friends" />}
+      {tab === 'rankings' && <FriendsScreen mode="rankings" onAccount={() => setAccountOpen(true)} />}
+      {tab === 'friends' && <FriendsScreen mode="friends" onAccount={() => setAccountOpen(true)} />}
 
       <BottomNavigation active={tab} onChange={(id) => { setSelected(null); setTab(id); }} />
 
@@ -199,6 +208,8 @@ export default function App() {
       <NewsSheet open={newsOpen} symbol={newsSymbol} onClose={() => { setNewsOpen(false); setNewsSymbol(null); }} />
       <ImportFlow open={importOpen} onClose={(n) => { setImportOpen(false); if (Number.isFinite(n)) { setImported(n); setTab('city'); setSelected(null); } }} onManual={goMarket} />
       <HealthSheet open={healthOpen} onClose={() => setHealthOpen(false)} onLesson={readLesson} />
+      <AccountSheet open={accountOpen} mode={recovery ? 'recovery' : 'signin'} onClose={() => { setAccountOpen(false); city.account?.clearLink?.(); }} />
+      {!isShared && <CloudConflictSheet />}
       {toast && <Toast emoji={toast.emoji} text={toast.text} onDone={toastDone} />}
       {tab === 'city' && !welcome && <LessonSheet item={current} onDone={dismissCurrent} onReadLesson={readLesson} />}
       {welcome && <Onboarding onDone={closeWelcome} />}

@@ -39,16 +39,21 @@ const dayBefore = (iso) => {
   return today(prev);
 };
 
+/** Saved progress (localStorage, or the account) read back into shape. */
+export function fromRaw(raw) {
+  if (!raw || typeof raw !== 'object') return { ...EMPTY };
+  return {
+    ...EMPTY,
+    ...raw,
+    unlocked: Array.isArray(raw.unlocked) ? raw.unlocked.filter((id) => typeof id === 'string') : [],
+    lessons: Array.isArray(raw.lessons) ? raw.lessons.filter((id) => typeof id === 'string') : [],
+    missions: Array.isArray(raw.missions) ? raw.missions.filter((id) => typeof id === 'string') : [],
+  };
+}
+
 export function load() {
   try {
-    const raw = JSON.parse(localStorage.getItem(KEY) || '{}');
-    return {
-      ...EMPTY,
-      ...raw,
-      unlocked: Array.isArray(raw.unlocked) ? raw.unlocked.filter((id) => typeof id === 'string') : [],
-      lessons: Array.isArray(raw.lessons) ? raw.lessons.filter((id) => typeof id === 'string') : [],
-      missions: Array.isArray(raw.missions) ? raw.missions.filter((id) => typeof id === 'string') : [],
-    };
+    return fromRaw(JSON.parse(localStorage.getItem(KEY) || '{}'));
   } catch {
     return { ...EMPTY };
   }

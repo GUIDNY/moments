@@ -79,6 +79,9 @@ the town, Lucide for icons and Motion for the chrome's springs. No backend, no r
   samples from modular), GLB plus each kit's `Textures/colormap.png`. The GLBs reference that
   colormap by relative path, so a kit folder is copied whole or not at all.
 - `src/i18n/` — `strings.js` (flat he/en dictionary, Hebrew default) and `I18nContext.jsx`.
+- `src/lib/auth.js`, `src/stocks/cloud.js`, `src/stocks/useCloud.js`, `src/ui/game/AccountSheet.jsx`,
+  `src/ui/game/CloudConflictSheet.jsx` — the optional account: sign-in, the city kept on the
+  server, friends by code (see the rule below).
 - `src/apartment/`, `src/tour/`, `src/landing/`, `src/upload/`, `src/lib/` — the estate-agent
   product and its photo reader, unchanged and independent of the city.
 - `src/ui/` — button, panel, modal, `Sheet`.
@@ -231,6 +234,30 @@ the town, Lucide for icons and Motion for the chrome's springs. No backend, no r
   the city's name, level and badge count; `stocks/friends.js` keeps the links friends sent as
   the neighbours, the Friends tab lists them and the Rankings tab sorts me and them by level,
   then badges, never by returns. Visiting is opening the link; `visitedMeta` is what it said.
+- **An account is an email and a password for this game, and nothing else.** Supabase Auth on
+  the `pr-ai-eu` project (never `pr-ai`), reached without an SDK: `lib/auth.js` speaks GoTrue's
+  REST (sign up, password sign-in, refresh a minute before expiry, logout, recover, and the
+  tokens a confirmation or recovery email lands with in the URL hash), keeps the session in
+  localStorage and hands it to React through `useSession`. `stocks/cloud.js` speaks PostgREST
+  with the player's own token, so the database's row-level rules are the boundary: `sc_cities`
+  (the whole state and progress, owner only), `sc_profiles` (name, level, badges, privacy and the
+  packed city a share link would carry — readable by the owner and by whoever added them;
+  a trigger blanks the city of a private profile whatever the client sent), `sc_friends`
+  (added by the six-letter code every profile gets from a trigger on sign-up; `sc_add_friend`
+  is the only RPC and the only way to look a code up). `stocks/useCloud.js` is the sync: the
+  first look on a device sends the city up when the account is empty, brings it down when the
+  device is, takes the newer side when this device synced before, and *asks* when both have a
+  city and never synced here (`CloudConflictSheet`); after that every change goes up 1.5 s
+  later. "Last synced here" is kept per account, so a second account on the same phone is
+  asked, not overwritten. Signing out leaves the city on the device. The project's email
+  confirmation is on and its built-in mailer is rate-limited (a few an hour): the sheet says
+  "check your email" when sign-up returns no session, and a real launch wants the project's own
+  SMTP or confirmation off. Friends from the account and friends from links sit in one list;
+  a friend without a city yet says so rather than showing as private. The browser test
+  (`account.mjs`) signs in as two throwaway users created by SQL with a confirmed email, and
+  relays the Supabase calls through Node because the headless browser cannot verify the
+  session proxy's certificate; it seeds localStorage only *after* the app has mounted, because
+  the app's first save otherwise overwrites the seed with an empty city.
 - **The market screen is a glance, not a terminal:** open/closed, four index tiles, the
   portfolio's three biggest movers today, the watchlist (a star on any row; `state.watchlist`,
   no building until bought), then the board. **Daily tasks** (`learn/daily.js`): two a day by

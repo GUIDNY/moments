@@ -62,9 +62,10 @@ export const fresh = () => ({
 
 export const PRIVACY = ['private', 'city', 'public'];
 
-export function load() {
+/** A saved state (localStorage, or the account) read back into shape; nothing is trusted as-is. */
+export function fromRaw(raw) {
   try {
-    const raw = JSON.parse(localStorage.getItem(KEY) || '{}');
+    if (!raw || typeof raw !== 'object') return fresh();
     const state = {
       ...fresh(),
       holdings: Array.isArray(raw.holdings) ? raw.holdings.map(clean).filter((h) => h.symbol) : [],
@@ -81,6 +82,14 @@ export function load() {
       name: typeof raw.name === 'string' ? raw.name.slice(0, 40) : '',
     };
     return state;
+  } catch {
+    return fresh();
+  }
+}
+
+export function load() {
+  try {
+    return fromRaw(JSON.parse(localStorage.getItem(KEY) || '{}'));
   } catch {
     return fresh();
   }

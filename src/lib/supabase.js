@@ -100,3 +100,7 @@ function readError(xhr) {
   if (xhr.status === 413) return 'too-large';
   return body.message || `http-${xhr.status}`;
 }
+
+/* The same project serves Stock City's accounts (`lib/auth.js`, `stocks/cloud.js`). */
+export const SUPABASE_URL = URL_BASE;
+export const SUPABASE_KEY = KEY;

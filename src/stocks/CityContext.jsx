@@ -8,6 +8,7 @@ import { earned } from './achievements';
 import { levelFor, xpFor } from './xp';
 import * as progressStore from './progress';
 import * as store from './store';
+import { useCloud } from './useCloud';
 
 /**
  * Portfolio in, city out.
@@ -343,6 +344,21 @@ export function CityProvider({ children }) {
   }, []);
   const setDisplay = useCallback((display) => setState((s) => ({ ...s, display })), []);
 
+  /* the account: the same state and progress, kept on the server for a
+     signed-in player and brought down on another device */
+  const applyCloud = useCallback((row) => {
+    setState(store.fromRaw(row.state));
+    setProgress(progressStore.fromRaw(row.progress));
+  }, []);
+  const packProfile = () => {
+    const prices = {};
+    for (const p of positions) if (!p.missing && p.valueUsd != null && p.qty) prices[p.symbol] = p.valueUsd / p.qty;
+    const level = levelFor(xpFor(progress, { holdings: state.holdings, trades: state.trades, positions, totalUsd })).level;
+    const badges = progress.unlocked.length;
+    return { name: state.name || '', level, badges, privacy: state.privacy, city: state.privacy === 'private' ? null : store.encodeState(state, { level, badges, prices }) };
+  };
+  const account = useCloud({ state, progress, applyCloud, packProfile, shared });
+
   const value = useMemo(
     () => ({
       holdings: state.holdings,
@@ -395,6 +411,7 @@ export function CityProvider({ children }) {
       // what a visited city's link said about its owner
       visitedMeta: shared ? { name: state.name, level: state.level ?? 1, badges: state.badges ?? 0, privacy: state.privacy } : null,
       news,
+      account,
       importPortfolio,
       add,
       remove,
@@ -405,7 +422,7 @@ export function CityProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [state, positions, summary, tick, add, remove, update, setDisplay, symbols, progress, fresh, shared, dismissBadge,
       totalUsd, ready, buyShares, sellShares, resetGame, lastTrade, lastDividend, marketOpen, current, dismissCurrent, readLesson, nextMission, news, importPortfolio,
-      setPrivacy, setName, toggleWatch, doDaily]
+      setPrivacy, setName, toggleWatch, doDaily, account]
   );
 
   // handy from the console, and what the browser tests build a friend from
