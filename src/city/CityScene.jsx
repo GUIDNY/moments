@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { EffectComposer, HueSaturation, N8AO, SMAA, Vignette } from '@react-three/postprocessing';
 import { useCity } from '../stocks/CityContext';
 import { BOARD_BY_SYMBOL } from '../stocks/catalog';
+import { STARTING_CASH } from '../stocks/store';
 import { planCity } from './layout';
 import { shareOf } from './tiers';
 import { levelFor, xpFor } from '../stocks/xp';
@@ -27,7 +28,9 @@ import StockBuilding from './StockBuilding';
 export default function CityScene({ compact, selected, onSelectBuilding, onSelectHQ, onSelectNews, visiting = null }) {
   const city = useCity();
   const source = visiting ?? city;
-  const { holdings, positions, totalUsd, cash, progress, trades, marketOpen, lastDividend } = source;
+  const { holdings, positions, totalUsd, cash, progress, trades, marketOpen, lastDividend, history } = source;
+  // where the portfolio began: the first point of its line, else the purse
+  const baseUsd = history?.[0]?.total ?? STARTING_CASH;
   const level = levelFor(xpFor(progress, { holdings, trades, positions, totalUsd })).level;
 
   /* The plan is remade when the holdings change or a share crosses a whole
@@ -111,7 +114,7 @@ export default function CityScene({ compact, selected, onSelectBuilding, onSelec
         {plan.districts.map((d) => (
           <SectorDistrict key={d.sector} district={d} />
         ))}
-        <PortfolioHQ hq={plan.hq} totalUsd={totalUsd} onSelect={onSelectHQ} />
+        <PortfolioHQ hq={plan.hq} totalUsd={totalUsd} baseUsd={baseUsd} onSelect={onSelectHQ} />
         {/* the cash, as a building: the treasury beside the plaza */}
         <Treasury x={plan.treasury.x} z={plan.treasury.z} share={shareOf(cash, totalUsd)} onSelect={onSelectHQ} />
         {/* the market news board: small, in the park's far corner, second to the city */}

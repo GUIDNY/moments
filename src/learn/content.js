@@ -21,12 +21,12 @@ export const LESSONS = [
     title: { he: 'ברוכים הבאים לעיר המניות', en: 'Welcome to Stock City' },
     body: {
       he: [
-        'יש לך 100,000 דולר של כסף משחק. המחירים אמיתיים — אלה הבורסות של תל אביב וניו יורק, בהשהיה של רבע שעה.',
+        'יש לך 100,000 דולר של כסף משחק, או תיק אמיתי שחיברתם — ואז נקודת ההתחלה היא השווי שלו. המחירים אמיתיים — אלה הבורסות של תל אביב וניו יורק, בהשהיה של רבע שעה.',
         'כל מניה שתקנה הופכת לבניין בעיר. ככל שהפוזיציה שווה יותר, הבניין גדול יותר — מחנות קטנה ועד מגדל; השלט מעל הגג אומר כמה המניה זזה היום, והבניין במרכז הוא התיק כולו.',
         'המטרה היא לא להתעשר. המטרה היא להבין איך זה עובד — ולראות את זה קורה מול העיניים.',
       ],
       en: [
-        'You have $100,000 of play money. The prices are real — Tel Aviv and New York, delayed by a quarter of an hour.',
+        'You have $100,000 of play money, or a real portfolio you connected — then the starting point is its value. The prices are real — Tel Aviv and New York, delayed by a quarter of an hour.',
         'Every stock you buy becomes a building in the city. The more the position is worth, the bigger the building — from a small shop to a tower; the sign over its roof says how far the stock moved today, and the building in the middle is the whole portfolio.',
         'The goal is not to get rich. The goal is to understand how this works — and to watch it happen in front of you.',
       ],
@@ -246,6 +246,8 @@ export const MISSIONS = [
     title: { he: 'השקע לפחות 60% והשאר 10% במזומן', en: 'Invest at least 60% and keep 10% in cash' },
     why: { he: 'כסף בצד הוא מה שמאפשר לקנות ביום אדום במקום למכור בו.', en: 'Cash on the side is what lets you buy on a red day instead of selling on it.' },
     lesson: 'fees',
+    // a connected portfolio has the cash its account has: not a thing to do here
+    skipIf: ({ imported }) => Boolean(imported),
     test: ({ summary, cash, ready }) => {
       if (!ready) return false;
       const total = summary.valueUsd + cash;
@@ -258,6 +260,7 @@ export const MISSIONS = [
     title: { he: 'מכור חלק מאחזקה', en: 'Sell part of a holding' },
     why: { he: 'כדי להרגיש את ההבדל בין רווח על הנייר לרווח ביד.', en: 'To feel the difference between a paper gain and a real one.' },
     lesson: 'sell',
+    skipIf: ({ imported }) => Boolean(imported),
     test: ({ trades }) => trades.some((t) => t.side === 'sell'),
   },
   {
@@ -271,10 +274,12 @@ export const MISSIONS = [
   {
     id: 'grow',
     emoji: '🏆',
-    title: { he: 'הגע ל-102,000 דולר', en: 'Reach $102,000' },
+    title: { he: 'עלה 2% מנקודת ההתחלה', en: 'Rise 2% from where you began' },
     why: { he: 'שני אחוזים. נשמע מעט — זה חצי שנה של ריבית בבנק.', en: 'Two percent. Sounds small — it is half a year of bank interest.' },
     lesson: 'day-change',
-    test: ({ summary, cash, ready }) => ready && summary.valueUsd + cash >= 102000,
+    // from where the line began: the purse for a played game, the first
+    // real total for a connected portfolio
+    test: ({ summary, cash, ready, baseUsd }) => ready && baseUsd > 0 && summary.valueUsd + cash >= baseUsd * 1.02,
   },
 ];
 

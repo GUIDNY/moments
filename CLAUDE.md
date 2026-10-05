@@ -162,10 +162,20 @@ the town, Lucide for icons and Motion for the chrome's springs. No backend, no r
   one holding over half, a red day, three days running). Missions complete in order — only the
   first open one is tested — and each opens its lesson. Both are queued and shown one at a time;
   reading a lesson is what marks it read. The welcome lesson is the first thing in the queue.
-- The history is one point per local day of total and cash, with a `start` point at the purse so
-  the line always begins somewhere; the same day overwrites. `snapshot` only runs once the score
-  is real (every holding priced). The share link carries the purse and the start date but not the
-  history or the trades.
+- **Where the line begins is the baseline, and a connected portfolio begins at itself.** The
+  history is one point per local day of total and cash; the same day overwrites, and `snapshot`
+  only runs once the score is real (every holding priced). A played game gets a `start` point at
+  the $100,000 purse; an import resets the history and the first real total is the first point
+  (no synthetic start when `state.imported`). Everything "since the start" reads
+  `history[0].total`: the HUD's return (cost-based `gainPct` when the holdings carry a cost,
+  else against that baseline), the portfolio line, the "rise 2%" mission (`baseUsd` in the
+  mission ctx) and the HQ's level (`HQ_LEVELS` are *multiples* of the baseline — a ₪50,000
+  portfolio and a $5M one start at the same office). A file with no cash row asks on the
+  preview: "portfolio only" (cash 0, the default — the city is worth what the portfolio is) or
+  keep the play-money purse. Missions that only make sense in the play game (keep 10% cash,
+  sell part) carry `skipIf: ({ imported })` and step aside for a connected portfolio. The user
+  asked for exactly this: a real portfolio starts from its own value, never from $100,000. The
+  share link carries the purse and the start date but not the history or the trades.
 - Nothing in the lessons is advice, and the screens say so (`learn.notAdvice`). Keep it that way:
   the content explains how the machine works, with play money and delayed prices.
 - **A tap is measured on the screen, not in the world.** While the city is being dragged the world

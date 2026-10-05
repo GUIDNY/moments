@@ -21,8 +21,8 @@ const HQ_MODELS = {
  * on the plaza in the park and grows a level as the portfolio does. Tapping
  * it opens the portfolio view.
  */
-export default function PortfolioHQ({ hq, totalUsd, onSelect }) {
-  const level = hqLevelFor(totalUsd);
+export default function PortfolioHQ({ hq, totalUsd, baseUsd, onSelect }) {
+  const level = hqLevelFor(totalUsd, baseUsd);
   const model = HQ_MODELS[level.level] ?? HQ_MODELS[1];
   const scene = useModel(model);
   const fit = useMemo(() => fitHeight(model, level.height, 2.8, 2.8), [model, level.height]);

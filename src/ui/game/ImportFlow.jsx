@@ -66,7 +66,7 @@ const FILE_ACCEPT = '.xlsx,.xls,.csv,.txt,.tsv,text/plain,text/csv,application/v
 
 export default function ImportFlow({ open, onClose, onManual }) {
   const { t, loc } = useI18n();
-  const { holdings, importPortfolio, ensureQuote, quoteOf, rates } = useCity();
+  const { holdings, cash, importPortfolio, ensureQuote, quoteOf, rates } = useCity();
   const [step, setStep] = useState('connect'); // connect · reading · preview · build
   const [phase, setPhase] = useState('file'); // file · resolve · build
   const [progress, setProgress] = useState(null);
@@ -77,6 +77,9 @@ export default function ImportFlow({ open, onClose, onManual }) {
   const [fileCash, setFileCash] = useState([]);
   const [agorot, setAgorot] = useState(true);
   const [editing, setEditing] = useState(null);
+  // a file with no cash row: start from the portfolio's own value (cash 0)
+  // or keep the play-money purse — the owner's choice, portfolio first
+  const [purse, setPurse] = useState('portfolio'); // portfolio · keep
   const [, bump] = useState(0);
   const live = useRef(true);
   useEffect(() => {
@@ -189,12 +192,16 @@ export default function ImportFlow({ open, onClose, onManual }) {
   });
   const totalUsd = priced.reduce((s, x) => s + (x.usd ?? 0), 0);
   const dayTotal = priced.reduce((s, x) => s + (x.dayUsd ?? 0), 0);
-  const cashUsd = fileCash.length
+  const fileCashUsd = fileCash.length
     ? fileCash.reduce((s, c) => {
         const rate = c.currency === 'USD' ? 1 : rateBetween(c.currency, 'USD', rates) ?? quoteOf(`${c.currency}USD=X`)?.price ?? null;
         return rate == null || s == null ? null : s + c.amount * rate;
       }, 0)
     : null;
+  // what the purse will be: the file's cash; else nothing (the city is worth
+  // what the portfolio is) or the purse as it is, as chosen
+  const cashUsd = fileCash.length ? fileCashUsd : purse === 'portfolio' ? 0 : null;
+  const shownCash = fileCash.length ? fileCashUsd : purse === 'portfolio' ? 0 : cash;
   const warningsOf = (x) => validatePosition(x.r, x.livePrice != null && agorot && /\.TA$/i.test(x.r.symbol || '') ? x.livePrice * 100 : x.livePrice);
   const skipped = priced.filter((x) => warningsOf(x).some((w) => w === 'unknown' || w === 'qty')).length;
   const diff = holdings.length ? diffHoldings(holdings, holdingsOut) : null;
@@ -301,13 +308,25 @@ export default function ImportFlow({ open, onClose, onManual }) {
               </div>
               <div>
                 <div className="text-[10.5px] font-black uppercase tracking-wide text-paper-muted">{t('preview.cash')}</div>
-                <div className="text-[16px] font-black text-ink-900 tabular-nums">{cashUsd != null ? formatMoney(cashUsd, 'USD', true) : '—'}</div>
+                <div className="text-[16px] font-black text-ink-900 tabular-nums">{shownCash != null ? formatMoney(shownCash, 'USD', true) : '—'}</div>
               </div>
             </section>
-            {fileCash.length > 0 && (
+            {fileCash.length > 0 ? (
               <p className="mt-2 text-[12px] font-bold text-paper-muted leading-snug">
-                {cashUsd != null ? t('preview.cashFound', { amount: formatMoney(cashUsd, 'USD') }) : t('preview.noCashRate')}
+                {fileCashUsd != null ? t('preview.cashFound', { amount: formatMoney(fileCashUsd, 'USD') }) : t('preview.noCashRate')}
               </p>
+            ) : (
+              <div className="mt-2 rounded-2xl bg-white border border-paper-200 p-3">
+                <p className="text-[11px] font-black uppercase tracking-wide text-paper-muted">{t('preview.purseTitle')}</p>
+                <div className="grid grid-cols-2 gap-1.5 mt-2">
+                  {[['portfolio', t('preview.pursePortfolio'), t('preview.pursePortfolioSub')], ['keep', t('preview.purseKeep'), t('preview.purseKeepSub', { amount: formatMoney(cash, 'USD', true) })]].map(([id, title, sub]) => (
+                    <button key={id} type="button" onClick={() => setPurse(id)} aria-pressed={purse === id} className={`min-h-[56px] rounded-2xl border px-3 py-2 text-start ${purse === id ? 'bg-ink-900 text-white border-ink-900' : 'bg-white text-ink-900 border-paper-200'}`}>
+                      <span className="block text-[12.5px] font-black">{title}</span>
+                      <span className={`block text-[10.5px] leading-snug ${purse === id ? 'text-white/70' : 'text-paper-muted'}`}>{sub}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
             {rows.length === 0 && <p className="mt-4 text-[13px] font-bold text-ink-900">{t('preview.none')}</p>}
             {skipped > 0 && <p className="mt-2 text-[12px] font-bold text-[#b8860b]">{t('preview.skipped', { n: skipped })}</p>}

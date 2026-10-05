@@ -18,7 +18,21 @@ export function parseHoldingsText(text) {
   for (const raw of String(text || '').split(/\r?\n/)) {
     const line = raw.trim();
     if (!line) continue;
-    const cells = line.split(/\t|;|\s\|\s|,(?=\s)|\s{2,}/).map((c) => c.trim()).filter(Boolean);
+    let cells = line.split(/\t|;|\s\|\s|,(?=\s)|\s{2,}/).map((c) => c.trim()).filter(Boolean);
+    // a line typed by hand has single spaces: "בנק הפועלים 120 7746". Split on
+    // them, and glue the words back into one name so the numbers stand alone.
+    if (cells.length < 2) {
+      cells = [];
+      for (const tok of line.split(/\s+/)) {
+        const isNum = tok !== '' && Number.isFinite(Number(clip(tok).replace(/[\u200e\u200f]/g, '')));
+        // a ticker stands alone: "אפל AAPL 5" is a name, a symbol and a number
+        const isTicker = /^\^?[A-Z][A-Z0-9.-]{0,11}$/.test(tok);
+        const prev = cells[cells.length - 1];
+        if (!isNum && !isTicker && prev && !prev.isNum && !prev.isTicker) prev.c += ` ${tok}`;
+        else cells.push({ c: tok, isNum, isTicker });
+      }
+      cells = cells.map((x) => x.c);
+    }
     if (cells.length < 2) continue;
     const nums = [];
     const texts = [];

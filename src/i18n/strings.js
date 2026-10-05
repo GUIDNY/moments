@@ -205,6 +205,11 @@ export const STRINGS = {
     'preview.type': 'אג״ח ואופציות עוד לא נבנות בעיר.',
     'preview.noCashRate': 'לא הצלחנו להמיר את המזומן לדולר כרגע. הקופה נשארת כפי שהיא.',
     'preview.cashFound': 'מזומן בחשבון: {amount}. הקופה תעודכן אליו.',
+    'preview.purseTitle': 'המזומן בעיר',
+    'preview.pursePortfolio': 'רק התיק',
+    'preview.pursePortfolioSub': 'העיר שווה בדיוק כמו התיק. בלי כסף משחק.',
+    'preview.purseKeep': 'להשאיר כסף משחק',
+    'preview.purseKeepSub': 'הקופה נשארת {amount} לקנייה במשחק.',
     'preview.go': 'בנה את העיר שלי',
     'preview.update': 'עדכן את העיר שלי',
     'preview.changes': 'מה ישתנה בעיר',
@@ -318,7 +323,7 @@ export const STRINGS = {
     'visit.leave': 'חזרה לעיר שלי',
     'visit.visit': 'ביקור בעיר',
     'empty.title': 'העיר שלך מחכה',
-    'empty.body': 'יש לך 100,000 דולר. קנה מניה ראשונה והבניין הראשון יעלה.',
+    'empty.body': 'חברו תיק אמיתי, או קנו מניה ראשונה עם כסף המשחק, והבניין הראשון יעלה.',
     'build.hint': 'הקש על מגרש פנוי כדי לבנות · גרור כדי להסתובב · צבוט כדי להתקרב',
     'build.growing': 'בבנייה',
 
@@ -348,7 +353,7 @@ export const STRINGS = {
 
     'welcome.title': 'ברוכים הבאים לעיר המניות',
     'welcome.body':
-      'יש לך 100,000 דולר של כסף משחק ומחירים אמיתיים מהבורסה. כל מניה שתקנו הופכת לבניין בעיר: הגודל שלו הוא כמה הפוזיציה שווה, והשלט מעל הגג אומר כמה היא זזה היום. המשימות מלמדות איך זה עובד, צעד אחר צעד.',
+      'יש לך 100,000 דולר של כסף משחק ומחירים אמיתיים מהבורסה, או תיק אמיתי שחיברתם — ואז נקודת ההתחלה היא השווי שלו. כל מניה שתקנו הופכת לבניין בעיר: הגודל שלו הוא כמה הפוזיציה שווה, והשלט מעל הגג אומר כמה היא זזה היום. המשימות מלמדות איך זה עובד, צעד אחר צעד.',
     'welcome.cta': 'בואו נתחיל',
   },
 
@@ -545,6 +550,11 @@ export const STRINGS = {
     'preview.type': 'Bonds and options are not built in the city yet.',
     'preview.noCashRate': 'We could not convert the cash to dollars right now. The purse stays as it is.',
     'preview.cashFound': 'Cash in the account: {amount}. The purse will be set to it.',
+    'preview.purseTitle': 'Cash in the city',
+    'preview.pursePortfolio': 'Portfolio only',
+    'preview.pursePortfolioSub': 'The city is worth exactly what the portfolio is. No play money.',
+    'preview.purseKeep': 'Keep play money',
+    'preview.purseKeepSub': 'The purse stays {amount} for buying in the game.',
     'preview.go': 'Build my city',
     'preview.update': 'Update my city',
     'preview.changes': 'What changes in the city',
@@ -658,7 +668,7 @@ export const STRINGS = {
     'visit.leave': 'Back to my city',
     'visit.visit': 'Visit city',
     'empty.title': 'Your city is waiting',
-    'empty.body': 'You have $100,000. Buy a first stock and the first building goes up.',
+    'empty.body': 'Connect a real portfolio, or buy a first stock with the play money, and the first building goes up.',
     'build.hint': 'Tap a vacant lot to build · drag to look around · pinch to zoom',
     'build.growing': 'Under construction',
 
@@ -688,7 +698,7 @@ export const STRINGS = {
 
     'welcome.title': 'Welcome to Stock City',
     'welcome.body':
-      'You have $100,000 of play money and real prices from the exchange. Every stock you buy becomes a building in the city: its size is what the position is worth, and the sign over its roof says how far it moved today. The missions teach you how it works, one step at a time.',
+      'You have $100,000 of play money and real prices from the exchange, or a real portfolio you connected — then the starting point is its value. Every stock you buy becomes a building in the city: its size is what the position is worth, and the sign over its roof says how far it moved today. The missions teach you how it works, one step at a time.',
     'welcome.cta': "Let's go",
   },
 };

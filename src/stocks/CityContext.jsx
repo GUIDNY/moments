@@ -224,7 +224,7 @@ export function CityProvider({ children }) {
   const [queue, setQueue] = useState([]); // [{ kind: 'lesson', id } | { kind: 'mission', id }]
   useEffect(() => {
     if (shared) return;
-    const ctx = { holdings: state.holdings, trades: state.trades, cash: state.cash, summary, positions, progress, ready };
+    const ctx = { holdings: state.holdings, trades: state.trades, cash: state.cash, summary, positions, progress, ready, imported: state.imported, baseUsd: state.history?.[0]?.total ?? store.STARTING_CASH };
     /* A portfolio that came in by import (or the demo) was not played: its
        missions are done, but five sheets in a row on a city someone has just
        built is noise, so they complete quietly, and the only lesson that
@@ -235,6 +235,7 @@ export function CityProvider({ children }) {
     const doneNow = [];
     for (const m of MISSIONS) {
       if (progress.missions.includes(m.id)) continue;
+      if (m.skipIf?.(ctx)) continue; // not a mission for this kind of portfolio: the next one is live
       try {
         if (m.test(ctx)) doneNow.push(m.id);
       } catch {
@@ -274,7 +275,7 @@ export function CityProvider({ children }) {
     });
     if (doneNow.length) setProgress((p) => progressStore.completeMissions(p, doneNow));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.holdings, state.trades, state.cash, state.imported, summary, progress.streak, progress.missions, progress.lessons, ready, shared]);
+  }, [state.holdings, state.trades, state.cash, state.imported, state.history, summary, progress.streak, progress.missions, progress.lessons, ready, shared]);
 
   const current = queue[0] ?? null;
   const dismissCurrent = useCallback(() => {
@@ -288,7 +289,7 @@ export function CityProvider({ children }) {
     setQueue((q) => (q.some((i) => i.kind === 'lesson' && i.id === id) ? q : [{ kind: 'lesson', id }, ...q]));
   }, []);
 
-  const nextMission = MISSIONS.find((m) => !progress.missions.includes(m.id)) ?? null;
+  const nextMission = MISSIONS.find((m) => !progress.missions.includes(m.id) && !m.skipIf?.({ imported: state.imported })) ?? null;
 
 
   /* the news: for the holdings held, refreshed when they change and every
