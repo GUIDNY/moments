@@ -40,13 +40,16 @@ const COLUMNS = [
   ['quantity', ['כמות', 'יתרה', 'יתרת כמות', 'כמות יתרה', 'quantity', 'qty', 'units', 'shares', 'amount held']],
   ['marketPrice', ['שער אחרון', 'שער נוכחי', 'שער שוק', 'מחיר שוק', 'מחיר אחרון', 'שער', 'מחיר', 'last price', 'last', 'price', 'market price', 'current price']],
   ['marketValue', ['שווי שוק', 'שווי אחזקה', 'שווי נוכחי', 'שווי', 'סה כ שווי', 'market value', 'value', 'position value', 'holding value']],
+  // Meitav: "מחיר ממוצע" is the average cost converted to shekels, "במטבע
+  // מקור" the same in the security's own currency — the one a cost basis is
+  ['averagePriceNative', ['מחיר ממוצע במטבע מקור', 'שער ממוצע במטבע מקור', 'עלות ממוצעת במטבע מקור', 'avg price in currency', 'average price native']],
   ['averagePrice', ['שער ממוצע', 'מחיר ממוצע', 'עלות ממוצעת', 'שער עלות', 'מחיר עלות', 'שער קנייה', 'מחיר קנייה', 'avg price', 'average price', 'avg cost', 'average cost', 'cost price', 'buy price']],
   ['costBasis', ['עלות כוללת', 'סה כ עלות', 'עלות', 'שווי עלות', 'cost basis', 'total cost', 'cost']],
   ['dailyChangePercent', ['שינוי יומי %', '% שינוי יומי', 'שינוי יומי באחוזים', 'אחוז שינוי יומי', 'שינוי %', '% שינוי', 'שינוי יומי', 'day change %', 'daily change %', 'change %', 'daily %']],
   ['dailyPnL', ['שינוי יומי בשקלים', 'שינוי יומי ₪', 'רווח יומי', 'הפסד רווח יומי', 'רווח הפסד יומי', 'daily p l', 'daily pnl', 'day change', 'daily change']],
-  ['totalPnLPercent', ['אחוז רווח', '% רווח', 'רווח %', 'רווח הפסד %', '% רווח הפסד', 'תשואה %', 'תשואה', 'p l %', 'pnl %', 'return %', 'gain %']],
-  ['totalPnL', ['רווח הפסד', 'רווח הפסד כולל', 'רווח', 'הפסד', 'p l', 'pnl', 'profit loss', 'profit', 'gain', 'unrealized p l', 'unrealised p l']],
-  ['portfolioWeight', ['אחוז מהתיק', '% מהתיק', 'אחוז מתיק', 'משקל בתיק', 'משקל', 'weight', 'allocation', 'portfolio %', '% of portfolio']],
+  ['totalPnLPercent', ['אחוז רווח', '% רווח', 'רווח %', 'רווח הפסד %', '% רווח הפסד', 'שינוי מעלות ב%', 'שינוי מעלות %', 'תשואה %', 'תשואה', 'p l %', 'pnl %', 'return %', 'gain %']],
+  ['totalPnL', ['רווח הפסד', 'רווח הפסד כולל', 'שינוי מעלות', 'רווח', 'הפסד', 'p l', 'pnl', 'profit loss', 'profit', 'gain', 'unrealized p l', 'unrealised p l']],
+  ['portfolioWeight', ['אחוז מהתיק', '% מהתיק', 'אחוז מתיק', 'אחוז אחזקה', 'משקל בתיק', 'משקל', 'weight', 'allocation', 'portfolio %', '% of portfolio']],
   ['currency', ['מטבע', 'currency', 'ccy']],
   ['exchange', ['בורסה', 'שוק', 'exchange', 'market']],
 ];
@@ -57,6 +60,9 @@ function fieldFor(header) {
   const h = clean(header);
   if (!h) return null;
   for (const [field, names] of COLUMNS) if (names.some((n) => clean(n) === h)) return field;
+  // "…במטבע מקור" columns are the same figure in another currency: only the
+  // average price is wanted in the security's currency, the rest is skipped
+  if (/במטבע מקור/.test(h)) return null;
   for (const [field, names] of COLUMNS) if (names.some((n) => h.startsWith(clean(n) + ' ') || h.endsWith(' ' + clean(n)))) return field;
   return null;
 }
@@ -94,7 +100,7 @@ export function detectTable(rows) {
 
 const CASH_ROW = /מזומן|מזומנים|יתרת מזומן|יתרה בשקלים|יתרה בדולר|cash|balance/i;
 const TOTAL_ROW = /^(סה[״"']?כ|סהכ|total|סיכום)/i;
-const ETF_WORDS = /קרן|סל|מדד|etf|fund|index|מחקה|נאמנות/i;
+const ETF_WORDS = /קרן|קרנות|סל|מדד|etf|fund|index|מחקה|נאמנות|trust/i;
 const BOND_WORDS = /אג[״"']?ח|bond|מק[״"']?מ|ממשלתי/i;
 
 /**
@@ -129,18 +135,26 @@ export function parseTable(rows, { sheetName = '' } = {}) {
     // a number is a Tel Aviv security id, letters are a symbol
     const idCell = str(get(row, 'securityId'));
     const idIsSymbol = /^[A-Za-z][A-Za-z0-9.-]{0,11}$/.test(idCell);
-    const symbol = (str(get(row, 'symbol')) || (idIsSymbol ? idCell : '')).toUpperCase();
+    const symCell = str(get(row, 'symbol'));
+    const symbol = (/^[A-Za-z^][A-Za-z0-9.=-]{0,11}$/.test(symCell) ? symCell : idIsSymbol ? idCell : '').toUpperCase();
     const securityId = idCell && !idIsSymbol ? idCell : null;
     const label = name || symbol;
     if (!label) continue;
     if (TOTAL_ROW.test(label)) continue;
     const quantity = num(get(row, 'quantity'));
     const marketValue = num(get(row, 'marketValue'));
-    if (CASH_ROW.test(label) && !symbol) {
-      const amount = marketValue ?? quantity ?? num(get(row, 'costBasis'));
-      if (amount != null) cash.push({ currency: currencyOf(str(get(row, 'currency')), label) || 'ILS', amount });
+    const typeCell = str(get(row, 'assetType'));
+    // Meitav: a cash row is typed "מט״ח מזומן" and named by its currency
+    // ("דולר ארה״ב"); its quantity is the amount in that currency
+    if ((CASH_ROW.test(label) || CASH_ROW.test(typeCell)) && !/^[A-Za-z]/.test(symbol)) {
+      const fx = /מט.?ח/.test(typeCell) && quantity != null;
+      const amount = fx ? quantity : marketValue ?? quantity ?? num(get(row, 'costBasis'));
+      const currency = fx ? currencyOf('', label) || 'USD' : currencyOf(str(get(row, 'currency')), label) || 'ILS';
+      if (amount != null) cash.push({ currency, amount });
       continue;
     }
+    // a tax shield or a deposit is not a security
+    if (/תפ.?ס|פח.?ק|מגן מס|פיקדון|פק.?מ/.test(typeCell + ' ' + label)) continue;
     // a header repeated or a section title: a line that names a column and
     // carries no numbers. A security whose name happens to start with a
     // column word ("נייר ...") is a security.
@@ -148,20 +162,27 @@ export function parseTable(rows, { sheetName = '' } = {}) {
     const marketPrice = num(get(row, 'marketPrice'));
     // a section title ("מניות", "ניירות זרים"): a name and nothing else
     if (quantity == null && marketValue == null && marketPrice == null) continue;
-    const averagePrice = num(get(row, 'averagePrice'));
+    const nativeAvg = num(get(row, 'averagePriceNative'));
+    const averagePrice = nativeAvg ?? num(get(row, 'averagePrice'));
+    // the unit the cost is written in, when the file says: "במטבע מקור" is
+    // major units (shekels, dollars); Meitav's plain price columns for a
+    // Tel Aviv share are agorot, like its "שער". Null leaves it to the
+    // live-price heuristic.
+    const costInAgorot = nativeAvg != null ? false : averagePrice != null && /בש.?ח/.test(typeCell) ? true : null;
     const costBasis = num(get(row, 'costBasis'));
     positions.push({
       id: `${i}`,
       securityId,
       symbol: symbol || null,
       name: label,
-      assetType: assetTypeOf(str(get(row, 'assetType')), label),
-      currency: currencyOf(str(get(row, 'currency')), label, str(get(row, 'exchange'))),
+      assetType: assetTypeOf(typeCell, label),
+      currency: currencyOf(str(get(row, 'currency')), label, str(get(row, 'exchange')), typeCell),
       exchange: str(get(row, 'exchange')) || null,
       quantity,
       marketPrice,
       marketValue,
       averagePrice: averagePrice ?? (costBasis != null && quantity ? costBasis / quantity : null),
+      costInAgorot,
       costBasis: costBasis ?? (averagePrice != null && quantity ? averagePrice * quantity : null),
       dailyChangePercent: num(get(row, 'dailyChangePercent')),
       dailyPnL: num(get(row, 'dailyPnL')),
@@ -175,16 +196,18 @@ export function parseTable(rows, { sheetName = '' } = {}) {
   return { source: meitav ? 'meitav' : 'generic', headers: [...seen], positions, cash, headerRow: at };
 }
 
-function currencyOf(cell, label = '', exchange = '') {
+function currencyOf(cell, label = '', exchange = '', type = '') {
   const c = clean(cell);
-  if (/^(ils|nis|שקל|ש ח|₪|שח)$/.test(c) || /₪/.test(cell)) return 'ILS';
-  if (/^(usd|דולר|\$)$/.test(c) || /\$/.test(cell)) return 'USD';
-  if (/^(eur|אירו|€)$/.test(c)) return 'EUR';
-  if (/^(gbp|gbx|פאונד|£)$/.test(c)) return 'GBP';
+  if (/(^|\s)(ils|nis|שקל|ש ח|שח)(\s|$)/.test(c) || /₪/.test(cell)) return 'ILS';
+  if (/(^|\s)(usd|דולר)(\s|$)/.test(c) || /\$/.test(cell)) return 'USD';
+  if (/(^|\s)(eur|אירו|יורו)(\s|$)/.test(c) || /€/.test(cell)) return 'EUR';
+  if (/(^|\s)(gbp|gbx|פאונד|שטרלינג)(\s|$)/.test(c) || /£/.test(cell)) return 'GBP';
   if (/^[A-Z]{3}$/.test(cell)) return cell.toUpperCase();
   if (/דולר|usd|\$/i.test(label)) return 'USD';
   if (/nasdaq|nyse|us|ארה/i.test(exchange)) return 'USD';
   if (/ת א|tase|תל אביב/i.test(clean(exchange))) return 'ILS';
+  if (/בחו.?ל|זרה|זרות/.test(type)) return 'USD'; // "מניה זרה בחו״ל", "קרנות נאמנות זרות"
+  if (/בש.?ח/.test(type)) return 'ILS'; // "מניות בש״ח"
   return null; // decided later, from the symbol the row resolves to
 }
 
@@ -282,10 +305,19 @@ const ALL = [
  * first, then by name (whole words), then by TASE security number. Null
  * when nothing matches — never a guess.
  */
-function fromCatalog(name, symbol, securityId) {
+function fromCatalog(name, symbol, securityId, currency = null) {
   if (symbol) {
-    const hit = ALL.find((x) => x.symbol === symbol || x.symbol === `${symbol}.TA`);
-    if (hit) return hit;
+    const exact = ALL.find((x) => x.symbol === symbol);
+    if (exact) return exact;
+    // "TEVA" in shekels is TEVA.TA; "TEVA" in dollars is the New York listing,
+    // which borrows the Tel Aviv entry's sector and name but keeps its symbol
+    const twin = ALL.find((x) => x.symbol === `${symbol}.TA`);
+    if (twin && (currency === 'ILS' || currency == null)) return twin;
+    if (twin) return { ...twin, symbol, market: 'us' };
+    // a symbol the file gave is the security, whatever the name resembles:
+    // GOOG and GOOGL are both "Alphabet Inc" and two different securities
+    const byName = name ? ALL.find((x) => x.names.some((v) => sameName(name, v) || words(v).join(' ') === words(name).join(' '))) : null;
+    return byName ? { ...byName, symbol, market: currency === 'ILS' ? 'il' : 'us', borrowed: true } : null;
   }
   if (name) {
     const exact = ALL.find((x) => x.names.some((v) => words(v).join(' ') === words(name).join(' ')));
@@ -293,7 +325,7 @@ function fromCatalog(name, symbol, securityId) {
     const leads = ALL.find((x) => x.names.some((v) => sameName(name, v)));
     if (leads) return leads;
   }
-  if (securityId && TASE_BY_ID[securityId]) {
+  if (securityId && TASE_BY_ID[securityId] && currency !== 'USD') {
     const x = TASE_BY_ID[securityId];
     return ALL.find((y) => y.symbol === x.symbol) ?? null;
   }
@@ -309,13 +341,13 @@ function fromCatalog(name, symbol, securityId) {
 export async function resolvePositions(positions) {
   return Promise.all(
     positions.map(async (p) => {
-      const hit = fromCatalog(p.name, p.symbol, p.securityId);
-      if (hit) return { ...p, symbol: hit.symbol, sector: hit.sector, display: hit.display, status: 'ok', currency: p.currency ?? (hit.market === 'il' ? 'ILS' : 'USD') };
+      const hit = fromCatalog(p.name, p.symbol, p.securityId, p.currency);
+      if (hit) return { ...p, symbol: hit.symbol, sector: hit.sector, display: hit.borrowed ? { he: p.name, en: p.name } : hit.display, status: 'ok', currency: p.currency ?? (hit.market === 'il' ? 'ILS' : 'USD') };
       if (p.symbol && /^[A-Z][A-Z0-9.-]{0,11}$/.test(p.symbol)) {
-        const sym = p.securityId && !/\./.test(p.symbol) && /^\d{5,8}$/.test(p.securityId) ? `${p.symbol}.TA` : p.symbol;
+        const sym = p.currency === 'ILS' && !/\./.test(p.symbol) ? `${p.symbol}.TA` : p.symbol;
         return { ...p, symbol: sym, sector: sectorFor(sym, { kind: p.assetType === 'etf' ? 'ETF' : undefined }), display: { he: p.name, en: p.name }, status: 'guess', currency: p.currency ?? (/\.TA$/.test(sym) ? 'ILS' : 'USD') };
       }
-      const found = (await searchSymbols(p.name)).find((r) => !p.securityId || /\.TA$/.test(r.symbol)) ?? (await searchSymbols(p.name))[0];
+      const found = /[A-Za-z]{3}/.test(p.name) ? (await searchSymbols(p.name)).find((r) => (p.currency === 'ILS' ? /\.TA$/.test(r.symbol) : !/\.TA$/.test(r.symbol))) ?? null : null;
       if (found) return { ...p, symbol: found.symbol, sector: sectorFor(found.symbol, found), display: { he: p.name, en: found.name || p.name }, status: 'guess', currency: p.currency ?? (/\.TA$/.test(found.symbol) ? 'ILS' : 'USD') };
       return { ...p, symbol: '', sector: p.assetType === 'etf' ? 'other' : 'tech', display: { he: p.name, en: p.name }, status: 'missing' };
     })
@@ -364,7 +396,9 @@ export function toHoldings(positions, { agorot = true } = {}) {
  * decides then, and the preview flags the cost.
  */
 export function agorotFor(position, livePriceMajor) {
-  if (!/\.TA$/i.test(position.symbol || '') || !(position.averagePrice > 0) || !(livePriceMajor > 0)) return null;
+  if (!/\.TA$/i.test(position.symbol || '') || !(position.averagePrice > 0)) return null;
+  if (position.costInAgorot != null) return position.costInAgorot; // the file said
+  if (!(livePriceMajor > 0)) return null;
   const near = (v) => v >= livePriceMajor / 4 && v <= livePriceMajor * 4;
   if (near(position.averagePrice / 100)) return true;
   if (near(position.averagePrice)) return false;

@@ -50,6 +50,7 @@ export const TASE = [
   { symbol: 'SKBN.TA', id: '1081942', he: ['שיכון ובינוי'], en: 'Shikun & Binui', sector: 'industry' },
   // ── health ───────────────────────────────────────────────────────────────
   { symbol: 'TEVA.TA', id: '629014', he: ['טבע', 'טבע תעשיות'], en: 'Teva', sector: 'health' },
+  { symbol: 'INCR.TA', id: '1106376', he: ['אינטרקיור'], en: 'InterCure', sector: 'health' },
   { symbol: 'KMDA.TA', id: '1094119', he: ['קמהדע'], en: 'Kamada', sector: 'health' },
   // ── energy & utilities ───────────────────────────────────────────────────
   { symbol: 'ICL.TA', id: '281014', he: ['כיל', 'כימיקלים לישראל'], en: 'ICL Group', sector: 'energy' },
@@ -62,6 +63,7 @@ export const TASE = [
   { symbol: 'ENRG.TA', id: '1123355', he: ['אנרג׳יקס', "אנרג'יקס", 'אנרגיקס'], en: 'Energix', sector: 'energy' },
   { symbol: 'DORL.TA', he: ['דוראל', 'דוראל אנרגיה'], en: 'Doral Energy', sector: 'energy' },
   { symbol: 'OPCE.TA', id: '1141571', he: ['או.פי.סי אנרגיה', 'או פי סי', 'OPC'], en: 'OPC Energy', sector: 'energy' },
+  { symbol: 'DRAL.TA', id: '1093202', he: ['דור אלון', 'דור אלון אנרגיה'], en: 'Dor Alon', sector: 'energy' },
   { symbol: 'NOFR.TA', he: ['נופר אנרג׳י', "נופר אנרג'י", 'נופר'], en: 'Nofar Energy', sector: 'energy' },
   // ── consumer ─────────────────────────────────────────────────────────────
   { symbol: 'SAE.TA', id: '777037', he: ['שופרסל'], en: 'Shufersal', sector: 'consumer' },

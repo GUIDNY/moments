@@ -322,7 +322,23 @@ the town, Lucide for icons and Motion for the chrome's springs. No backend, no r
   never by name. A file with no header row falls back to the forgiving line reader in
   `importer.js`, which is what pasted and photographed tables go through. The real `data.xlsx`
   the user meant to attach never arrived; the parser is written to names, not positions, so a
-  column it does not know is a warning on the preview and not a wrong number. A broker export
+  column it does not know is a warning on the preview and not a wrong number. **The real
+  file arrived on day two** and taught the parser Meitav's actual layout: one sheet, header on
+  row 1 — "שם נייר, מספר נייר, סימבול, המלצות, סוג נייר, מטבע, כמות נוכחית, שער, % שינוי, שווי
+  נוכחי, רווח/הפסד יומי, שינוי מעלות (ב%, במטבע מקור), עלות, מחיר ממוצע, מחיר ממוצע במטבע
+  מקור, אחוז אחזקה". The truths that matter: `שווי`, `עלות` and the plain `מחיר ממוצע` are in
+  **shekels** for every row (the account's reporting currency), `מחיר ממוצע במטבע מקור` is in
+  the security's own currency and major units — that is the cost basis, and it says its unit,
+  so no agorot guessing for it (`costInAgorot: false`; InterCure down 78% fooled the live-price
+  heuristic); `שער` is dollars for a foreign row and agorot for a Tel Aviv one; `סוג נייר` says
+  which ("מניה זרה בחו״ל", "מניה ישראלית בחו״ל", "מניות בש״ח", "קרנות נאמנות זרות") and so does
+  the currency; `סימבול` is the ticker for a foreign row and a Hebrew short name ("אנלט") for a
+  Tel Aviv one, so only a Latin symbol is a symbol; `מספר נייר` is Meitav's own number for
+  foreign rows and the TASE id for Israeli ones; the cash row is typed "מט״ח מזומן", named by
+  its currency ("דולר ארה״ב") with the amount in `כמות`; "תפ״ס/פח״ק" (a tax shield) is not a
+  security. **A dollar-priced TEVA or ESLT is the New York listing**, not TEVA.TA: the row's
+  currency decides, and the Tel Aviv entry only lends its name and sector. **The file's own
+  symbol beats a name match**: GOOG and GOOGL are both "Alphabet Inc". A broker export
   is often several sections (shares, foreign, funds), each under its own header row with its own
   columns: the *first* header row starts the table and every later header row re-maps the
   columns; a row with a name and no number at all is a section title, not a security; an
