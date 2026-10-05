@@ -4,7 +4,7 @@ import { ArrowLeft, Camera, Check, FileSpreadsheet, Landmark, Loader2, Pencil, S
 import { useI18n } from '../../i18n/I18nContext';
 import { useCity } from '../../stocks/CityContext';
 import { BOARD_BY_SYMBOL, SECTOR_BY_ID } from '../../stocks/catalog';
-import { diffHoldings, parseBrokerFile, resolvePositions, toHoldings, validatePosition } from '../../stocks/broker';
+import { agorotFor, diffHoldings, parseBrokerFile, resolvePositions, toHoldings, validatePosition } from '../../stocks/broker';
 import { parseHoldingsText } from '../../stocks/importer';
 import { readScreenshot } from '../../stocks/ocr';
 import { formatMoney, formatPct, rateBetween, toMajor } from '../../stocks/money';
@@ -75,6 +75,7 @@ export default function ImportFlow({ open, onClose, onManual }) {
   const [source, setSource] = useState('generic');
   const [rows, setRows] = useState([]);
   const [fileCash, setFileCash] = useState([]);
+  const [headers, setHeaders] = useState(null); // the columns the file was read by; null when read line by line
   const [agorot, setAgorot] = useState(true);
   const [editing, setEditing] = useState(null);
   // a file with no cash row: start from the portfolio's own value (cash 0)
@@ -105,7 +106,8 @@ export default function ImportFlow({ open, onClose, onManual }) {
     setStep('connect');
     setProgress(null);
   };
-  const resolveAndPreview = async (positions, src, cash = []) => {
+  const resolveAndPreview = async (positions, src, cash = [], cols = null) => {
+    setHeaders(cols);
     setPhase('resolve');
     try {
       const resolved = await resolvePositions(positions);
@@ -135,7 +137,7 @@ export default function ImportFlow({ open, onClose, onManual }) {
       return fail('readFile');
     }
     if (!got) return fail('format');
-    await resolveAndPreview(got.positions, got.source, got.cash);
+    await resolveAndPreview(got.positions, got.source, got.cash, got.fallback ? null : got.headers);
   };
   const fromPhoto = async (e) => {
     const f = e.target.files?.[0];
@@ -178,7 +180,12 @@ export default function ImportFlow({ open, onClose, onManual }) {
   };
 
   /* ── preview numbers ──────────────────────────────────────────────────── */
-  const kept = rows.filter((r) => !r.removed);
+  const kept = rows.filter((r) => !r.removed).map((r) => {
+    const q = r.symbol ? quoteOf(r.symbol) : null;
+    const live = q && !q.error && Number.isFinite(q.price) ? toMajor(q.price, q.currency).price : null;
+    // agorot or shekels, per row, from the live price; the toggle when it cannot tell
+    return { ...r, agorot: agorotFor(r, live) ?? agorot };
+  });
   const holdingsOut = toHoldings(kept, { agorot });
   const priced = kept.map((r) => {
     const q = r.symbol ? quoteOf(r.symbol) : null;
@@ -202,7 +209,7 @@ export default function ImportFlow({ open, onClose, onManual }) {
   // what the portfolio is) or the purse as it is, as chosen
   const cashUsd = fileCash.length ? fileCashUsd : purse === 'portfolio' ? 0 : null;
   const shownCash = fileCash.length ? fileCashUsd : purse === 'portfolio' ? 0 : cash;
-  const warningsOf = (x) => validatePosition(x.r, x.livePrice != null && agorot && /\.TA$/i.test(x.r.symbol || '') ? x.livePrice * 100 : x.livePrice);
+  const warningsOf = (x) => validatePosition(x.r, x.livePrice != null && x.r.agorot && /\.TA$/i.test(x.r.symbol || '') ? x.livePrice * 100 : x.livePrice);
   const skipped = priced.filter((x) => warningsOf(x).some((w) => w === 'unknown' || w === 'qty')).length;
   const diff = holdings.length ? diffHoldings(holdings, holdingsOut) : null;
   const nameOf = (symbol) => loc(holdings.find((h) => h.symbol === symbol)?.name) || loc(rows.find((r) => r.symbol === symbol)?.display) || symbol;
@@ -293,6 +300,11 @@ export default function ImportFlow({ open, onClose, onManual }) {
         {step === 'preview' && (
           <>
             <p className="text-[12.5px] font-bold text-brand-deep">{source === 'meitav' ? t('preview.meitav') : t('preview.generic')}</p>
+            {headers && headers.length > 0 ? (
+              <p className="mt-1 text-[11.5px] text-paper-muted leading-snug">{t('preview.columns')}: {headers.map((h) => t(`col.${h}`)).join(' · ')}</p>
+            ) : (
+              <p className="mt-1 text-[11.5px] font-bold text-[#b8860b] leading-snug">{t('preview.noColumns')}</p>
+            )}
             <section className="mt-2 rounded-3xl bg-white border border-paper-200 shadow-card p-4 grid grid-cols-2 gap-3">
               <div>
                 <div className="text-[10.5px] font-black uppercase tracking-wide text-paper-muted">{t('preview.value')}</div>
@@ -339,7 +351,9 @@ export default function ImportFlow({ open, onClose, onManual }) {
                 const sector = SECTOR_BY_ID[r.sector];
                 const domain = BOARD_BY_SYMBOL[r.symbol]?.domain;
                 const isEditing = editing === r.id;
-                const cost = r.averagePrice != null ? (agorot && /\.TA$/i.test(r.symbol || '') ? r.averagePrice / 100 : r.averagePrice) : null;
+                const cost = r.averagePrice != null ? (r.agorot && /\.TA$/i.test(r.symbol || '') ? r.averagePrice / 100 : r.averagePrice) : null;
+                const resolvedName = loc(r.display) || r.name;
+                const renamed = r.status === 'ok' && resolvedName && resolvedName !== r.name;
                 const plPct = cost && x.livePrice != null ? ((x.livePrice - cost) / cost) * 100 : null;
                 return (
                   <li key={r.id} className={`rounded-3xl border bg-white px-3 py-2.5 ${r.removed ? 'opacity-50' : warnings.includes('unknown') ? 'border-[#e2706f]' : warnings.length ? 'border-[#f5c542]' : 'border-paper-200'}`}>
@@ -348,7 +362,8 @@ export default function ImportFlow({ open, onClose, onManual }) {
                         {domain ? <img src={`/api/logo?domain=${encodeURIComponent(domain)}`} alt="" className="w-6 h-6 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} /> : (r.symbol || '?').replace(/\.(TA|L)$/, '').slice(0, 5)}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[13.5px] font-black text-ink-900 truncate">{loc(r.display) || r.name}</span>
+                        <span className="block text-[13.5px] font-black text-ink-900 truncate">{resolvedName}</span>
+                        {renamed && <span className="block text-[10.5px] text-paper-muted truncate">{t('preview.inFile', { name: r.name })}</span>}
                         <span dir="ltr" className="block text-[11px] text-paper-muted truncate text-start">{r.symbol || '—'}{sector ? ` · ${loc(sector.name)}` : ''} · {t('preview.shares', { n: (r.quantity ?? 0).toLocaleString() })}</span>
                       </span>
                       <span className="shrink-0 text-end">
@@ -358,8 +373,12 @@ export default function ImportFlow({ open, onClose, onManual }) {
                         </span>
                       </span>
                     </div>
-                    {plPct != null && !r.removed && (
-                      <div className="mt-1 text-[11px] font-bold tabular-nums text-paper-muted">{t('preview.pl')}: <span style={{ color: moveColor(plPct) }}>{formatPct(plPct)}</span></div>
+                    {x.livePrice != null && !r.removed && (
+                      <div className="mt-1 text-[11px] font-bold tabular-nums text-paper-muted">
+                        {t('preview.live')}: <span className="text-ink-900">{formatMoney(x.livePrice, quoteOf(r.symbol) ? toMajor(quoteOf(r.symbol).price, quoteOf(r.symbol).currency).currency : 'USD')}</span>
+                        {cost != null && <> · {t('import.cost')}: <span className="text-ink-900">{formatMoney(cost, quoteOf(r.symbol) ? toMajor(quoteOf(r.symbol).price, quoteOf(r.symbol).currency).currency : 'USD')}</span></>}
+                        {plPct != null && <> · {t('preview.pl')}: <span style={{ color: moveColor(plPct) }}>{formatPct(plPct)}</span></>}
+                      </div>
                     )}
                     {warnings.length > 0 && !r.removed && (
                       <ul className="mt-1.5 space-y-0.5">

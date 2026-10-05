@@ -1,4 +1,5 @@
 import { BOARD, BOARD_BY_SYMBOL, sectorFor } from './catalog.js';
+import { TASE, TASE_BY_ID } from './tase.js';
 import { searchSymbols } from './market.js';
 import { parseHoldingsText } from './importer.js';
 
@@ -79,14 +80,16 @@ const str = (v) => (v == null ? '' : String(v).replace(/[‎‏]/g, '').trim());
  * start with a title, the account and the date before the table.
  */
 export function detectTable(rows) {
-  let best = null;
-  rows.slice(0, 40).forEach((row, at) => {
-    const fields = (row || []).map(fieldFor);
-    const hits = fields.filter(Boolean);
-    const score = new Set(hits).size;
-    if (score >= 2 && (fields.includes('name') || fields.includes('symbol')) && (!best || score > best.score)) best = { at, fields, score };
-  });
-  return best;
+  // the *first* header row wins: a later section's header (foreign stocks,
+  // funds) is picked up by `parseTable` as it goes, and would otherwise
+  // swallow every section before it
+  for (let at = 0; at < Math.min(rows.length, 60); at++) {
+    const row = rows[at] || [];
+    const fields = row.map(fieldFor);
+    const score = new Set(fields.filter(Boolean)).size;
+    if (score >= 2 && (fields.includes('name') || fields.includes('symbol')) && !row.some((c) => typeof c === 'number')) return { at, fields, score };
+  }
+  return null;
 }
 
 const CASH_ROW = /מזומן|מזומנים|יתרת מזומן|יתרה בשקלים|יתרה בדולר|cash|balance/i;
@@ -102,14 +105,25 @@ const BOND_WORDS = /אג[״"']?ח|bond|מק[״"']?מ|ממשלתי/i;
 export function parseTable(rows, { sheetName = '' } = {}) {
   const table = detectTable(rows);
   if (!table) return null;
-  const { at, fields } = table;
+  const { at } = table;
+  let fields = table.fields;
   const col = (field) => fields.indexOf(field);
   const get = (row, field) => (col(field) >= 0 ? row[col(field)] : undefined);
   const positions = [];
   const cash = [];
+  const seen = new Set(fields.filter(Boolean));
   for (let i = at + 1; i < rows.length; i++) {
     const row = rows[i] || [];
     if (!row.some((c) => str(c) !== '')) continue;
+    // a broker export is often several sections (shares, funds, bonds,
+    // foreign), each under its own header row with its own columns: a row
+    // that names two or more columns and carries no number is a new header
+    const rowFields = row.map(fieldFor);
+    if (new Set(rowFields.filter(Boolean)).size >= 2 && !row.some((c) => typeof c === 'number') && (rowFields.includes('name') || rowFields.includes('symbol'))) {
+      fields = rowFields;
+      rowFields.filter(Boolean).forEach((f) => seen.add(f));
+      continue;
+    }
     const name = str(get(row, 'name'));
     // Meitav puts a foreign stock's ticker in the "security number" column:
     // a number is a Tel Aviv security id, letters are a symbol
@@ -132,6 +146,8 @@ export function parseTable(rows, { sheetName = '' } = {}) {
     // column word ("נייר ...") is a security.
     if (fieldFor(label) && quantity == null && marketValue == null) continue;
     const marketPrice = num(get(row, 'marketPrice'));
+    // a section title ("מניות", "ניירות זרים"): a name and nothing else
+    if (quantity == null && marketValue == null && marketPrice == null) continue;
     const averagePrice = num(get(row, 'averagePrice'));
     const costBasis = num(get(row, 'costBasis'));
     positions.push({
@@ -156,7 +172,7 @@ export function parseTable(rows, { sheetName = '' } = {}) {
   }
   const headerText = (rows[at] || []).map(str).join(' ');
   const meitav = /מיטב|meitav/i.test(sheetName + ' ' + rows.slice(0, at).flat().map(str).join(' ')) || (/שם נייר/.test(headerText) && /מספר נייר|שער/.test(headerText));
-  return { source: meitav ? 'meitav' : 'generic', headers: fields.filter(Boolean), positions, cash, headerRow: at };
+  return { source: meitav ? 'meitav' : 'generic', headers: [...seen], positions, cash, headerRow: at };
 }
 
 function currencyOf(cell, label = '', exchange = '') {
@@ -185,7 +201,13 @@ function assetTypeOf(cell, label) {
 /** Every sheet of a workbook as arrays of rows. */
 export async function readWorkbook(file) {
   const XLSX = await import('xlsx');
-  const book = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: false });
+  const buf = await file.arrayBuffer();
+  // many Israeli brokers' "export to Excel" is an HTML table saved as .xls;
+  // SheetJS reads it, but only when told it is text
+  const head = new TextDecoder('utf-8', { fatal: false }).decode(buf.slice(0, 512)).replace(/^\ufeff/, '').trimStart();
+  const book = /^</.test(head)
+    ? XLSX.read(new TextDecoder('utf-8').decode(buf), { type: 'string', cellDates: false })
+    : XLSX.read(buf, { type: 'array', cellDates: false });
   return book.SheetNames.map((name) => ({ name, rows: XLSX.utils.sheet_to_json(book.Sheets[name], { header: 1, raw: true, blankrows: false, defval: null }) }));
 }
 
@@ -222,28 +244,60 @@ export async function parseBrokerFile(file) {
 
 /* ── resolving ───────────────────────────────────────────────────────────── */
 
-const norm = (s) =>
+/* A name as words: lower-case, the company suffixes dropped ("בע״מ",
+   "Ltd", "מניות רגילות"), punctuation gone. Matching is by *whole words*
+   from the start — "בנק הפועלים בע״מ" is Hapoalim, "אפלייד מטיריאלס" is not
+   Apple — because a substring match once turned every "אפל…" into Apple. */
+const SUFFIX = /\b(בע["״']?מ|בעמ|ltd\.?|limited|inc\.?|corp\.?|plc|co\.?|מניות|רגילות|מניה|יחידות|השתתפות|בעמ)\b/gi;
+const words = (s) =>
   String(s || '')
     .toLowerCase()
-    .replace(/בע["״']?מ|ltd\.?|inc\.?|corp\.?|plc|בעמ/g, '')
-    .replace(/[^\p{L}\p{N}]+/gu, '')
-    .trim();
+    .replace(/[\u200e\u200f\u202a-\u202e]/g, '')
+    .replace(/[״"']/g, '')
+    .replace(SUFFIX, ' ')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .split(' ')
+    .filter(Boolean);
 
-function fromCatalog(name, symbol) {
-  if (symbol && BOARD_BY_SYMBOL[symbol]) return BOARD_BY_SYMBOL[symbol];
-  if (symbol && BOARD_BY_SYMBOL[`${symbol}.TA`]) return BOARD_BY_SYMBOL[`${symbol}.TA`];
-  const n = norm(name);
-  if (n.length < 3) return null;
-  let best = null;
-  for (const b of BOARD) {
-    for (const v of [b.name.he, b.name.en, b.symbol.replace(/\.(TA|L)$/, '')]) {
-      const m = norm(v);
-      if (!m) continue;
-      if (m === n) return b;
-      if ((m.includes(n) || n.includes(m)) && m.length >= 3 && (!best || m.length > norm(best.name.he).length)) best = b;
-    }
+/** Does `alias` name `name`? Equal word lists, or one the first words of the other (alias ≥ 2 letters, name ≥ alias). */
+function sameName(name, alias) {
+  const a = words(alias);
+  const n = words(name);
+  if (!a.length || !n.length) return false;
+  if (a.join(' ') === n.join(' ')) return true;
+  // the file's name carries more ("טבע תעשיות פרמצבטיות"): the alias leads it
+  if (n.length > a.length && a.every((w, i) => n[i] === w) && a.join('').length >= 3) return true;
+  // the file's name is shorter ("פועלים" for "בנק הפועלים"): handled by aliases, not guessed
+  return false;
+}
+
+const ALL = [
+  ...BOARD.map((b) => ({ symbol: b.symbol, sector: b.sector, names: [b.name.he, b.name.en, b.symbol.replace(/\.(TA|L)$/, '')], display: b.name, market: b.market })),
+  ...TASE.map((x) => ({ symbol: x.symbol, sector: x.sector, names: [...x.he, x.en], display: { he: x.he[0], en: x.en }, market: 'il', id: x.id })),
+];
+
+/**
+ * The company a row names, from the board and the Tel Aviv list: by symbol
+ * first, then by name (whole words), then by TASE security number. Null
+ * when nothing matches — never a guess.
+ */
+function fromCatalog(name, symbol, securityId) {
+  if (symbol) {
+    const hit = ALL.find((x) => x.symbol === symbol || x.symbol === `${symbol}.TA`);
+    if (hit) return hit;
   }
-  return best;
+  if (name) {
+    const exact = ALL.find((x) => x.names.some((v) => words(v).join(' ') === words(name).join(' ')));
+    if (exact) return exact;
+    const leads = ALL.find((x) => x.names.some((v) => sameName(name, v)));
+    if (leads) return leads;
+  }
+  if (securityId && TASE_BY_ID[securityId]) {
+    const x = TASE_BY_ID[securityId];
+    return ALL.find((y) => y.symbol === x.symbol) ?? null;
+  }
+  return null;
 }
 
 /**
@@ -255,8 +309,8 @@ function fromCatalog(name, symbol) {
 export async function resolvePositions(positions) {
   return Promise.all(
     positions.map(async (p) => {
-      const hit = fromCatalog(p.name, p.symbol);
-      if (hit) return { ...p, symbol: hit.symbol, sector: hit.sector, display: hit.name, status: 'ok', currency: p.currency ?? (hit.market === 'il' ? 'ILS' : 'USD') };
+      const hit = fromCatalog(p.name, p.symbol, p.securityId);
+      if (hit) return { ...p, symbol: hit.symbol, sector: hit.sector, display: hit.display, status: 'ok', currency: p.currency ?? (hit.market === 'il' ? 'ILS' : 'USD') };
       if (p.symbol && /^[A-Z][A-Z0-9.-]{0,11}$/.test(p.symbol)) {
         const sym = p.securityId && !/\./.test(p.symbol) && /^\d{5,8}$/.test(p.securityId) ? `${p.symbol}.TA` : p.symbol;
         return { ...p, symbol: sym, sector: sectorFor(sym, { kind: p.assetType === 'etf' ? 'ETF' : undefined }), display: { he: p.name, en: p.name }, status: 'guess', currency: p.currency ?? (/\.TA$/.test(sym) ? 'ILS' : 'USD') };
@@ -295,10 +349,26 @@ export function toHoldings(positions, { agorot = true } = {}) {
     .map((p) => ({
       symbol: p.symbol.toUpperCase(),
       qty: p.quantity,
-      cost: p.averagePrice != null && p.averagePrice > 0 ? (agorot && /\.TA$/i.test(p.symbol) ? p.averagePrice / 100 : p.averagePrice) : null,
+      cost: p.averagePrice != null && p.averagePrice > 0 ? ((p.agorot ?? agorot) && /\.TA$/i.test(p.symbol) ? p.averagePrice / 100 : p.averagePrice) : null,
       sector: p.sector,
       name: p.display ?? { he: p.name, en: p.name },
     }));
+}
+
+/**
+ * Is a Tel Aviv cost written in agorot or in shekels? The file does not
+ * say; the live price does. A cost that lands within a factor of four of
+ * the live price *after* dividing by a hundred is agorot; one that lands
+ * there as it is was already in shekels (Meitav shows both, by screen).
+ * Null when the price is unknown or neither reading is near: the toggle
+ * decides then, and the preview flags the cost.
+ */
+export function agorotFor(position, livePriceMajor) {
+  if (!/\.TA$/i.test(position.symbol || '') || !(position.averagePrice > 0) || !(livePriceMajor > 0)) return null;
+  const near = (v) => v >= livePriceMajor / 4 && v <= livePriceMajor * 4;
+  if (near(position.averagePrice / 100)) return true;
+  if (near(position.averagePrice)) return false;
+  return null;
 }
 
 /* ── reimport ────────────────────────────────────────────────────────────── */

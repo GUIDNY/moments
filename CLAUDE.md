@@ -322,7 +322,22 @@ the town, Lucide for icons and Motion for the chrome's springs. No backend, no r
   never by name. A file with no header row falls back to the forgiving line reader in
   `importer.js`, which is what pasted and photographed tables go through. The real `data.xlsx`
   the user meant to attach never arrived; the parser is written to names, not positions, so a
-  column it does not know is a warning on the preview and not a wrong number.
+  column it does not know is a warning on the preview and not a wrong number. A broker export
+  is often several sections (shares, foreign, funds), each under its own header row with its own
+  columns: the *first* header row starts the table and every later header row re-maps the
+  columns; a row with a name and no number at all is a section title, not a security; an
+  "Excel" that is really an HTML table (the common Israeli export) is read as text.
+  **Yahoo's search knows no Hebrew and no TASE security numbers** (tested: "בנק הפועלים",
+  "טבע", "662577" all return nothing), so a Meitav row can only be resolved against a list we
+  carry: `stocks/tase.js`, the TA-125 and what Israeli portfolios hold, each with its Yahoo
+  symbol (every one checked against the quote proxy), the Hebrew names brokers print and the
+  security number where known (a *second* key, used when the name fails). Names match by whole
+  words from the start, never by substring — a substring match turned "אפלייד" into Apple. The
+  preview shows the resolved company and, when it differs, the file's own name, the live price
+  and the cost, so a wrong match is seen. **Agorot are decided per row from the live price**
+  (`agorotFor`: a cost within 4× of the price after ÷100 is agorot, as it is is shekels, neither
+  leaves the toggle to decide and flags the cost) — a global checkbox got Meitav's shekel-priced
+  screens wrong.
   `ui/game/ImportFlow` is the whole journey on one screen: connect (Meitav, Excel/CSV,
   screenshot, manual, demo, paste) → reading phases → preview (value, day, assets, cash, a card
   per row with edit/remove and its warnings, agorot toggle, and **what changes in the city** —

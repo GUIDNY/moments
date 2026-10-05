@@ -97,6 +97,7 @@ export const MARKETS = [
 export function sectorFor(symbol, hint = {}) {
   const known = BOARD_BY_SYMBOL[symbol];
   if (known) return known.sector;
+  if (hint.sector) return hint.sector;
   if (hint.kind === 'REIT') return 'realestate';
   if (hint.kind === 'ETF' || hint.kind === 'INDEX' || hint.kind === 'MUTUALFUND') return 'other';
   if (hint.kind === 'CRYPTOCURRENCY') return 'other';
