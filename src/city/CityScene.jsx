@@ -25,7 +25,7 @@ import StockBuilding from './StockBuilding';
  * Nothing in here knows about brokers, prices or trades; swap the data
  * layer and this file does not change.
  */
-export default function CityScene({ compact, selected, onSelectBuilding, onSelectHQ, onSelectNews, visiting = null }) {
+export default function CityScene({ compact, selected, district = null, onSelectBuilding, onSelectDistrict, onSelectHQ, onSelectNews, visiting = null }) {
   const city = useCity();
   const source = visiting ?? city;
   const { holdings, positions, totalUsd, cash, progress, trades, marketOpen, lastDividend, history } = source;
@@ -77,7 +77,7 @@ export default function CityScene({ compact, selected, onSelectBuilding, onSelec
     if (typeof window === 'undefined') return;
     window.__buildings = plan.buildings.map((b) => ({ symbol: b.symbol, cx: b.cx, cz: b.cz, sector: b.sector, share: b.share }));
     window.__hq = plan.hq;
-    window.__plan = { size: plan.size, districts: plan.districts.map((d) => ({ sector: d.sector, used: d.used, label: d.label })) };
+    window.__plan = { size: plan.size, districts: plan.districts.map((d) => ({ sector: d.sector, used: d.used, label: d.label, cx: d.cx, cz: d.cz, span: Math.max(d.x1 - d.x0, d.y1 - d.y0) + 2 })) };
   }, [plan]);
 
   // a dividend: coins fly from the company to the treasury
@@ -112,7 +112,7 @@ export default function CityScene({ compact, selected, onSelectBuilding, onSelec
         <CityGrid plan={plan} />
         <Decor plan={plan} level={level} open={marketOpen} unlocked={progress?.unlocked ?? []} />
         {plan.districts.map((d) => (
-          <SectorDistrict key={d.sector} district={d} />
+          <SectorDistrict key={d.sector} district={d} selected={district === d.sector} onSelect={onSelectDistrict} />
         ))}
         <PortfolioHQ hq={plan.hq} totalUsd={totalUsd} baseUsd={baseUsd} onSelect={onSelectHQ} />
         {/* the cash, as a building: the treasury beside the plaza */}

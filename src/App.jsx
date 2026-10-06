@@ -10,7 +10,7 @@ import { levelFor, xpFor } from './stocks/xp';
 import { formatMoney } from './stocks/money';
 import InsightCard from './ui/game/InsightCard';
 import CityScene from './city/CityScene';
-import { goHome, zoomBy } from './world3d/focus';
+import { frame, goHome, zoomBy } from './world3d/focus';
 import { LocateFixed, Minus, Newspaper, Plus, Upload } from 'lucide-react';
 import Toast from './ui/Toast';
 import BottomNavigation from './ui/game/BottomNavigation';
@@ -19,6 +19,7 @@ import PortfolioHUD from './ui/game/PortfolioHUD';
 import PortfolioView from './ui/game/PortfolioView';
 import FriendsScreen from './ui/game/FriendsScreen';
 import StockInfoPanel from './ui/game/StockInfoPanel';
+import DistrictSheet from './ui/game/DistrictSheet';
 import NewsSheet from './ui/game/NewsSheet';
 import ImportFlow from './ui/game/ImportFlow';
 import Onboarding from './ui/game/Onboarding';
@@ -52,6 +53,7 @@ export default function App() {
 
   const [tab, setTab] = useState('city');
   const [selected, setSelected] = useState(null); // symbol of the open building
+  const [district, setDistrict] = useState(null); // sector id of the open neighbourhood
   const [badgesOpen, setBadgesOpen] = useState(false);
   const [learnOpen, setLearnOpen] = useState(false);
   const [newsOpen, setNewsOpen] = useState(false);
@@ -130,14 +132,30 @@ export default function App() {
     setSelected(null);
     setTab('market');
   }, []);
-  const onSelectBuilding = useCallback((b) => setSelected(b ? b.symbol : null), []);
+  const onSelectBuilding = useCallback((b) => {
+    setDistrict(null);
+    setSelected(b ? b.symbol : null);
+  }, []);
+  // a tap on a district's name: the camera goes in, the neighbourhood's sheet opens
+  const onSelectDistrict = useCallback((d) => {
+    setSelected(null);
+    setDistrict(d.sector);
+    frame(d.cx, d.cz, Math.max(d.x1 - d.x0, d.y1 - d.y0) + 2);
+  }, []);
+  const openDistrict = useCallback((sector) => {
+    const d = window.__plan?.districts?.find((x) => x.sector === sector);
+    setTab('city');
+    setSelected(null);
+    setDistrict(sector);
+    if (d) frame(d.cx, d.cz, d.span);
+  }, []);
   const level = levelFor(xpFor(progress, { holdings, trades, positions, totalUsd }));
 
   return (
     <div className="absolute inset-0 bg-[#9ec877] overflow-hidden">
       {/* the city is always mounted: switching tabs must not rebuild it */}
       <div className={tab === 'city' ? 'absolute inset-0' : 'absolute inset-0 invisible'}>
-        <CityScene compact={compact} selected={selected} onSelectBuilding={onSelectBuilding} onSelectHQ={() => setTab('portfolio')} onSelectNews={() => setNewsOpen(true)} />
+        <CityScene compact={compact} selected={selected} district={district} onSelectBuilding={onSelectBuilding} onSelectDistrict={onSelectDistrict} onSelectHQ={() => setTab('portfolio')} onSelectNews={() => setNewsOpen(true)} />
         <CityProfile name={isShared ? visitedMeta?.name || null : city.name || null} level={isShared ? visitedMeta?.level ?? 1 : level.level} onTap={() => setTab('portfolio')} />
         <PortfolioHUD
           totalUsd={totalUsd}
@@ -151,7 +169,7 @@ export default function App() {
           open={marketOpen}
           onOpen={() => setTab('portfolio')}
         />
-        {!selected && <InsightCard onLesson={readLesson} onLearn={() => setLearnOpen(true)} />}
+        {!selected && !district && <InsightCard onLesson={readLesson} onLearn={() => setLearnOpen(true)} />}
         {holdings.length > 0 && (
           <div className="absolute z-30 start-3 md:start-4 top-[calc(3.6rem+env(safe-area-inset-top,0px))] md:top-16 pointer-events-none">
             <HealthChip onOpen={() => setHealthOpen(true)} />
@@ -176,6 +194,7 @@ export default function App() {
             </div>
           </div>
         )}
+        {district && !selected && <DistrictSheet sector={district} onClose={() => setDistrict(null)} onOpenStock={(sym) => { setDistrict(null); setSelected(sym); }} onLesson={readLesson} />}
         {selected && <StockInfoPanel symbol={selected} onClose={() => setSelected(null)} readOnly={isShared} onNews={(sym) => { setNewsSymbol(sym); setNewsOpen(true); }} onPortfolio={() => { setSelected(null); setTab('portfolio'); }} />}
       </div>
 
@@ -191,6 +210,7 @@ export default function App() {
           onHealth={() => setHealthOpen(true)}
           onNews={(sym) => { setNewsSymbol(sym ?? null); setNewsOpen(true); }}
           onAccount={() => setAccountOpen(true)}
+          onOpenSector={openDistrict}
         />
       )}
       {tab === 'market' && (
@@ -201,7 +221,7 @@ export default function App() {
       {tab === 'rankings' && <FriendsScreen mode="rankings" onAccount={() => setAccountOpen(true)} />}
       {tab === 'friends' && <FriendsScreen mode="friends" onAccount={() => setAccountOpen(true)} />}
 
-      <BottomNavigation active={tab} onChange={(id) => { setSelected(null); setTab(id); }} />
+      <BottomNavigation active={tab} onChange={(id) => { setSelected(null); setDistrict(null); setTab(id); }} />
 
       <BadgesScreen open={badgesOpen} onClose={() => setBadgesOpen(false)} />
       <LearnScreen open={learnOpen} initialTab={learnTab} onClose={() => setLearnOpen(false)} />

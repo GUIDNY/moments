@@ -1,4 +1,4 @@
-import { ArrowDownUp, BookOpen, Download, Trophy, Upload, UserCircle2 } from 'lucide-react';
+import { ArrowDownUp, BookOpen, Download, MapPin, Trophy, Upload, UserCircle2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useI18n } from '../../i18n/I18nContext';
 import { SECTORS, SECTOR_BY_ID } from '../../stocks/catalog';
@@ -44,7 +44,7 @@ const chip = (on) => `h-9 px-3 rounded-xl text-[12.5px] font-bold border transit
  * tasks, the holdings sorted and filtered the way the reader wants, the
  * trades. Tap a row and the city view opens on that building.
  */
-export default function PortfolioView({ onOpenStock, onBuy, onLearn, onBadges, onImport, onHealth, onNews, onGlossary, onLesson, onAccount }) {
+export default function PortfolioView({ onOpenStock, onBuy, onLearn, onBadges, onImport, onHealth, onNews, onGlossary, onLesson, onAccount, onOpenSector }) {
   const { t, loc } = useI18n();
   const { holdings, positions, positionOf, summary, cash, totalUsd, history, trades, progress, nextMission, isShared, resetGame, doDaily, account } = useCity();
   const [sort, setSort] = useState('sector');
@@ -238,7 +238,12 @@ export default function PortfolioView({ onOpenStock, onBuy, onLearn, onBadges, o
                   <button type="button" onClick={() => setSectorFilter(sectorFilter === sector?.id ? null : sector?.id)} className="w-full text-start">
                     <span className="flex items-center justify-between text-[12.5px]">
                       <span className="font-black text-ink-900 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: sector?.color }} />{loc(sector?.name)}</span>
-                      <span className="font-bold tabular-nums text-paper-muted">{formatMoney(usd, 'USD', true)} · <span className="text-ink-900">{pct.toFixed(0)}%</span></span>
+                      <span className="font-bold tabular-nums text-paper-muted inline-flex items-center gap-2">
+                        {formatMoney(usd, 'USD', true)} · <span className="text-ink-900">{pct.toFixed(0)}%</span>
+                        {!isShared && onOpenSector && sector && (
+                          <span role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); onOpenSector(sector.id); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onOpenSector(sector.id); } }} aria-label={t('district.visit', { name: loc(sector.name) })} className="inline-flex items-center gap-1 h-7 px-2 rounded-lg bg-paper-50 border border-paper-200 text-[11px] font-black text-ink-900"><MapPin size={12} aria-hidden="true" />{t('district.go')}</span>
+                        )}
+                      </span>
                     </span>
                     <span className="block mt-1 h-2 rounded-full bg-paper-100 overflow-hidden">
                       <span className="block h-full rounded-full" style={{ width: `${pct}%`, background: sector?.color }} />

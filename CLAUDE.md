@@ -258,6 +258,18 @@ the town, Lucide for icons and Motion for the chrome's springs. No backend, no r
   relays the Supabase calls through Node because the headless browser cannot verify the
   session proxy's certificate; it seeds localStorage only *after* the app has mounted, because
   the app's first save otherwise overwrites the seed with an empty city.
+- **A district can be entered.** A tap on a district's name pill (`SectorDistrict`, `tapHandlers`
+  like a building) or the "לשכונה" chip on a row of the portfolio's allocation frames the
+  neighbourhood (`focus.frame`: the zoom that fits its span on the shorter side of the screen,
+  so a phone zooms *out* a little to show the whole district and a desktop zooms in) and opens
+  `DistrictSheet`: the district's dollar value, its share of the city, today's move, the gain
+  since its buildings were bought, a three-month line and the buildings by weight. The
+  arithmetic is `stocks/districts.js`, read from the same priced positions as the HUD; the
+  line is each position's closes × quantity × dollar rate summed, a position with no series
+  held flat at today's value. One sentence says what the neighbourhood is doing (over 40% of
+  the city → the concentration lesson; else who moved it today; else a quiet day). A row
+  opens the building's card; "back to the whole city" is `goHome`. The sheet is the
+  building card's shell, capped at 64vh on a phone so the district stays in view above it.
 - **The market screen is a glance, not a terminal:** open/closed, four index tiles, the
   portfolio's three biggest movers today, the watchlist (a star on any row; `state.watchlist`,
   no building until bought), then the board. **Daily tasks** (`learn/daily.js`): two a day by

@@ -225,6 +225,7 @@ export default function CityCamera({ centre, size, compact }) {
     el.addEventListener('touchend', onTouchEnd);
     el.addEventListener('touchcancel', onTouchEnd);
     // handy from the console, and how the browser tests aim at a building
+    window.__camera = camera;
     window.__project = (x, z, y = 0) => {
       const p = new THREE.Vector3(x, y, z).project(camera);
       return { x: ((p.x + 1) / 2) * el.clientWidth, y: ((1 - p.y) / 2) * el.clientHeight };
@@ -265,7 +266,7 @@ export default function CityCamera({ centre, size, compact }) {
       const wasZ = t.z;
       t.x += (focus.at.x - t.x) * Math.min(1, delta * 5);
       t.z += (focus.at.z - t.z) * Math.min(1, delta * 5);
-      const wantZoom = focus.zoomTo ?? (focus.dist ? Math.min(maxZoom.current, minZoom.current * focus.dist) : null);
+      const wantZoom = focus.zoomTo ? Math.max(minZoom.current, Math.min(maxZoom.current, focus.zoomTo)) : focus.dist ? Math.min(maxZoom.current, minZoom.current * focus.dist) : null;
       if (wantZoom) zoomRef.current += (wantZoom - zoomRef.current) * Math.min(1, delta * 5);
       clampRef.current?.(t);
       // arrived, or as near as the clamp allows: the fly-to is over
