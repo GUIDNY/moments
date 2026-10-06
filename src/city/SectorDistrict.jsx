@@ -37,7 +37,7 @@ export default function SectorDistrict({ district, selected = false, onSelect })
   const k = selected ? 1.18 : 1;
   // at the shore end of the lane through the district, clear of its plots
   return (
-    <sprite position={[district.label.x, selected ? 0.9 : 0.7, district.label.z]} scale={[2.7 * k, 0.5 * k, 1]} {...tap}>
+    <sprite position={[district.label.x, selected ? 0.9 : 0.7, district.label.z]} scale={[3.3 * k, 0.61 * k, 1]} {...tap}>
       <spriteMaterial map={tex} transparent depthTest={false} toneMapped={false} />
     </sprite>
   );

@@ -20,6 +20,7 @@ import PortfolioView from './ui/game/PortfolioView';
 import FriendsScreen from './ui/game/FriendsScreen';
 import StockInfoPanel from './ui/game/StockInfoPanel';
 import DistrictSheet from './ui/game/DistrictSheet';
+import DistrictBar from './ui/game/DistrictBar';
 import NewsSheet from './ui/game/NewsSheet';
 import ImportFlow from './ui/game/ImportFlow';
 import Onboarding from './ui/game/Onboarding';
@@ -170,6 +171,8 @@ export default function App() {
           onOpen={() => setTab('portfolio')}
         />
         {!selected && !district && <InsightCard onLesson={readLesson} onLearn={() => setLearnOpen(true)} />}
+        {/* the neighbourhoods, in reach of the thumb */}
+        {holdings.length > 0 && !selected && !welcome && <DistrictBar selected={district} onSelect={openDistrict} />}
         {holdings.length > 0 && (
           <div className="absolute z-30 start-3 md:start-4 top-[calc(3.6rem+env(safe-area-inset-top,0px))] md:top-16 pointer-events-none">
             <HealthChip onOpen={() => setHealthOpen(true)} />

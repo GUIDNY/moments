@@ -50,7 +50,7 @@ export default function InsightCard({ onLesson, onLearn }) {
       initial={{ y: 16, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-      className="ui-layer absolute z-30 start-3 end-[4.25rem] md:end-auto md:w-[360px] bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:bottom-24"
+      className="ui-layer absolute z-30 start-3 end-[4.25rem] md:end-auto md:w-[360px] bottom-[calc(7.75rem+env(safe-area-inset-bottom,0px))] md:bottom-[9rem]"
     >
       <div className="rounded-2xl bg-white/95 backdrop-blur-md border border-paper-200 shadow-card p-3 flex items-start gap-2.5 text-ink-900">
         <span className="w-8 h-8 shrink-0 rounded-xl bg-[#f5c542]/25 text-[#b8860b] grid place-items-center"><Lightbulb size={17} strokeWidth={2.4} aria-hidden="true" /></span>

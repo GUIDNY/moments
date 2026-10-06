@@ -49,3 +49,7 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* a row of chips that scrolls sideways without drawing a bar */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

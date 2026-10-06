@@ -270,6 +270,9 @@ the town, Lucide for icons and Motion for the chrome's springs. No backend, no r
   the city → the concentration lesson; else who moved it today; else a quiet day). A row
   opens the building's card; "back to the whole city" is `goHome`. The sheet is the
   building card's shell, capped at 64vh on a phone so the district stays in view above it.
+  The user did not find the pills, so `DistrictBar` is a row of chips over the city above the
+  bottom bar (every district with a building, biggest first, with its share), always in reach
+  of the thumb; the insight card sits above it. The board's pills are bigger too (3.3 × 0.61).
 - **The market screen is a glance, not a terminal:** open/closed, four index tiles, the
   portfolio's three biggest movers today, the watchlist (a star on any row; `state.watchlist`,
   no building until bought), then the board. **Daily tasks** (`learn/daily.js`): two a day by
